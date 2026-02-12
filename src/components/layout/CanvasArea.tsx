@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
-import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent, KeyboardEvent as ReactKeyboardEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { CanvasManager } from '@/renderer/canvas-manager.ts';
 import { Camera } from '@/renderer/camera.ts';
 import { RenderLoop } from '@/renderer/render-loop.ts';
@@ -132,6 +132,12 @@ export function CanvasArea() {
   // Track isometric rotation drag
   const isIsoRotating = useRef(false);
   const lastIsoRotateX = useRef(0);
+
+  // Touch support
+  const touchCount = useRef(0);
+  const lastTouchPos = useRef({ x: 0, y: 0 });
+  const lastPinchDist = useRef(0);
+  const isTouchDrawing = useRef(false);
 
   // -----------------------------------------------------------------------
   // Render function
@@ -1473,6 +1479,103 @@ export function CanvasArea() {
   }, []);
 
   // -----------------------------------------------------------------------
+  // Touch event handlers (mobile support)
+  // -----------------------------------------------------------------------
+
+  const getTouchWorldPos = useCallback((touch: React.Touch) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const sx = touch.clientX - rect.left;
+    const sy = touch.clientY - rect.top;
+    return cameraRef.current.screenToWorld({ x: sx, y: sy });
+  }, []);
+
+  const handleTouchStart = useCallback((e: ReactTouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touches = e.touches;
+    touchCount.current = touches.length;
+
+    if (touches.length === 2) {
+      // Two-finger: start pan + pinch zoom
+      isTouchDrawing.current = false;
+      const mx = (touches[0].clientX + touches[1].clientX) / 2;
+      const my = (touches[0].clientY + touches[1].clientY) / 2;
+      lastTouchPos.current = { x: mx, y: my };
+      const dx = touches[1].clientX - touches[0].clientX;
+      const dy = touches[1].clientY - touches[0].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
+    } else if (touches.length === 1) {
+      // One finger: use current tool (like mouse click)
+      isTouchDrawing.current = true;
+      lastTouchPos.current = { x: touches[0].clientX, y: touches[0].clientY };
+      const worldPos = getTouchWorldPos(touches[0]);
+      useUIStore.getState().setCursorPos(worldPos);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const screenPos = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+        toolManager.onMouseDown(worldPos, screenPos, e.nativeEvent as unknown as MouseEvent);
+      }
+    }
+  }, [getTouchWorldPos]);
+
+  const handleTouchMove = useCallback((e: ReactTouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touches = e.touches;
+
+    if (touches.length === 2) {
+      // Two-finger: pan + pinch zoom
+      const mx = (touches[0].clientX + touches[1].clientX) / 2;
+      const my = (touches[0].clientY + touches[1].clientY) / 2;
+      const dx = mx - lastTouchPos.current.x;
+      const dy = my - lastTouchPos.current.y;
+      lastTouchPos.current = { x: mx, y: my };
+      useUIStore.getState().panBy(dx, dy);
+
+      // Pinch zoom
+      const pinchDx = touches[1].clientX - touches[0].clientX;
+      const pinchDy = touches[1].clientY - touches[0].clientY;
+      const dist = Math.hypot(pinchDx, pinchDy);
+      if (lastPinchDist.current > 0) {
+        const scale = dist / lastPinchDist.current;
+        const ui = useUIStore.getState();
+        ui.setZoom(ui.zoom * scale);
+      }
+      lastPinchDist.current = dist;
+      useUIStore.getState().markDirty();
+    } else if (touches.length === 1 && isTouchDrawing.current) {
+      // One finger: move with current tool
+      const worldPos = getTouchWorldPos(touches[0]);
+      useUIStore.getState().setCursorPos(worldPos);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const screenPos = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+        toolManager.onMouseMove(worldPos, screenPos, e.nativeEvent as unknown as MouseEvent);
+      }
+      useUIStore.getState().markDirty();
+    }
+  }, [getTouchWorldPos]);
+
+  const handleTouchEnd = useCallback((e: ReactTouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (isTouchDrawing.current && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const worldPos = getTouchWorldPos(touch);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const screenPos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+        toolManager.onMouseUp(worldPos, screenPos, e.nativeEvent as unknown as MouseEvent);
+      }
+    }
+    isTouchDrawing.current = false;
+    touchCount.current = e.touches.length;
+    lastPinchDist.current = 0;
+  }, [getTouchWorldPos]);
+
+  // -----------------------------------------------------------------------
   // Keyboard event handlers
   // -----------------------------------------------------------------------
 
@@ -1689,13 +1792,17 @@ export function CanvasArea() {
         ref={canvasRef}
         className="w-full h-full block outline-none"
         tabIndex={0}
-        style={{ cursor: canvasCursor }}
+        style={{ cursor: canvasCursor, touchAction: 'none' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       />
     </div>
   );

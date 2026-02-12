@@ -3,8 +3,11 @@ import { useUIStore } from '@/store/ui-store.ts';
 import { useTranslation } from '@/utils/i18n.ts';
 
 // ---------------------------------------------------------------------------
-// SuggestionDialog — In-app feedback form powered by Netlify Forms
+// SuggestionDialog — In-app feedback form powered by FormSubmit.co
+// Sends submissions directly to email — no backend required
 // ---------------------------------------------------------------------------
+
+const FORMSUBMIT_URL = 'https://formsubmit.co/ajax/aad1972@gmail.com';
 
 export default function SuggestionDialog() {
   const close = useUIStore((s) => s.setSuggestionDialogOpen);
@@ -21,17 +24,19 @@ export default function SuggestionDialog() {
 
     setStatus('sending');
     try {
-      const body = new URLSearchParams({
-        'form-name': 'suggestions',
-        name: name.trim(),
-        email: email.trim(),
-        message: message.trim(),
-      });
-
-      const res = await fetch('/form-thank-you.html', {
+      const res = await fetch(FORMSUBMIT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim() || '(anonymous)',
+          email: email.trim() || '(not provided)',
+          message: message.trim(),
+          _subject: 'EasyPlans — New Suggestion',
+          _template: 'table',
+        }),
       });
 
       if (res.ok) {
@@ -112,13 +117,8 @@ export default function SuggestionDialog() {
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              {/* Honeypot for bots */}
-              <input type="hidden" name="form-name" value="suggestions" />
-              <p style={{ display: 'none' }}>
-                <label>
-                  Don&apos;t fill this out: <input name="bot-field" />
-                </label>
-              </p>
+              {/* FormSubmit.co honeypot */}
+              <input type="text" name="_honey" style={{ display: 'none' }} />
 
               {/* Name (optional) */}
               <div style={{ marginBottom: 14 }}>
