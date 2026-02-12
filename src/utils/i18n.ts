@@ -201,6 +201,17 @@ const dict: Record<string, { en: string; es: string }> = {
   'stairDir.up': { en: 'Up', es: 'Sube' },
   'stairDir.down': { en: 'Down', es: 'Baja' },
 
+  // -- Floor names --
+  'floor.ground': { en: 'Ground Floor', es: 'Planta Baja' },
+  'floor.level': { en: 'Floor', es: 'Piso' },
+
+  // -- Stair labels --
+  'stair.up': { en: 'UP', es: 'SUBE' },
+  'stair.down': { en: 'DN', es: 'BAJA' },
+
+  // -- Room default label --
+  'room.default': { en: 'Room', es: 'Cuarto' },
+
   // -- Misc --
   'ui.delete': { en: 'Delete', es: 'Eliminar' },
   'ui.reset': { en: 'Reset', es: 'Restablecer' },

@@ -22,6 +22,7 @@ import type { ArchLineStyle, StairStyle, AnyElement, FillPattern, WallFillPatter
 import { roomPatternFns, wallPatternFns } from '@/renderer/layers/pattern-library.ts';
 import { stampRegistry } from '@/library/index.ts';
 import { toolManager } from '@/tools/tool-manager.ts';
+import { t } from '@/utils/i18n.ts';
 import { generateCrossSection } from '@/engine/views/cross-section.ts';
 import { generateFacade } from '@/engine/views/facade.ts';
 import { generateIsometricView } from '@/engine/views/isometric.ts';
@@ -797,7 +798,7 @@ export function CanvasArea() {
         ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(stair.direction === 'up' ? 'UP' : 'DN', w / 2, l * 0.9);
+        ctx.fillText(stair.direction === 'up' ? t('stair.up') : t('stair.down'), w / 2, l * 0.9);
       } else if (style === 'l-shaped') {
         const land = stair.landingDepth;
         const halfTreads = Math.floor(treads / 2);

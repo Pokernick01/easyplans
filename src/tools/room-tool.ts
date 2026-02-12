@@ -3,6 +3,7 @@ import type { Wall } from '@/types/elements';
 import type { BaseTool } from './base-tool';
 import { useProjectStore } from '@/store/project-store';
 import { useUIStore } from '@/store/ui-store';
+import { t } from '@/utils/i18n';
 import { detectRooms } from '@/engine/geometry/room-detection';
 import { pointInPolygon, polygonArea, polygonCentroid } from '@/engine/math/polygon';
 import { MIN_ROOM_AREA } from '@/utils/constants';
@@ -108,7 +109,7 @@ export class RoomTool implements BaseTool {
       visible: true,
       wallIds,
       polygon,
-      label: 'Room',
+      label: t('room.default'),
       color: 'rgba(135,206,235,0.3)', // light blue, semi-transparent
       area,
       fillPattern: 'solid',

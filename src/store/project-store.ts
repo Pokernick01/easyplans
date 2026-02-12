@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { generateId } from '@/utils/id.ts';
 import { DEFAULT_FLOOR_HEIGHT } from '@/utils/constants.ts';
+import { t } from '@/utils/i18n.ts';
 import type { Project, Floor, ScaleRatio } from '@/types/project.ts';
 import type {
   Wall,
@@ -73,7 +74,7 @@ function createDefaultProject(name = 'Untitled Project'): Project {
     floors: [
       {
         id: generateId(),
-        name: 'Ground Floor',
+        name: t('floor.ground'),
         level: 0,
         height: DEFAULT_FLOOR_HEIGHT,
         elements: {},
@@ -417,7 +418,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
           const floorCount = state.project.floors.length;
           const newFloor: Floor = {
             id: generateId(),
-            name: `Floor ${floorCount}`,
+            name: `${t('floor.level')} ${floorCount}`,
             level: floorCount,
             height: DEFAULT_FLOOR_HEIGHT,
             elements: {},

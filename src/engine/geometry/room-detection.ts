@@ -18,7 +18,7 @@ interface GraphNode {
 // ---------------------------------------------------------------------------
 
 /** Distance within which two endpoints are considered the same node. */
-const MERGE_EPSILON = 0.05; // meters
+const MERGE_EPSILON = 0.15; // meters (generous to catch near-miss wall joins)
 
 // ---------------------------------------------------------------------------
 // Graph construction helpers
