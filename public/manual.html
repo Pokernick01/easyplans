@@ -79,18 +79,7 @@
     }
     .spacer-for-bar { height: 52px; }
 
-    /* Bilingual text toggling — hide ES by default, swap when body has .lang-es */
-    [lang="es"] { display: none !important; }
-    body.lang-es [lang="en"] { display: none !important; }
-    body.lang-es [lang="es"] { display: unset !important; }
-    /* Restore specific display types for ES elements */
-    body.lang-es div[lang="es"] { display: block !important; }
-    body.lang-es table[lang="es"] { display: table !important; }
-    body.lang-es p[lang="es"] { display: block !important; }
-    body.lang-es h2[lang="es"], body.lang-es h3[lang="es"] { display: block !important; }
-    body.lang-es span[lang="es"] { display: inline !important; }
-    body.lang-es ol[lang="es"], body.lang-es ul[lang="es"] { display: block !important; }
-    body.lang-es a[lang="es"] { display: inline !important; }
+    /* Bilingual toggling is handled entirely by JavaScript — see setLang() below */
 
     /* Cover */
     .cover {
@@ -1343,21 +1332,53 @@
 
   <script>
     function setLang(lang) {
-      document.body.classList.toggle('lang-es', lang === 'es');
-      document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent.trim() === lang.toUpperCase());
-      });
+      var show = lang;
+      var hide = lang === 'es' ? 'en' : 'es';
+
+      // Hide all elements of the other language
+      var toHide = document.querySelectorAll('[lang="' + hide + '"]');
+      for (var i = 0; i < toHide.length; i++) {
+        toHide[i].style.display = 'none';
+      }
+
+      // Show all elements of the chosen language with correct display type
+      var toShow = document.querySelectorAll('[lang="' + show + '"]');
+      for (var j = 0; j < toShow.length; j++) {
+        var el = toShow[j];
+        var tag = el.tagName.toLowerCase();
+        if (tag === 'span' || tag === 'a') {
+          el.style.display = 'inline';
+        } else if (tag === 'table') {
+          el.style.display = 'table';
+        } else if (tag === 'li') {
+          el.style.display = 'list-item';
+        } else {
+          el.style.display = 'block';
+        }
+      }
+
+      // Update toggle buttons
+      var btns = document.querySelectorAll('.lang-btn');
+      for (var k = 0; k < btns.length; k++) {
+        if (btns[k].textContent.trim() === lang.toUpperCase()) {
+          btns[k].classList.add('active');
+        } else {
+          btns[k].classList.remove('active');
+        }
+      }
+
       document.documentElement.lang = lang;
       localStorage.setItem('easyplans-manual-lang', lang);
     }
 
     // Restore language preference: URL param > localStorage > default EN
     (function() {
-      const params = new URLSearchParams(window.location.search);
-      const urlLang = params.get('lang');
-      const saved = localStorage.getItem('easyplans-manual-lang');
-      const lang = urlLang || saved || 'en';
-      if (lang === 'es') setLang('es');
+      var params = new URLSearchParams(window.location.search);
+      var urlLang = params.get('lang');
+      var saved = localStorage.getItem('easyplans-manual-lang');
+      var lang = urlLang || saved || 'en';
+      // Always call setLang to initialize visibility for both languages
+      setLang(lang);
     })();
   </script>
 </body>
