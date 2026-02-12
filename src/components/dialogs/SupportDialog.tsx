@@ -7,9 +7,9 @@ import { useTranslation } from '@/utils/i18n.ts';
 // ---------------------------------------------------------------------------
 
 const KOFI_URL = 'https://ko-fi.com/armandoad';
-const GITHUB_URL = 'https://github.com/easyplans/easyplans'; // TODO: replace with your repo URL
+const GITHUB_URL = 'https://github.com/Pokernick01/easyplans';
 const APP_VERSION = '1.0.0';
-const SHARE_URL = 'https://easyplans.app'; // TODO: replace with your deployed URL
+const SHARE_URL = 'https://easyplans.app';
 const CONTACT_EMAIL = 'aad1972@gmail.com';
 
 // ---------------------------------------------------------------------------
