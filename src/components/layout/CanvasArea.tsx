@@ -1743,6 +1743,27 @@ export function CanvasArea() {
       case 'g': toggleGrid(); break;
       case 's': toggleSnap(); break;
       case 'escape': useUIStore.getState().clearSelection(); break;
+      case 'arrowup':
+      case 'arrowdown':
+      case 'arrowleft':
+      case 'arrowright': {
+        const { selectedIds } = useUIStore.getState();
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+          const step = e.shiftKey ? 0.01 : 0.05; // Shift = 1cm, normal = 5cm
+          let dx = 0, dy = 0;
+          if (e.key === 'ArrowUp') dy = -step;
+          else if (e.key === 'ArrowDown') dy = step;
+          else if (e.key === 'ArrowLeft') dx = -step;
+          else if (e.key === 'ArrowRight') dx = step;
+          const floorIndex = useProjectStore.getState().project.activeFloorIndex;
+          for (const id of selectedIds) {
+            useProjectStore.getState().moveElement(floorIndex, id, dx, dy);
+          }
+          useUIStore.getState().markDirty();
+        }
+        break;
+      }
       case 'delete':
       case 'backspace': {
         const { selectedIds } = useUIStore.getState();
