@@ -1,0 +1,565 @@
+/* --- Google Fonts imports --- */
+/* DM Sans — geometric, square, modern (body text) */
+/* Playfair Display — elegant serif (logo / headings) */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* =========================================================================
+   EasyPlans — Global Design System
+   Architect-inspired light palette with geometric typography
+   ========================================================================= */
+
+/* --- CSS Custom Properties (Design Tokens) --- */
+:root {
+  /* Warm light backgrounds — architectural paper feel */
+  --ep-bg-deep:       #eae6de;
+  --ep-bg-base:       #f4f1ec;
+  --ep-bg-panel:      #ece8e1;
+  --ep-bg-card:       #ffffff;
+  --ep-bg-hover:      #e6e1d8;
+  --ep-bg-active:     #ddd7cc;
+
+  /* Canvas: warm off-white like drafting paper */
+  --ep-canvas:        #faf8f4;
+
+  /* Accent — rich architectural green */
+  --ep-accent:        #2d6a4f;
+  --ep-accent-light:  #40916c;
+  --ep-accent-dim:    rgba(45,106,79,0.08);
+  --ep-accent-glow:   rgba(45,106,79,0.15);
+
+  /* Secondary accent — warm terracotta */
+  --ep-accent2:       #b85c38;
+  --ep-accent2-dim:   rgba(184,92,56,0.10);
+
+  /* Text — warm dark tones */
+  --ep-text:          #2c2c2c;
+  --ep-text-dim:      #6b6560;
+  --ep-text-muted:    #9e9590;
+
+  /* Borders — soft warm gray */
+  --ep-border:        #d5cfc6;
+  --ep-border-light:  rgba(180,172,160,0.4);
+
+  /* Danger */
+  --ep-danger:        #c0392b;
+  --ep-danger-bg:     #fdf0ee;
+  --ep-danger-border: #e8c4c0;
+
+  /* Corner radius */
+  --ep-radius-sm:     4px;
+  --ep-radius-md:     6px;
+  --ep-radius-lg:     10px;
+
+  /* Transitions */
+  --ep-transition:    150ms ease;
+  --ep-transition-slow: 250ms ease;
+}
+
+/* --- Reset & Base --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  background: var(--ep-bg-base);
+  color: var(--ep-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Scrollbar Styling --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ep-bg-panel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c5bdb2;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a89e94;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c5bdb2 var(--ep-bg-panel);
+}
+
+/* =========================================================================
+   Global Interactive Element Styles
+   ========================================================================= */
+
+/* --- Focus Visible Ring --- */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ep-accent);
+  outline-offset: 1px;
+}
+
+/* --- Universal transition for interactive elements --- */
+button, input, select, textarea, a {
+  transition: color var(--ep-transition),
+              background var(--ep-transition),
+              border-color var(--ep-transition),
+              box-shadow var(--ep-transition),
+              opacity var(--ep-transition),
+              transform var(--ep-transition);
+}
+
+/* =========================================================================
+   Reusable Button Classes
+   ========================================================================= */
+
+/* --- Ghost Button (minimal, icon-style) --- */
+.ep-btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ep-text-dim);
+  cursor: pointer;
+  border-radius: var(--ep-radius-sm);
+  font-family: inherit;
+}
+.ep-btn-ghost:hover {
+  color: var(--ep-text);
+  background: rgba(0,0,0,0.04);
+}
+.ep-btn-ghost:active {
+  background: rgba(0,0,0,0.06);
+  transform: scale(0.96);
+}
+
+/* --- Secondary Button (outlined) --- */
+.ep-btn-secondary {
+  background: var(--ep-bg-card);
+  color: var(--ep-text-dim);
+  border: 1px solid var(--ep-border);
+  cursor: pointer;
+  border-radius: var(--ep-radius-md);
+  font-size: 12px;
+  padding: 5px 14px;
+  font-family: inherit;
+}
+.ep-btn-secondary:hover {
+  background: var(--ep-bg-hover);
+  color: var(--ep-text);
+  border-color: #b8b0a5;
+}
+.ep-btn-secondary:active {
+  transform: scale(0.97);
+}
+
+/* --- Primary Button (accent, filled) --- */
+.ep-btn-primary {
+  background: var(--ep-accent);
+  color: #ffffff;
+  border: 1px solid var(--ep-accent);
+  cursor: pointer;
+  border-radius: var(--ep-radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  box-shadow: 0 1px 3px rgba(45,106,79,0.15);
+  font-family: inherit;
+}
+.ep-btn-primary:hover {
+  background: var(--ep-accent-light);
+  border-color: var(--ep-accent-light);
+  box-shadow: 0 2px 8px rgba(45,106,79,0.2);
+}
+.ep-btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 2px rgba(45,106,79,0.15);
+}
+
+/* --- Danger Button --- */
+.ep-btn-danger {
+  background: var(--ep-danger-bg);
+  color: var(--ep-danger);
+  border: 1px solid var(--ep-danger-border);
+  cursor: pointer;
+  border-radius: var(--ep-radius-md);
+  font-size: 12px;
+  padding: 5px 14px;
+  font-family: inherit;
+}
+.ep-btn-danger:hover {
+  background: #f8deda;
+  color: #a5281c;
+  border-color: #d4a9a4;
+}
+.ep-btn-danger:active {
+  transform: scale(0.97);
+}
+
+/* =========================================================================
+   Tab / Pill Toggle Classes
+   ========================================================================= */
+
+.ep-tab {
+  background: transparent;
+  color: var(--ep-text-dim);
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.ep-tab:hover {
+  color: var(--ep-text);
+  background: rgba(0,0,0,0.03);
+}
+.ep-tab.active {
+  color: var(--ep-accent);
+  background: var(--ep-accent-dim);
+  border-bottom-color: var(--ep-accent);
+}
+
+/* --- Pill toggle (like language EN/ES) --- */
+.ep-pill {
+  background: transparent;
+  color: var(--ep-text-muted);
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: var(--ep-radius-sm);
+  font-family: inherit;
+  letter-spacing: 0.04em;
+}
+.ep-pill:hover {
+  color: var(--ep-text);
+  background: rgba(0,0,0,0.05);
+}
+.ep-pill.active {
+  color: var(--ep-accent);
+  background: var(--ep-accent-dim);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   Input & Form Control Classes
+   ========================================================================= */
+
+.ep-input {
+  background: var(--ep-bg-card);
+  color: var(--ep-text);
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+}
+.ep-input:hover {
+  border-color: #b8b0a5;
+}
+.ep-input:focus {
+  border-color: var(--ep-accent);
+  box-shadow: 0 0 0 2px rgba(45,106,79,0.10);
+}
+
+/* --- Checkbox & Radio custom accent --- */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--ep-accent);
+}
+
+/* =========================================================================
+   Card / Panel Classes
+   ========================================================================= */
+
+.ep-card {
+  background: var(--ep-bg-card);
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-md);
+}
+.ep-card:hover {
+  border-color: #b8b0a5;
+}
+
+/* --- Library stamp item --- */
+.ep-stamp-item {
+  background: var(--ep-bg-card);
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-sm);
+  cursor: pointer;
+}
+.ep-stamp-item:hover {
+  border-color: var(--ep-accent);
+  background: var(--ep-accent-dim);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.ep-stamp-item.selected {
+  border-color: var(--ep-accent);
+  background: var(--ep-accent-dim);
+  box-shadow: 0 0 0 2px var(--ep-accent-glow);
+}
+
+/* =========================================================================
+   Tooltip Animation
+   ========================================================================= */
+
+.ep-tooltip {
+  background: var(--ep-bg-card);
+  border: 1px solid var(--ep-border);
+  color: var(--ep-text);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--ep-radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  animation: ep-tooltip-in 150ms ease;
+  font-family: inherit;
+}
+
+@keyframes ep-tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================================
+   View Mode Tab (special pill)
+   ========================================================================= */
+
+.ep-view-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--ep-radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ep-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+.ep-view-tab svg {
+  opacity: 0.45;
+  transition: opacity var(--ep-transition);
+}
+.ep-view-tab:hover {
+  background: rgba(0,0,0,0.04);
+  color: var(--ep-text);
+  border-color: var(--ep-border-light);
+}
+.ep-view-tab:hover svg {
+  opacity: 0.7;
+}
+.ep-view-tab.active {
+  background: var(--ep-accent);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 1px 4px rgba(45,106,79,0.2);
+}
+.ep-view-tab.active svg {
+  opacity: 1;
+}
+.ep-view-tab:active {
+  transform: scale(0.96);
+}
+
+/* =========================================================================
+   Tool Button (left sidebar)
+   ========================================================================= */
+
+.ep-tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--ep-radius-md);
+  background: transparent;
+  color: var(--ep-text-dim);
+  cursor: pointer;
+}
+.ep-tool-btn:hover {
+  background: rgba(0,0,0,0.04);
+  color: var(--ep-text);
+}
+.ep-tool-btn.active {
+  background: var(--ep-accent-dim);
+  color: var(--ep-accent);
+  border-color: rgba(45,106,79,0.25);
+  box-shadow: 0 0 0 1px rgba(45,106,79,0.08);
+}
+.ep-tool-btn:active {
+  transform: scale(0.94);
+}
+
+/* =========================================================================
+   Dropdown / Menu
+   ========================================================================= */
+
+.ep-dropdown {
+  background: var(--ep-bg-card);
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  animation: ep-dropdown-in 150ms ease;
+}
+
+@keyframes ep-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ep-dropdown-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--ep-text);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.ep-dropdown-item:hover {
+  background: var(--ep-bg-hover);
+}
+.ep-dropdown-item.selected {
+  color: var(--ep-accent);
+  background: var(--ep-accent-dim);
+  font-weight: 500;
+}
+
+/* =========================================================================
+   Dialog Overlay
+   ========================================================================= */
+
+.ep-dialog-overlay {
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(4px);
+  animation: ep-fade-in 200ms ease;
+}
+
+@keyframes ep-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ep-dialog {
+  background: var(--ep-bg-card);
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-lg);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.05);
+  animation: ep-dialog-in 250ms ease;
+}
+
+@keyframes ep-dialog-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* =========================================================================
+   Zoom Controls
+   ========================================================================= */
+
+.ep-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--ep-radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--ep-text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+.ep-zoom-btn:hover {
+  color: var(--ep-text);
+  background: rgba(0,0,0,0.05);
+}
+.ep-zoom-btn:active {
+  transform: scale(0.9);
+  background: rgba(0,0,0,0.08);
+}
+
+/* =========================================================================
+   Close Button (dialog X)
+   ========================================================================= */
+
+.ep-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ep-radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--ep-text-dim);
+  cursor: pointer;
+  font-size: 14px;
+}
+.ep-close-btn:hover {
+  color: var(--ep-text);
+  background: rgba(0,0,0,0.05);
+}
+.ep-close-btn:active {
+  transform: scale(0.9);
+}
+
+/* =========================================================================
+   Responsive Utilities & Safe Padding
+   ========================================================================= */
+
+/* Ensure all flex children don't overflow */
+.flex > * {
+  min-width: 0;
+}
+
+/* Dialog responsive sizing */
+@media (max-width: 480px) {
+  .ep-dialog {
+    margin: 8px;
+    max-width: calc(100vw - 16px) !important;
+  }
+  .ep-view-tab {
+    padding: 3px 6px;
+    font-size: 10px;
+    gap: 2px;
+  }
+  .ep-view-tab svg {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .ep-dialog {
+    margin: 12px;
+    max-width: calc(100vw - 24px) !important;
+  }
+}

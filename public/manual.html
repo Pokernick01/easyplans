@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EasyPlans User Manual / Manual de Usuario</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #2d6a4f;
+      --terracotta: #b85c38;
+      --text: #2c2c2c;
+      --text-dim: #6b6560;
+      --bg: #faf8f4;
+      --border: #d5cfc6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    /* Print bar */
+    .print-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--green);
+      color: #fff;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .print-bar .left { display: flex; align-items: center; gap: 16px; }
+    .print-bar button, .print-bar .lang-btn {
+      background: #fff;
+      color: var(--green);
+      border: none;
+      padding: 8px 24px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .print-bar button:hover, .print-bar .lang-btn:hover { opacity: 0.9; }
+    .print-bar span.title { font-weight: 600; font-size: 14px; }
+    .lang-toggle {
+      display: flex;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid #fff;
+    }
+    .lang-btn {
+      padding: 6px 14px !important;
+      border-radius: 0 !important;
+      font-size: 12px !important;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--terracotta) !important;
+      color: #fff !important;
+    }
+    .lang-btn:not(.active) {
+      background: transparent !important;
+      color: #fff !important;
+    }
+    .spacer-for-bar { height: 52px; }
+
+    /* Bilingual text toggling */
+    [lang="es"] { display: none; }
+    body.lang-es [lang="es"] { display: revert; }
+    body.lang-es [lang="en"] { display: none; }
+
+    /* Cover */
+    .cover {
+      text-align: center;
+      padding: 60px 0 40px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 40px;
+    }
+    .cover h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+    .cover h1 .green { color: var(--green); }
+    .cover h1 .terra { color: var(--terracotta); }
+    .cover .subtitle {
+      font-size: 18px;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+    .cover .version {
+      font-size: 12px;
+      color: #9e9590;
+      margin-top: 16px;
+    }
+
+    /* TOC */
+    .toc {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px 32px;
+      margin-bottom: 40px;
+    }
+    .toc h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: none;
+      padding: 0;
+    }
+    .toc ol {
+      columns: 2;
+      column-gap: 32px;
+      padding-left: 20px;
+    }
+    .toc li {
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: var(--text-dim);
+    }
+    .toc a { color: var(--green); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* Sections */
+    h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--green);
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+    h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--terracotta);
+      margin: 28px 0 10px;
+    }
+    h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 16px 0 6px;
+    }
+    p { margin-bottom: 12px; }
+    ul, ol { margin-bottom: 12px; padding-left: 24px; }
+    li { margin-bottom: 4px; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 13px;
+    }
+    th {
+      background: var(--green);
+      color: #fff;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+    code {
+      background: #ece8e1;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+    .kbd {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+    }
+    .tip {
+      background: rgba(45,106,79,0.06);
+      border-left: 3px solid var(--green);
+      padding: 10px 14px;
+      margin: 12px 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+    }
+    .tip strong { color: var(--green); }
+    .warn {
+      background: rgba(184,92,56,0.06);
+      border-left: 3px solid var(--terracotta);
+      padding: 10px 14px;
+      margin: 12px 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px 0 20px;
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+      color: #9e9590;
+      font-size: 12px;
+    }
+
+    /* Print styles */
+    @media print {
+      .print-bar, .spacer-for-bar { display: none !important; }
+      body { background: white; font-size: 11px; }
+      .container { max-width: 100%; padding: 20px; }
+      .cover { padding: 30px 0 20px; }
+      .cover h1 { font-size: 36px; }
+      h2 { font-size: 20px; margin-top: 28px; page-break-after: avoid; }
+      h3 { font-size: 14px; page-break-after: avoid; }
+      table { font-size: 10px; page-break-inside: avoid; }
+      .toc { page-break-after: always; }
+      .tip, .warn { page-break-inside: avoid; }
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 24px 16px; }
+      .cover h1 { font-size: 36px; }
+      .toc ol { columns: 1; }
+      .print-bar { padding: 8px 12px; }
+      .print-bar span.title { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Print bar -->
+  <div class="print-bar">
+    <div class="left">
+      <span class="title">EasyPlans Manual</span>
+      <div class="lang-toggle">
+        <span class="lang-btn active" onclick="setLang('en')">EN</span>
+        <span class="lang-btn" onclick="setLang('es')">ES</span>
+      </div>
+    </div>
+    <button onclick="window.print()">
+      <span lang="en">Download as PDF</span>
+      <span lang="es">Descargar como PDF</span>
+    </button>
+  </div>
+  <div class="spacer-for-bar"></div>
+
+  <div class="container">
+
+    <!-- Cover -->
+    <div class="cover">
+      <h1><span class="green">Easy</span><span class="terra">Plans</span></h1>
+      <div class="subtitle">
+        <span lang="en">User Manual &mdash; Complete Guide</span>
+        <span lang="es">Manual de Usuario &mdash; Gu&iacute;a Completa</span>
+      </div>
+      <div class="version">Version 1.0.0 &bull; 2025</div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc" lang="en">
+      <h2>Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#interface">Interface Layout</a></li>
+        <li><a href="#tools">Drawing Tools</a></li>
+        <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
+        <li><a href="#walls">Walls</a></li>
+        <li><a href="#doors">Doors &amp; Styles</a></li>
+        <li><a href="#windows">Windows &amp; Styles</a></li>
+        <li><a href="#rooms">Rooms &amp; Patterns</a></li>
+        <li><a href="#furniture">Furniture Library</a></li>
+        <li><a href="#stairs">Stairs</a></li>
+        <li><a href="#archlines">Architectural Lines</a></li>
+        <li><a href="#dimensions">Dimensions &amp; Text</a></li>
+        <li><a href="#views">View Modes</a></li>
+        <li><a href="#floors">Floor Management</a></li>
+        <li><a href="#export">Export &amp; Save</a></li>
+        <li><a href="#navigation">Camera &amp; Navigation</a></li>
+        <li><a href="#properties">Properties Panel</a></li>
+        <li><a href="#tips">Tips &amp; Workflows</a></li>
+      </ol>
+    </div>
+    <div class="toc" lang="es">
+      <h2>&Iacute;ndice</h2>
+      <ol>
+        <li><a href="#overview">Descripci&oacute;n General</a></li>
+        <li><a href="#interface">Distribuci&oacute;n de la Interfaz</a></li>
+        <li><a href="#tools">Herramientas de Dibujo</a></li>
+        <li><a href="#shortcuts">Atajos de Teclado</a></li>
+        <li><a href="#walls">Muros</a></li>
+        <li><a href="#doors">Puertas y Estilos</a></li>
+        <li><a href="#windows">Ventanas y Estilos</a></li>
+        <li><a href="#rooms">Cuartos y Patrones</a></li>
+        <li><a href="#furniture">Biblioteca de Muebles</a></li>
+        <li><a href="#stairs">Escaleras</a></li>
+        <li><a href="#archlines">L&iacute;neas Arquitect&oacute;nicas</a></li>
+        <li><a href="#dimensions">Cotas y Texto</a></li>
+        <li><a href="#views">Modos de Vista</a></li>
+        <li><a href="#floors">Gesti&oacute;n de Pisos</a></li>
+        <li><a href="#export">Exportar y Guardar</a></li>
+        <li><a href="#navigation">C&aacute;mara y Navegaci&oacute;n</a></li>
+        <li><a href="#properties">Panel de Propiedades</a></li>
+        <li><a href="#tips">Consejos y Flujos de Trabajo</a></li>
+      </ol>
+    </div>
+
+    <!-- 1. Overview -->
+    <h2 id="overview">
+      <span lang="en">1. Overview</span>
+      <span lang="es">1. Descripci&oacute;n General</span>
+    </h2>
+    <div lang="en">
+      <p>EasyPlans is a free, open-source architectural floor plan drawing application built for students and professionals. It runs entirely in your web browser with no installation required.</p>
+      <p>Key features include:</p>
+      <ul>
+        <li>Draw walls, doors, windows, rooms, stairs, and furniture</li>
+        <li>Multiple view modes: Plan, Section, Facade, and 3D Isometric</li>
+        <li>Export to PNG, transparent PNG, or PDF</li>
+        <li>Multi-floor support with independent element sets</li>
+        <li>Bilingual interface (English / Spanish)</li>
+        <li>Neufert-style architectural drawings</li>
+        <li>Auto-save to browser storage</li>
+        <li>Custom <code>.easyplan</code> project files</li>
+      </ul>
+      <p>All measurements are in <strong>meters</strong>. The coordinate system uses X (horizontal) and Y (vertical) with the origin at the center of the canvas.</p>
+    </div>
+    <div lang="es">
+      <p>EasyPlans es una aplicaci&oacute;n gratuita y de c&oacute;digo abierto para dibujar planos arquitect&oacute;nicos, creada para estudiantes y profesionales. Funciona completamente en tu navegador web sin necesidad de instalaci&oacute;n.</p>
+      <p>Caracter&iacute;sticas principales:</p>
+      <ul>
+        <li>Dibuja muros, puertas, ventanas, cuartos, escaleras y muebles</li>
+        <li>M&uacute;ltiples modos de vista: Planta, Corte, Fachada e Isom&eacute;trico 3D</li>
+        <li>Exportar a PNG, PNG transparente o PDF</li>
+        <li>Soporte multi-piso con elementos independientes</li>
+        <li>Interfaz biling&uuml;e (Ingl&eacute;s / Espa&ntilde;ol)</li>
+        <li>Dibujos arquitect&oacute;nicos estilo Neufert</li>
+        <li>Autoguardado en almacenamiento del navegador</li>
+        <li>Archivos de proyecto personalizados <code>.easyplan</code></li>
+      </ul>
+      <p>Todas las medidas son en <strong>metros</strong>. El sistema de coordenadas usa X (horizontal) e Y (vertical) con el origen en el centro del lienzo.</p>
+    </div>
+
+    <!-- 2. Interface -->
+    <h2 id="interface">
+      <span lang="en">2. Interface Layout</span>
+      <span lang="es">2. Distribuci&oacute;n de la Interfaz</span>
+    </h2>
+
+    <div lang="en">
+      <h3>Top Bar</h3>
+      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan, Section, Facade, 3D), scale selector, grid/snap/dimension toggles, undo/redo, export, save/load buttons, help button, and the support button.</p>
+
+      <h3>Left Sidebar</h3>
+      <p>Tool palette with all drawing tools. Click a tool or use its keyboard shortcut to activate it. The active tool is highlighted in green.</p>
+
+      <h3>Canvas Area</h3>
+      <p>The main drawing area. Drag on empty space to pan. Use scroll wheel to zoom. All drawing happens here.</p>
+
+      <h3>Right Sidebar</h3>
+      <p>Two tabs:</p>
+      <ul>
+        <li><strong>Properties</strong> &mdash; Edit selected element properties (dimensions, colors, patterns)</li>
+        <li><strong>Library</strong> &mdash; Browse and select furniture/stamps for placement</li>
+      </ul>
+
+      <h3>Bottom Bar</h3>
+      <p>Shows cursor coordinates (X, Y in meters), floor tabs for multi-floor projects, active tool name and hint, zoom controls, and zoom-to-fit button.</p>
+
+      <h3>Language Toggle</h3>
+      <p>Click <span class="kbd">EN</span> or <span class="kbd">ES</span> in the top-left to switch between English and Spanish. All labels, tooltips, and property names update instantly.</p>
+    </div>
+
+    <div lang="es">
+      <h3>Barra Superior</h3>
+      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta, Corte, Fachada, 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, exportar, guardar/cargar, bot&oacute;n de ayuda y bot&oacute;n de apoyo.</p>
+
+      <h3>Barra Lateral Izquierda</h3>
+      <p>Paleta de herramientas con todas las herramientas de dibujo. Haz clic en una herramienta o usa su atajo de teclado para activarla. La herramienta activa se resalta en verde.</p>
+
+      <h3>&Aacute;rea del Lienzo</h3>
+      <p>El &aacute;rea principal de dibujo. Arrastra en el espacio vac&iacute;o para desplazar. Usa la rueda del rat&oacute;n para hacer zoom. Todo el dibujo ocurre aqu&iacute;.</p>
+
+      <h3>Barra Lateral Derecha</h3>
+      <p>Dos pesta&ntilde;as:</p>
+      <ul>
+        <li><strong>Propiedades</strong> &mdash; Edita las propiedades del elemento seleccionado (dimensiones, colores, patrones)</li>
+        <li><strong>Biblioteca</strong> &mdash; Explora y selecciona muebles/sellos para colocaci&oacute;n</li>
+      </ul>
+
+      <h3>Barra Inferior</h3>
+      <p>Muestra las coordenadas del cursor (X, Y en metros), pesta&ntilde;as de pisos para proyectos multi-piso, nombre de herramienta activa y pista, controles de zoom y bot&oacute;n de ajustar a vista.</p>
+
+      <h3>Selector de Idioma</h3>
+      <p>Haz clic en <span class="kbd">EN</span> o <span class="kbd">ES</span> en la esquina superior izquierda para cambiar entre ingl&eacute;s y espa&ntilde;ol. Todas las etiquetas, tooltips y nombres de propiedades se actualizan instant&aacute;neamente.</p>
+    </div>
+
+    <!-- 3. Tools -->
+    <h2 id="tools">
+      <span lang="en">3. Drawing Tools</span>
+      <span lang="es">3. Herramientas de Dibujo</span>
+    </h2>
+    <table lang="en">
+      <tr><th>Tool</th><th>Shortcut</th><th>Description</th></tr>
+      <tr><td>Select</td><td><span class="kbd">V</span> / <span class="kbd">1</span></td><td>Click to select elements, drag to move. Shift+click for multi-select.</td></tr>
+      <tr><td>Wall</td><td><span class="kbd">W</span> / <span class="kbd">2</span></td><td>Click to start wall, click again to finish. Shift+click to chain-draw.</td></tr>
+      <tr><td>Door</td><td><span class="kbd">D</span> / <span class="kbd">3</span></td><td>Click on a wall to place a door. Press F to flip swing, G to flip side.</td></tr>
+      <tr><td>Window</td><td><span class="kbd">N</span> / <span class="kbd">4</span></td><td>Click on a wall to place a window.</td></tr>
+      <tr><td>Room</td><td><span class="kbd">R</span> / <span class="kbd">5</span></td><td>Click inside an enclosed wall area to create a room label.</td></tr>
+      <tr><td>Dimension</td><td><span class="kbd">M</span> / <span class="kbd">6</span></td><td>Click start point, then end point to create a measurement line.</td></tr>
+      <tr><td>Text</td><td><span class="kbd">T</span> / <span class="kbd">7</span></td><td>Click to place a text label. Edit in properties panel.</td></tr>
+      <tr><td>Furniture</td><td><span class="kbd">F</span> / <span class="kbd">8</span></td><td>Select from Library, then click to place. Press R to rotate.</td></tr>
+      <tr><td>Eraser</td><td><span class="kbd">E</span> / <span class="kbd">9</span></td><td>Click any element to delete it instantly.</td></tr>
+      <tr><td>Lines</td><td>&mdash;</td><td>Draw architectural lines (boundaries, axes, setbacks).</td></tr>
+      <tr><td>Stairs</td><td>&mdash;</td><td>Place configurable stair elements. Press R to rotate.</td></tr>
+    </table>
+    <table lang="es">
+      <tr><th>Herramienta</th><th>Atajo</th><th>Descripci&oacute;n</th></tr>
+      <tr><td>Seleccionar</td><td><span class="kbd">V</span> / <span class="kbd">1</span></td><td>Clic para seleccionar elementos, arrastrar para mover. Shift+clic para multi-selecci&oacute;n.</td></tr>
+      <tr><td>Muro</td><td><span class="kbd">W</span> / <span class="kbd">2</span></td><td>Clic para iniciar muro, clic de nuevo para terminar. Shift+clic para encadenar.</td></tr>
+      <tr><td>Puerta</td><td><span class="kbd">D</span> / <span class="kbd">3</span></td><td>Clic en un muro para colocar puerta. F para voltear apertura, G para voltear lado.</td></tr>
+      <tr><td>Ventana</td><td><span class="kbd">N</span> / <span class="kbd">4</span></td><td>Clic en un muro para colocar ventana.</td></tr>
+      <tr><td>Cuarto</td><td><span class="kbd">R</span> / <span class="kbd">5</span></td><td>Clic dentro de un &aacute;rea cerrada de muros para crear etiqueta de cuarto.</td></tr>
+      <tr><td>Cota</td><td><span class="kbd">M</span> / <span class="kbd">6</span></td><td>Clic en punto inicio, luego punto final para crear l&iacute;nea de medici&oacute;n.</td></tr>
+      <tr><td>Texto</td><td><span class="kbd">T</span> / <span class="kbd">7</span></td><td>Clic para colocar etiqueta de texto. Editar en panel de propiedades.</td></tr>
+      <tr><td>Muebles</td><td><span class="kbd">F</span> / <span class="kbd">8</span></td><td>Selecciona de la Biblioteca, luego clic para colocar. R para rotar.</td></tr>
+      <tr><td>Borrar</td><td><span class="kbd">E</span> / <span class="kbd">9</span></td><td>Clic en cualquier elemento para eliminarlo instant&aacute;neamente.</td></tr>
+      <tr><td>L&iacute;neas</td><td>&mdash;</td><td>Dibujar l&iacute;neas arquitect&oacute;nicas (colindancias, ejes, setbacks).</td></tr>
+      <tr><td>Escaleras</td><td>&mdash;</td><td>Colocar elementos de escalera configurables. R para rotar.</td></tr>
+    </table>
+
+    <!-- 4. Shortcuts -->
+    <h2 id="shortcuts">
+      <span lang="en">4. Keyboard Shortcuts</span>
+      <span lang="es">4. Atajos de Teclado</span>
+    </h2>
+
+    <h3 lang="en">Drawing Tools</h3>
+    <h3 lang="es">Herramientas de Dibujo</h3>
+    <table lang="en">
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td><span class="kbd">V</span> / <span class="kbd">1</span></td><td>Select tool</td></tr>
+      <tr><td><span class="kbd">W</span> / <span class="kbd">2</span></td><td>Wall tool</td></tr>
+      <tr><td><span class="kbd">D</span> / <span class="kbd">3</span></td><td>Door tool</td></tr>
+      <tr><td><span class="kbd">N</span> / <span class="kbd">4</span></td><td>Window tool</td></tr>
+      <tr><td><span class="kbd">R</span> / <span class="kbd">5</span></td><td>Room tool</td></tr>
+      <tr><td><span class="kbd">M</span> / <span class="kbd">6</span></td><td>Dimension tool</td></tr>
+      <tr><td><span class="kbd">T</span> / <span class="kbd">7</span></td><td>Text tool</td></tr>
+      <tr><td><span class="kbd">F</span> / <span class="kbd">8</span></td><td>Furniture tool</td></tr>
+      <tr><td><span class="kbd">E</span> / <span class="kbd">9</span></td><td>Eraser tool</td></tr>
+    </table>
+    <table lang="es">
+      <tr><th>Tecla</th><th>Acci&oacute;n</th></tr>
+      <tr><td><span class="kbd">V</span> / <span class="kbd">1</span></td><td>Herramienta Seleccionar</td></tr>
+      <tr><td><span class="kbd">W</span> / <span class="kbd">2</span></td><td>Herramienta Muro</td></tr>
+      <tr><td><span class="kbd">D</span> / <span class="kbd">3</span></td><td>Herramienta Puerta</td></tr>
+      <tr><td><span class="kbd">N</span> / <span class="kbd">4</span></td><td>Herramienta Ventana</td></tr>
+      <tr><td><span class="kbd">R</span> / <span class="kbd">5</span></td><td>Herramienta Cuarto</td></tr>
+      <tr><td><span class="kbd">M</span> / <span class="kbd">6</span></td><td>Herramienta Cota</td></tr>
+      <tr><td><span class="kbd">T</span> / <span class="kbd">7</span></td><td>Herramienta Texto</td></tr>
+      <tr><td><span class="kbd">F</span> / <span class="kbd">8</span></td><td>Herramienta Muebles</td></tr>
+      <tr><td><span class="kbd">E</span> / <span class="kbd">9</span></td><td>Herramienta Borrar</td></tr>
+    </table>
+
+    <h3 lang="en">View &amp; Navigation</h3>
+    <h3 lang="es">Vista y Navegaci&oacute;n</h3>
+    <table lang="en">
+      <tr><th>Shortcut</th><th>Action</th></tr>
+      <tr><td><span class="kbd">G</span></td><td>Toggle grid</td></tr>
+      <tr><td><span class="kbd">S</span></td><td>Toggle snap-to-grid</td></tr>
+      <tr><td><span class="kbd">+</span> / <span class="kbd">=</span></td><td>Zoom in</td></tr>
+      <tr><td><span class="kbd">-</span></td><td>Zoom out</td></tr>
+      <tr><td><span class="kbd">0</span></td><td>Reset zoom to 100%</td></tr>
+      <tr><td><span class="kbd">Esc</span></td><td>Deselect / cancel action</td></tr>
+    </table>
+    <table lang="es">
+      <tr><th>Atajo</th><th>Acci&oacute;n</th></tr>
+      <tr><td><span class="kbd">G</span></td><td>Activar/desactivar cuadr&iacute;cula</td></tr>
+      <tr><td><span class="kbd">S</span></td><td>Activar/desactivar ajuste a cuadr&iacute;cula</td></tr>
+      <tr><td><span class="kbd">+</span> / <span class="kbd">=</span></td><td>Acercar zoom</td></tr>
+      <tr><td><span class="kbd">-</span></td><td>Alejar zoom</td></tr>
+      <tr><td><span class="kbd">0</span></td><td>Restablecer zoom a 100%</td></tr>
+      <tr><td><span class="kbd">Esc</span></td><td>Deseleccionar / cancelar acci&oacute;n</td></tr>
+    </table>
+
+    <h3 lang="en">File Operations</h3>
+    <h3 lang="es">Operaciones de Archivo</h3>
+    <table lang="en">
+      <tr><th>Shortcut</th><th>Action</th></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">N</span></td><td>New project</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">S</span></td><td>Save project (.easyplan)</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">O</span></td><td>Load project</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">Z</span></td><td>Undo</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">Y</span></td><td>Redo</td></tr>
+      <tr><td><span class="kbd">Delete</span></td><td>Delete selected elements</td></tr>
+    </table>
+    <table lang="es">
+      <tr><th>Atajo</th><th>Acci&oacute;n</th></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">N</span></td><td>Nuevo proyecto</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">S</span></td><td>Guardar proyecto (.easyplan)</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">O</span></td><td>Cargar proyecto</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">Z</span></td><td>Deshacer</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">Y</span></td><td>Rehacer</td></tr>
+      <tr><td><span class="kbd">Delete</span></td><td>Eliminar elementos seleccionados</td></tr>
+    </table>
+
+    <h3 lang="en">Contextual Keys</h3>
+    <h3 lang="es">Teclas Contextuales</h3>
+    <table lang="en">
+      <tr><th>Key</th><th>Context</th><th>Action</th></tr>
+      <tr><td><span class="kbd">R</span></td><td>Furniture/Stair selected</td><td>Rotate 90 degrees</td></tr>
+      <tr><td><span class="kbd">F</span></td><td>Door selected</td><td>Flip swing direction (left/right)</td></tr>
+      <tr><td><span class="kbd">G</span></td><td>Door selected</td><td>Flip side (interior/exterior)</td></tr>
+      <tr><td><span class="kbd">F</span></td><td>Stair selected</td><td>Flip horizontally</td></tr>
+      <tr><td><span class="kbd">G</span></td><td>Stair selected</td><td>Flip vertically</td></tr>
+      <tr><td><span class="kbd">Shift</span>+click</td><td>Wall tool (2nd click)</td><td>Continue chain-drawing</td></tr>
+      <tr><td><span class="kbd">Shift</span>+click</td><td>Select tool</td><td>Multi-select</td></tr>
+    </table>
+    <table lang="es">
+      <tr><th>Tecla</th><th>Contexto</th><th>Acci&oacute;n</th></tr>
+      <tr><td><span class="kbd">R</span></td><td>Mueble/Escalera seleccionado</td><td>Rotar 90 grados</td></tr>
+      <tr><td><span class="kbd">F</span></td><td>Puerta seleccionada</td><td>Voltear direcci&oacute;n de apertura (izq./der.)</td></tr>
+      <tr><td><span class="kbd">G</span></td><td>Puerta seleccionada</td><td>Voltear lado (interior/exterior)</td></tr>
+      <tr><td><span class="kbd">F</span></td><td>Escalera seleccionada</td><td>Voltear horizontalmente</td></tr>
+      <tr><td><span class="kbd">G</span></td><td>Escalera seleccionada</td><td>Voltear verticalmente</td></tr>
+      <tr><td><span class="kbd">Shift</span>+clic</td><td>Herramienta Muro (2do clic)</td><td>Continuar dibujando en cadena</td></tr>
+      <tr><td><span class="kbd">Shift</span>+clic</td><td>Herramienta Seleccionar</td><td>Multi-selecci&oacute;n</td></tr>
+    </table>
+
+    <!-- 5. Walls -->
+    <h2 id="walls">
+      <span lang="en">5. Walls</span>
+      <span lang="es">5. Muros</span>
+    </h2>
+
+    <div lang="en">
+      <p>Walls are the foundation of any floor plan. They connect two endpoints and have configurable thickness and height.</p>
+
+      <h3>Drawing Walls</h3>
+      <ol>
+        <li>Press <span class="kbd">W</span> to activate the Wall tool</li>
+        <li>Click to place the start point (snaps to grid and existing endpoints)</li>
+        <li>Move the cursor to see a preview line</li>
+        <li>Click again to place the end point and create the wall</li>
+        <li><strong>Chain mode:</strong> Hold <span class="kbd">Shift</span> on the second click to start a new wall from the endpoint</li>
+        <li>Press <span class="kbd">Esc</span> to cancel</li>
+      </ol>
+
+      <h3>Wall Properties</h3>
+      <table>
+        <tr><th>Property</th><th>Default</th><th>Range</th></tr>
+        <tr><td>Thickness</td><td>0.15 m</td><td>0.05 &ndash; 1.0 m</td></tr>
+        <tr><td>Height</td><td>2.8 m</td><td>0.5 &ndash; 10 m</td></tr>
+        <tr><td>Color (outline)</td><td>Black</td><td>Any color</td></tr>
+        <tr><td>Fill Color</td><td>Dark gray</td><td>Any color</td></tr>
+      </table>
+
+      <h3>Wall Materials (10 patterns)</h3>
+      <table>
+        <tr><th>Pattern</th><th>Description</th></tr>
+        <tr><td>Solid</td><td>Uniform fill color</td></tr>
+        <tr><td>Brick</td><td>Running bond brick pattern</td></tr>
+        <tr><td>Concrete</td><td>Concrete stipple texture</td></tr>
+        <tr><td>Stone</td><td>Irregular stone pattern</td></tr>
+        <tr><td>Hatch</td><td>Diagonal line hatching</td></tr>
+        <tr><td>Crosshatch</td><td>Double diagonal hatching</td></tr>
+        <tr><td>Drywall</td><td>Gypsum board (Tablaroca)</td></tr>
+        <tr><td>Block (CMU)</td><td>Concrete masonry unit</td></tr>
+        <tr><td>Stucco</td><td>Stucco finish</td></tr>
+        <tr><td>Plaster</td><td>Plaster finish</td></tr>
+      </table>
+    </div>
+
+    <div lang="es">
+      <p>Los muros son la base de cualquier plano. Conectan dos puntos y tienen espesor y altura configurables.</p>
+
+      <h3>Dibujar Muros</h3>
+      <ol>
+        <li>Presiona <span class="kbd">W</span> para activar la herramienta de Muro</li>
+        <li>Clic para colocar el punto de inicio (se ajusta a la cuadr&iacute;cula y puntos existentes)</li>
+        <li>Mueve el cursor para ver una vista previa de la l&iacute;nea</li>
+        <li>Clic de nuevo para colocar el punto final y crear el muro</li>
+        <li><strong>Modo cadena:</strong> Mantén <span class="kbd">Shift</span> en el segundo clic para iniciar un nuevo muro desde ese punto</li>
+        <li>Presiona <span class="kbd">Esc</span> para cancelar</li>
+      </ol>
+
+      <h3>Propiedades del Muro</h3>
+      <table>
+        <tr><th>Propiedad</th><th>Predeterminado</th><th>Rango</th></tr>
+        <tr><td>Espesor</td><td>0.15 m</td><td>0.05 &ndash; 1.0 m</td></tr>
+        <tr><td>Altura</td><td>2.8 m</td><td>0.5 &ndash; 10 m</td></tr>
+        <tr><td>Color (contorno)</td><td>Negro</td><td>Cualquier color</td></tr>
+        <tr><td>Color de Relleno</td><td>Gris oscuro</td><td>Cualquier color</td></tr>
+      </table>
+
+      <h3>Materiales de Muro (10 patrones)</h3>
+      <table>
+        <tr><th>Patr&oacute;n</th><th>Descripci&oacute;n</th></tr>
+        <tr><td>S&oacute;lido</td><td>Color de relleno uniforme</td></tr>
+        <tr><td>Ladrillo</td><td>Patr&oacute;n de ladrillo a soga</td></tr>
+        <tr><td>Concreto</td><td>Textura punteada de concreto</td></tr>
+        <tr><td>Piedra</td><td>Patr&oacute;n de piedra irregular</td></tr>
+        <tr><td>Achurado</td><td>Rayado diagonal</td></tr>
+        <tr><td>Doble Achurado</td><td>Rayado diagonal doble</td></tr>
+        <tr><td>Tablaroca</td><td>Panel de yeso (Drywall)</td></tr>
+        <tr><td>Block (CMU)</td><td>Unidad de mamposter&iacute;a de concreto</td></tr>
+        <tr><td>Estuco</td><td>Acabado de estuco</td></tr>
+        <tr><td>Yeso</td><td>Acabado de yeso</td></tr>
+      </table>
+    </div>
+
+    <!-- 6. Doors -->
+    <h2 id="doors">
+      <span lang="en">6. Doors &amp; Styles</span>
+      <span lang="es">6. Puertas y Estilos</span>
+    </h2>
+
+    <div lang="en">
+      <p>Doors are placed on existing walls. Move the cursor near a wall to see a placement preview, then click to place.</p>
+
+      <h3>Door Styles (6 types)</h3>
+      <table>
+        <tr><th>Style</th><th>Description</th></tr>
+        <tr><td>Single</td><td>Standard swing door with arc indicator</td></tr>
+        <tr><td>Double</td><td>Paired swing doors</td></tr>
+        <tr><td>Sliding</td><td>Door slides along a track</td></tr>
+        <tr><td>Pocket</td><td>Door slides into the wall cavity</td></tr>
+        <tr><td>Folding</td><td>Accordion-style folding panels</td></tr>
+        <tr><td>Revolving</td><td>Circular revolving door</td></tr>
+      </table>
+
+      <h3>Door Properties</h3>
+      <table>
+        <tr><th>Property</th><th>Default</th></tr>
+        <tr><td>Width</td><td>0.9 m</td></tr>
+        <tr><td>Height</td><td>2.1 m</td></tr>
+        <tr><td>Swing</td><td>Left / Right</td></tr>
+        <tr><td>Open angle</td><td>90 degrees</td></tr>
+        <tr><td>Hinge</td><td>Start / End</td></tr>
+        <tr><td>Side</td><td>Interior / Exterior</td></tr>
+      </table>
+
+      <div class="tip"><strong>Tip:</strong> Select a door and press <span class="kbd">F</span> to flip its swing direction (left/right), or press <span class="kbd">G</span> to flip which side of the wall it opens to.</div>
+    </div>
+
+    <div lang="es">
+      <p>Las puertas se colocan en muros existentes. Mueve el cursor cerca de un muro para ver la vista previa, luego haz clic para colocar.</p>
+
+      <h3>Estilos de Puerta (6 tipos)</h3>
+      <table>
+        <tr><th>Estilo</th><th>Descripci&oacute;n</th></tr>
+        <tr><td>Simple</td><td>Puerta de hoja con indicador de arco</td></tr>
+        <tr><td>Doble</td><td>Puertas de hoja pareadas</td></tr>
+        <tr><td>Corrediza</td><td>Puerta que se desliza en riel</td></tr>
+        <tr><td>Empotrada</td><td>Puerta que se desliza dentro de la cavidad del muro</td></tr>
+        <tr><td>Plegable</td><td>Paneles plegables tipo acorde&oacute;n</td></tr>
+        <tr><td>Giratoria</td><td>Puerta giratoria circular</td></tr>
+      </table>
+
+      <h3>Propiedades de Puerta</h3>
+      <table>
+        <tr><th>Propiedad</th><th>Predeterminado</th></tr>
+        <tr><td>Ancho</td><td>0.9 m</td></tr>
+        <tr><td>Altura</td><td>2.1 m</td></tr>
+        <tr><td>Apertura</td><td>Izquierda / Derecha</td></tr>
+        <tr><td>&Aacute;ngulo de apertura</td><td>90 grados</td></tr>
+        <tr><td>Bisagra</td><td>Inicio / Fin</td></tr>
+        <tr><td>Lado</td><td>Interior / Exterior</td></tr>
+      </table>
+
+      <div class="tip"><strong>Consejo:</strong> Selecciona una puerta y presiona <span class="kbd">F</span> para voltear la direcci&oacute;n de apertura (izquierda/derecha), o presiona <span class="kbd">G</span> para voltear de qu&eacute; lado del muro se abre.</div>
+    </div>
+
+    <!-- 7. Windows -->
+    <h2 id="windows">
+      <span lang="en">7. Windows &amp; Styles</span>
+      <span lang="es">7. Ventanas y Estilos</span>
+    </h2>
+
+    <div lang="en">
+      <p>Windows work like doors &mdash; move cursor near a wall and click to place.</p>
+
+      <h3>Window Styles (6 types)</h3>
+      <table>
+        <tr><th>Style</th><th>Description</th></tr>
+        <tr><td>Single</td><td>Single pane window</td></tr>
+        <tr><td>Double</td><td>Two-pane window</td></tr>
+        <tr><td>Sliding</td><td>Horizontal sliding panes</td></tr>
+        <tr><td>Fixed</td><td>Non-opening window</td></tr>
+        <tr><td>Casement</td><td>Hinged opening (like a door)</td></tr>
+        <tr><td>Awning</td><td>Top-hinged outward-opening</td></tr>
+      </table>
+
+      <h3>Window Properties</h3>
+      <table>
+        <tr><th>Property</th><th>Default</th></tr>
+        <tr><td>Width</td><td>1.2 m</td></tr>
+        <tr><td>Height</td><td>1.2 m</td></tr>
+        <tr><td>Sill Height</td><td>0.9 m from floor</td></tr>
+      </table>
+    </div>
+
+    <div lang="es">
+      <p>Las ventanas funcionan como las puertas &mdash; mueve el cursor cerca de un muro y haz clic para colocar.</p>
+
+      <h3>Estilos de Ventana (6 tipos)</h3>
+      <table>
+        <tr><th>Estilo</th><th>Descripci&oacute;n</th></tr>
+        <tr><td>Simple</td><td>Ventana de un panel</td></tr>
+        <tr><td>Doble</td><td>Ventana de dos paneles</td></tr>
+        <tr><td>Corrediza</td><td>Paneles deslizantes horizontales</td></tr>
+        <tr><td>Fija</td><td>Ventana que no se abre</td></tr>
+        <tr><td>Abatible</td><td>Apertura con bisagra (como una puerta)</td></tr>
+        <tr><td>Proyectante</td><td>Apertura hacia afuera con bisagra superior</td></tr>
+      </table>
+
+      <h3>Propiedades de Ventana</h3>
+      <table>
+        <tr><th>Propiedad</th><th>Predeterminado</th></tr>
+        <tr><td>Ancho</td><td>1.2 m</td></tr>
+        <tr><td>Altura</td><td>1.2 m</td></tr>
+        <tr><td>Altura del Antepecho</td><td>0.9 m desde el piso</td></tr>
+      </table>
+    </div>
+
+    <!-- 8. Rooms -->
+    <h2 id="rooms">
+      <span lang="en">8. Rooms &amp; Patterns</span>
+      <span lang="es">8. Cuartos y Patrones</span>
+    </h2>
+
+    <div lang="en">
+      <p>Rooms auto-detect enclosed wall areas. Draw a complete wall perimeter first, then use the Room tool to click inside.</p>
+
+      <h3>Creating a Room</h3>
+      <ol>
+        <li>Draw walls forming a closed polygon (at least 3 walls)</li>
+        <li>Press <span class="kbd">R</span> to activate the Room tool</li>
+        <li>Click inside the enclosed area</li>
+        <li>The room auto-detects boundaries and fills with a label</li>
+        <li>Edit name, color, and pattern in the Properties panel</li>
+      </ol>
+
+      <h3>Floor Patterns (15 types)</h3>
+      <table>
+        <tr><th>Pattern</th><th>Best For</th></tr>
+        <tr><td>Solid</td><td>Simple filled room (default)</td></tr>
+        <tr><td>Hatch</td><td>Technical/construction drawings</td></tr>
+        <tr><td>Tile</td><td>Kitchens, bathrooms</td></tr>
+        <tr><td>Wood</td><td>Living rooms, bedrooms</td></tr>
+        <tr><td>Stone</td><td>Outdoor, rustic spaces</td></tr>
+        <tr><td>Brick</td><td>Patios, walkways</td></tr>
+        <tr><td>Marble</td><td>Lobbies, luxury spaces</td></tr>
+        <tr><td>Concrete</td><td>Garages, industrial</td></tr>
+        <tr><td>Ceramic</td><td>Bathrooms, kitchens</td></tr>
+        <tr><td>Parquet</td><td>Formal rooms</td></tr>
+        <tr><td>Herringbone</td><td>Elegant wood floors</td></tr>
+        <tr><td>Hexagonal</td><td>Modern bathrooms</td></tr>
+        <tr><td>Carpet</td><td>Bedrooms, offices</td></tr>
+        <tr><td>Grass</td><td>Gardens, outdoor areas</td></tr>
+        <tr><td>Granite</td><td>Countertops, commercial</td></tr>
+      </table>
+    </div>
+
+    <div lang="es">
+      <p>Los cuartos auto-detectan &aacute;reas cerradas de muros. Dibuja un per&iacute;metro completo de muros primero, luego usa la herramienta Cuarto para hacer clic dentro.</p>
+
+      <h3>Crear un Cuarto</h3>
+      <ol>
+        <li>Dibuja muros formando un pol&iacute;gono cerrado (al menos 3 muros)</li>
+        <li>Presiona <span class="kbd">R</span> para activar la herramienta de Cuarto</li>
+        <li>Haz clic dentro del &aacute;rea cerrada</li>
+        <li>El cuarto auto-detecta los l&iacute;mites y se rellena con una etiqueta</li>
+        <li>Edita el nombre, color y patr&oacute;n en el panel de Propiedades</li>
+      </ol>
+
+      <h3>Patrones de Piso (15 tipos)</h3>
+      <table>
+        <tr><th>Patr&oacute;n</th><th>Ideal para</th></tr>
+        <tr><td>S&oacute;lido</td><td>Cuarto con relleno simple (predeterminado)</td></tr>
+        <tr><td>Achurado</td><td>Dibujos t&eacute;cnicos/construcci&oacute;n</td></tr>
+        <tr><td>Azulejo</td><td>Cocinas, ba&ntilde;os</td></tr>
+        <tr><td>Madera</td><td>Salas, rec&aacute;maras</td></tr>
+        <tr><td>Piedra</td><td>Exteriores, espacios r&uacute;sticos</td></tr>
+        <tr><td>Ladrillo</td><td>Patios, andadores</td></tr>
+        <tr><td>M&aacute;rmol</td><td>Lobbys, espacios de lujo</td></tr>
+        <tr><td>Concreto</td><td>Cocheras, industrial</td></tr>
+        <tr><td>Cer&aacute;mica</td><td>Ba&ntilde;os, cocinas</td></tr>
+        <tr><td>Parquet</td><td>Cuartos formales</td></tr>
+        <tr><td>Espiga</td><td>Pisos de madera elegantes</td></tr>
+        <tr><td>Hexagonal</td><td>Ba&ntilde;os modernos</td></tr>
+        <tr><td>Alfombra</td><td>Rec&aacute;maras, oficinas</td></tr>
+        <tr><td>Pasto</td><td>Jardines, &aacute;reas exteriores</td></tr>
+        <tr><td>Granito</td><td>Encimeras, comercial</td></tr>
+      </table>
+    </div>
+
+    <!-- 9. Furniture -->
+    <h2 id="furniture">
+      <span lang="en">9. Furniture Library</span>
+      <span lang="es">9. Biblioteca de Muebles</span>
+    </h2>
+
+    <div lang="en">
+      <p>The Library tab in the right sidebar contains Neufert-style furniture stamps organized by category.</p>
+
+      <h3>How to Place Furniture</h3>
+      <ol>
+        <li>Press <span class="kbd">F</span> to activate the Furniture tool</li>
+        <li>Open the <strong>Library</strong> tab in the right sidebar</li>
+        <li>Browse categories and click an item to select it</li>
+        <li>Move cursor to see preview at grid-snapped position</li>
+        <li>Press <span class="kbd">R</span> to rotate 90 degrees before placing</li>
+        <li>Click to place the item</li>
+      </ol>
+
+      <h3>Categories</h3>
+      <table>
+        <tr><th>Category</th><th>Example Items</th></tr>
+        <tr><td>Furniture</td><td>Single/double bed, sofa (2/3-seat), armchair, chair, desk, dining table, wardrobe, bookshelf, coffee table, TV stand, bench, rug</td></tr>
+        <tr><td>Bathroom</td><td>Toilet, sink, bathtub, shower, bidet, laundry sink, mirror</td></tr>
+        <tr><td>Kitchen</td><td>Stove (4/6 burner), fridge, kitchen sink, dishwasher, microwave</td></tr>
+        <tr><td>Outdoor</td><td>Tree (small/large), bush, potted plant, pool, parking spot</td></tr>
+        <tr><td>People</td><td>Standing, sitting, walking, child, group, wheelchair</td></tr>
+        <tr><td>Vehicles</td><td>Car, motorcycle</td></tr>
+        <tr><td>Accessories</td><td>Ceiling lamp, pendant light, floor lamp, table lamp, wall sconce, recessed light, track light, clock, vase</td></tr>
+        <tr><td>Decoration</td><td>Painting, curtain</td></tr>
+        <tr><td>Laundry</td><td>Washer, dryer, ironing board</td></tr>
+      </table>
+
+      <div class="tip"><strong>Tip:</strong> All stamps are drawn in Neufert black-line architectural style. Use the Scale property to resize items after placement.</div>
+    </div>
+
+    <div lang="es">
+      <p>La pesta&ntilde;a Biblioteca en la barra lateral derecha contiene sellos de muebles estilo Neufert organizados por categor&iacute;a.</p>
+
+      <h3>C&oacute;mo Colocar Muebles</h3>
+      <ol>
+        <li>Presiona <span class="kbd">F</span> para activar la herramienta de Muebles</li>
+        <li>Abre la pesta&ntilde;a <strong>Biblioteca</strong> en la barra lateral derecha</li>
+        <li>Explora las categor&iacute;as y haz clic en un elemento para seleccionarlo</li>
+        <li>Mueve el cursor para ver la vista previa ajustada a la cuadr&iacute;cula</li>
+        <li>Presiona <span class="kbd">R</span> para rotar 90 grados antes de colocar</li>
+        <li>Haz clic para colocar el elemento</li>
+      </ol>
+
+      <h3>Categor&iacute;as</h3>
+      <table>
+        <tr><th>Categor&iacute;a</th><th>Elementos Ejemplo</th></tr>
+        <tr><td>Muebles</td><td>Cama individual/matrimonial, sof&aacute; (2/3 plazas), sill&oacute;n, silla, escritorio, mesa de comedor, armario, librero, mesa de centro, mueble TV, banca, tapete</td></tr>
+        <tr><td>Ba&ntilde;o</td><td>Inodoro, lavabo, ba&ntilde;era, regadera, bidet, lavadero, espejo</td></tr>
+        <tr><td>Cocina</td><td>Estufa (4/6 quemadores), refrigerador, fregadero, lavavajillas, microondas</td></tr>
+        <tr><td>Exterior</td><td>&Aacute;rbol (peque&ntilde;o/grande), arbusto, maceta, alberca, caj&oacute;n de estacionamiento</td></tr>
+        <tr><td>Personas</td><td>De pie, sentada, caminando, ni&ntilde;o, grupo, silla de ruedas</td></tr>
+        <tr><td>Veh&iacute;culos</td><td>Auto, motocicleta</td></tr>
+        <tr><td>Accesorios</td><td>L&aacute;mpara de techo, colgante, de piso, de mesa, aplique de pared, empotrada, riel, reloj, florero</td></tr>
+        <tr><td>Decoraci&oacute;n</td><td>Cuadro, cortina</td></tr>
+        <tr><td>Lavander&iacute;a</td><td>Lavadora, secadora, tabla de planchar</td></tr>
+      </table>
+
+      <div class="tip"><strong>Consejo:</strong> Todos los sellos est&aacute;n dibujados en estilo arquitect&oacute;nico Neufert de l&iacute;nea negra. Usa la propiedad Escala para redimensionar elementos despu&eacute;s de colocarlos.</div>
+    </div>
+
+    <!-- 10. Stairs -->
+    <h2 id="stairs">
+      <span lang="en">10. Stairs</span>
+      <span lang="es">10. Escaleras</span>
+    </h2>
+
+    <div lang="en">
+      <p>Stairs support 6 configurations with customizable treads, direction, and dimensions.</p>
+
+      <h3>Stair Styles</h3>
+      <table>
+        <tr><th>Style</th><th>Description</th></tr>
+        <tr><td>Straight</td><td>Linear stairs, simplest configuration</td></tr>
+        <tr><td>L-Shaped</td><td>90-degree turn with landing</td></tr>
+        <tr><td>U-Shaped</td><td>180-degree turn with landing</td></tr>
+        <tr><td>Spiral</td><td>Circular/helical stairs</td></tr>
+        <tr><td>Winder</td><td>Angled turn steps (no landing)</td></tr>
+        <tr><td>Curved</td><td>Arc-shaped stairs</td></tr>
+      </table>
+
+      <h3>Stair Properties</h3>
+      <table>
+        <tr><th>Property</th><th>Default</th></tr>
+        <tr><td>Width</td><td>1.0 m</td></tr>
+        <tr><td>Length</td><td>3.0 m</td></tr>
+        <tr><td>Treads</td><td>12</td></tr>
+        <tr><td>Direction</td><td>Up / Down</td></tr>
+        <tr><td>Riser Height</td><td>Calculated from floor height</td></tr>
+      </table>
+    </div>
+
+    <div lang="es">
+      <p>Las escaleras soportan 6 configuraciones con pelda&ntilde;os, direcci&oacute;n y dimensiones personalizables.</p>
+
+      <h3>Estilos de Escalera</h3>
+      <table>
+        <tr><th>Estilo</th><th>Descripci&oacute;n</th></tr>
+        <tr><td>Recta</td><td>Escalera lineal, configuraci&oacute;n m&aacute;s simple</td></tr>
+        <tr><td>Forma L</td><td>Giro de 90 grados con descanso</td></tr>
+        <tr><td>Forma U</td><td>Giro de 180 grados con descanso</td></tr>
+        <tr><td>Espiral</td><td>Escalera circular/helicoidal</td></tr>
+        <tr><td>Compensada</td><td>Pelda&ntilde;os en &aacute;ngulo (sin descanso)</td></tr>
+        <tr><td>Curva</td><td>Escalera en forma de arco</td></tr>
+      </table>
+
+      <h3>Propiedades de Escalera</h3>
+      <table>
+        <tr><th>Propiedad</th><th>Predeterminado</th></tr>
+        <tr><td>Ancho</td><td>1.0 m</td></tr>
+        <tr><td>Largo</td><td>3.0 m</td></tr>
+        <tr><td>Pelda&ntilde;os</td><td>12</td></tr>
+        <tr><td>Direcci&oacute;n</td><td>Sube / Baja</td></tr>
+        <tr><td>Altura Contrahuella</td><td>Calculada desde la altura del piso</td></tr>
+      </table>
+    </div>
+
+    <!-- 11. Architectural Lines -->
+    <h2 id="archlines">
+      <span lang="en">11. Architectural Lines</span>
+      <span lang="es">11. L&iacute;neas Arquitect&oacute;nicas</span>
+    </h2>
+
+    <div lang="en">
+      <p>Specialized line types used in Latin American architectural conventions for site plans and construction drawings.</p>
+      <table>
+        <tr><th>Type</th><th>Pattern</th><th>Use</th></tr>
+        <tr><td>Boundary (Colindancia)</td><td>Red dash-dot</td><td>Property boundary lines</td></tr>
+        <tr><td>Lot Limit</td><td>Orange dashed</td><td>Lot limit lines</td></tr>
+        <tr><td>Axis (Eje)</td><td>Blue center-line</td><td>Structural/planning axes</td></tr>
+        <tr><td>Setback</td><td>Green short-dash</td><td>Building setback lines</td></tr>
+        <tr><td>Center</td><td>Purple center-line</td><td>Centerline references</td></tr>
+      </table>
+    </div>
+
+    <div lang="es">
+      <p>Tipos de l&iacute;neas especializados usados en convenciones arquitect&oacute;nicas latinoamericanas para planos de sitio y dibujos de construcci&oacute;n.</p>
+      <table>
+        <tr><th>Tipo</th><th>Patr&oacute;n</th><th>Uso</th></tr>
+        <tr><td>Colindancia</td><td>Rojo punto-raya</td><td>L&iacute;neas de l&iacute;mite de propiedad</td></tr>
+        <tr><td>L&iacute;mite de Lote</td><td>Naranja discontinuo</td><td>L&iacute;neas de l&iacute;mite de lote</td></tr>
+        <tr><td>Eje</td><td>Azul l&iacute;nea central</td><td>Ejes estructurales/de planeaci&oacute;n</td></tr>
+        <tr><td>Setback</td><td>Verde raya corta</td><td>L&iacute;neas de retiro</td></tr>
+        <tr><td>Centro</td><td>Morado l&iacute;nea central</td><td>Referencias de l&iacute;nea central</td></tr>
+      </table>
+    </div>
+
+    <!-- 12. Dimensions & Text -->
+    <h2 id="dimensions">
+      <span lang="en">12. Dimensions &amp; Text</span>
+      <span lang="es">12. Cotas y Texto</span>
+    </h2>
+
+    <div lang="en">
+      <h3>Dimensions</h3>
+      <p>Dimension lines show distances between two points with automatic measurement labels.</p>
+      <ol>
+        <li>Press <span class="kbd">M</span> to activate the Dimension tool</li>
+        <li>Click the start point</li>
+        <li>Click the end point</li>
+        <li>Adjust the offset distance in Properties to move the line away from the wall</li>
+      </ol>
+
+      <h3>Text Labels</h3>
+      <p>Free-form text labels for annotations, room names, or notes.</p>
+      <ol>
+        <li>Press <span class="kbd">T</span> to activate the Text tool</li>
+        <li>Click anywhere on the canvas</li>
+        <li>Edit the text content, font size, color, and rotation in the Properties panel</li>
+      </ol>
+
+      <div class="tip"><strong>Tip:</strong> Toggle dimension visibility with the Dimensions button in the top bar. This hides/shows all dimension lines on the canvas.</div>
+    </div>
+
+    <div lang="es">
+      <h3>Cotas</h3>
+      <p>Las l&iacute;neas de cota muestran distancias entre dos puntos con etiquetas de medici&oacute;n autom&aacute;ticas.</p>
+      <ol>
+        <li>Presiona <span class="kbd">M</span> para activar la herramienta de Cota</li>
+        <li>Haz clic en el punto de inicio</li>
+        <li>Haz clic en el punto final</li>
+        <li>Ajusta la distancia de desplazamiento en Propiedades para mover la l&iacute;nea lejos del muro</li>
+      </ol>
+
+      <h3>Etiquetas de Texto</h3>
+      <p>Etiquetas de texto libre para anotaciones, nombres de cuartos o notas.</p>
+      <ol>
+        <li>Presiona <span class="kbd">T</span> para activar la herramienta de Texto</li>
+        <li>Haz clic en cualquier lugar del lienzo</li>
+        <li>Edita el contenido del texto, tama&ntilde;o de fuente, color y rotaci&oacute;n en el panel de Propiedades</li>
+      </ol>
+
+      <div class="tip"><strong>Consejo:</strong> Activa/desactiva la visibilidad de cotas con el bot&oacute;n Cotas en la barra superior. Esto oculta/muestra todas las l&iacute;neas de cota en el lienzo.</div>
+    </div>
+
+    <!-- 13. Views -->
+    <h2 id="views">
+      <span lang="en">13. View Modes</span>
+      <span lang="es">13. Modos de Vista</span>
+    </h2>
+
+    <div lang="en">
+      <h3>Plan View (Planta)</h3>
+      <p>Default orthographic top-down view. Shows all walls, openings, furniture, rooms, dimensions, and annotations. This is where most design work happens.</p>
+
+      <h3>Section View (Corte)</h3>
+      <p>Vertical cross-section through the building. Shows wall heights, floor slabs, door/window heights, stairs with visible treads, and Neufert-style furniture silhouettes. Includes dimension annotations and hatching patterns.</p>
+
+      <h3>Facade View (Fachada)</h3>
+      <p>Building elevation from a selectable direction (North, South, East, West). Shows the exterior appearance with wall materials, door and window openings, and architectural detail.</p>
+
+      <h3>Isometric View (3D)</h3>
+      <p>Pseudo-3D axonometric projection showing the building in three dimensions. Walls display their full height, doors and windows show their openings. Rotation angle can be adjusted.</p>
+    </div>
+
+    <div lang="es">
+      <h3>Vista de Planta</h3>
+      <p>Vista ortogr&aacute;fica superior predeterminada. Muestra todos los muros, aberturas, muebles, cuartos, cotas y anotaciones. Aqu&iacute; es donde ocurre la mayor&iacute;a del trabajo de dise&ntilde;o.</p>
+
+      <h3>Vista de Corte</h3>
+      <p>Secci&oacute;n transversal vertical del edificio. Muestra alturas de muros, losas de piso, alturas de puertas/ventanas, escaleras con pelda&ntilde;os visibles y siluetas de muebles estilo Neufert. Incluye anotaciones de cotas y patrones de achurado.</p>
+
+      <h3>Vista de Fachada</h3>
+      <p>Elevaci&oacute;n del edificio desde una direcci&oacute;n seleccionable (Norte, Sur, Este, Oeste). Muestra la apariencia exterior con materiales de muro, aberturas de puertas y ventanas, y detalle arquitect&oacute;nico.</p>
+
+      <h3>Vista Isom&eacute;trica (3D)</h3>
+      <p>Proyecci&oacute;n axonom&eacute;trica pseudo-3D mostrando el edificio en tres dimensiones. Los muros muestran su altura completa, las puertas y ventanas muestran sus aberturas. El &aacute;ngulo de rotaci&oacute;n se puede ajustar.</p>
+    </div>
+
+    <!-- 14. Floors -->
+    <h2 id="floors">
+      <span lang="en">14. Floor Management</span>
+      <span lang="es">14. Gesti&oacute;n de Pisos</span>
+    </h2>
+
+    <div lang="en">
+      <p>EasyPlans supports multi-floor projects. Each floor has its own independent set of elements.</p>
+
+      <h3>Floor Operations</h3>
+      <table>
+        <tr><th>Action</th><th>How</th></tr>
+        <tr><td>Add floor</td><td>Click the <strong>+</strong> button in the bottom bar floor tabs</td></tr>
+        <tr><td>Switch floor</td><td>Click a floor tab name</td></tr>
+        <tr><td>Rename floor</td><td>Double-click the floor tab name</td></tr>
+        <tr><td>Duplicate floor</td><td>Hover tab, click the <strong>&#10697;</strong> copy icon</td></tr>
+        <tr><td>Delete floor</td><td>Hover tab, click the <strong>&times;</strong> button (only if 2+ floors exist)</td></tr>
+      </table>
+
+      <h3>Floor Properties</h3>
+      <p>Each floor has a name, level index, and floor-to-floor height (default 3.0 m). The height affects Section and Isometric views.</p>
+    </div>
+
+    <div lang="es">
+      <p>EasyPlans soporta proyectos multi-piso. Cada piso tiene su propio conjunto independiente de elementos.</p>
+
+      <h3>Operaciones de Piso</h3>
+      <table>
+        <tr><th>Acci&oacute;n</th><th>C&oacute;mo</th></tr>
+        <tr><td>Agregar piso</td><td>Clic en el bot&oacute;n <strong>+</strong> en las pesta&ntilde;as de piso de la barra inferior</td></tr>
+        <tr><td>Cambiar de piso</td><td>Clic en el nombre de la pesta&ntilde;a del piso</td></tr>
+        <tr><td>Renombrar piso</td><td>Doble clic en el nombre de la pesta&ntilde;a del piso</td></tr>
+        <tr><td>Duplicar piso</td><td>Pasar el cursor sobre la pesta&ntilde;a, clic en el &iacute;cono de copiar <strong>&#10697;</strong></td></tr>
+        <tr><td>Eliminar piso</td><td>Pasar el cursor sobre la pesta&ntilde;a, clic en el bot&oacute;n <strong>&times;</strong> (solo si hay 2+ pisos)</td></tr>
+      </table>
+
+      <h3>Propiedades del Piso</h3>
+      <p>Cada piso tiene un nombre, &iacute;ndice de nivel y altura piso a piso (predeterminado 3.0 m). La altura afecta las vistas de Corte e Isom&eacute;trica.</p>
+    </div>
+
+    <!-- 15. Export & Save -->
+    <h2 id="export">
+      <span lang="en">15. Export &amp; Save</span>
+      <span lang="es">15. Exportar y Guardar</span>
+    </h2>
+
+    <div lang="en">
+      <h3>Save Project (.easyplan)</h3>
+      <p>Press <span class="kbd">Ctrl</span>+<span class="kbd">S</span> or click the save button. Your project downloads as a <code>.easyplan</code> file that preserves all floors, elements, and settings.</p>
+
+      <h3>Load Project</h3>
+      <p>Press <span class="kbd">Ctrl</span>+<span class="kbd">O</span> or click the load button. Select a <code>.easyplan</code> or <code>.json</code> file to restore a project.</p>
+
+      <h3>Auto-Save</h3>
+      <p>EasyPlans automatically saves your work to browser local storage. If you close the tab accidentally, your project will be restored when you reopen the app.</p>
+
+      <h3>Export</h3>
+      <p>Click the export button to open the Export dialog:</p>
+      <table>
+        <tr><th>Option</th><th>Details</th></tr>
+        <tr><td>Format</td><td>PNG (with background), PNG Transparent, or PDF</td></tr>
+        <tr><td>Paper Size</td><td>A4, A3, or Letter</td></tr>
+        <tr><td>Title Block</td><td>Optional professional title block with project name, author, date, and scale</td></tr>
+        <tr><td>Project Name</td><td>Custom name for the title block</td></tr>
+        <tr><td>Author</td><td>Your name for the title block</td></tr>
+      </table>
+
+      <h3>Scale Options</h3>
+      <p>10 preset scales plus custom entry: 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 (default), 1:150, 1:200, 1:250, 1:500.</p>
+    </div>
+
+    <div lang="es">
+      <h3>Guardar Proyecto (.easyplan)</h3>
+      <p>Presiona <span class="kbd">Ctrl</span>+<span class="kbd">S</span> o haz clic en el bot&oacute;n de guardar. Tu proyecto se descarga como un archivo <code>.easyplan</code> que preserva todos los pisos, elementos y configuraciones.</p>
+
+      <h3>Cargar Proyecto</h3>
+      <p>Presiona <span class="kbd">Ctrl</span>+<span class="kbd">O</span> o haz clic en el bot&oacute;n de cargar. Selecciona un archivo <code>.easyplan</code> o <code>.json</code> para restaurar un proyecto.</p>
+
+      <h3>Autoguardado</h3>
+      <p>EasyPlans guarda autom&aacute;ticamente tu trabajo en el almacenamiento local del navegador. Si cierras la pesta&ntilde;a accidentalmente, tu proyecto se restaurar&aacute; cuando reabras la aplicaci&oacute;n.</p>
+
+      <h3>Exportar</h3>
+      <p>Haz clic en el bot&oacute;n de exportar para abrir el di&aacute;logo de Exportaci&oacute;n:</p>
+      <table>
+        <tr><th>Opci&oacute;n</th><th>Detalles</th></tr>
+        <tr><td>Formato</td><td>PNG (con fondo), PNG Transparente, o PDF</td></tr>
+        <tr><td>Tama&ntilde;o de Papel</td><td>A4, A3, o Carta</td></tr>
+        <tr><td>Cuadro de T&iacute;tulo</td><td>Cuadro de t&iacute;tulo profesional opcional con nombre del proyecto, autor, fecha y escala</td></tr>
+        <tr><td>Nombre del Proyecto</td><td>Nombre personalizado para el cuadro de t&iacute;tulo</td></tr>
+        <tr><td>Autor</td><td>Tu nombre para el cuadro de t&iacute;tulo</td></tr>
+      </table>
+
+      <h3>Opciones de Escala</h3>
+      <p>10 escalas preestablecidas m&aacute;s entrada personalizada: 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 (predeterminada), 1:150, 1:200, 1:250, 1:500.</p>
+    </div>
+
+    <!-- 16. Navigation -->
+    <h2 id="navigation">
+      <span lang="en">16. Camera &amp; Navigation</span>
+      <span lang="es">16. C&aacute;mara y Navegaci&oacute;n</span>
+    </h2>
+
+    <div lang="en">
+      <table>
+        <tr><th>Action</th><th>How</th></tr>
+        <tr><td>Pan</td><td>Click and drag on empty canvas space</td></tr>
+        <tr><td>Zoom in</td><td>Scroll wheel up, or press <span class="kbd">+</span></td></tr>
+        <tr><td>Zoom out</td><td>Scroll wheel down, or press <span class="kbd">-</span></td></tr>
+        <tr><td>Reset zoom</td><td>Press <span class="kbd">0</span></td></tr>
+        <tr><td>Zoom to fit</td><td>Click the <strong>&#8865;</strong> button in the bottom bar</td></tr>
+      </table>
+
+      <h3>Grid &amp; Snap</h3>
+      <table>
+        <tr><th>Feature</th><th>Toggle</th><th>Details</th></tr>
+        <tr><td>Grid</td><td>Top bar button</td><td>Major grid: 1.0 m, Minor grid: 0.1 m spacing</td></tr>
+        <tr><td>Snap</td><td>Top bar button</td><td>Snaps to grid, wall endpoints, and angle constraints (0/45/90 degrees)</td></tr>
+        <tr><td>Dimensions</td><td>Top bar button</td><td>Show/hide dimension annotations on canvas</td></tr>
+      </table>
+    </div>
+
+    <div lang="es">
+      <table>
+        <tr><th>Acci&oacute;n</th><th>C&oacute;mo</th></tr>
+        <tr><td>Desplazar</td><td>Clic y arrastrar en el espacio vac&iacute;o del lienzo</td></tr>
+        <tr><td>Acercar zoom</td><td>Rueda del rat&oacute;n hacia arriba, o presiona <span class="kbd">+</span></td></tr>
+        <tr><td>Alejar zoom</td><td>Rueda del rat&oacute;n hacia abajo, o presiona <span class="kbd">-</span></td></tr>
+        <tr><td>Restablecer zoom</td><td>Presiona <span class="kbd">0</span></td></tr>
+        <tr><td>Ajustar a vista</td><td>Clic en el bot&oacute;n <strong>&#8865;</strong> en la barra inferior</td></tr>
+      </table>
+
+      <h3>Cuadr&iacute;cula y Ajuste</h3>
+      <table>
+        <tr><th>Caracter&iacute;stica</th><th>Activar</th><th>Detalles</th></tr>
+        <tr><td>Cuadr&iacute;cula</td><td>Bot&oacute;n barra superior</td><td>Cuadr&iacute;cula mayor: 1.0 m, menor: 0.1 m de espaciado</td></tr>
+        <tr><td>Ajuste</td><td>Bot&oacute;n barra superior</td><td>Se ajusta a cuadr&iacute;cula, puntos de muro y restricciones de &aacute;ngulo (0/45/90 grados)</td></tr>
+        <tr><td>Cotas</td><td>Bot&oacute;n barra superior</td><td>Mostrar/ocultar anotaciones de cotas en el lienzo</td></tr>
+      </table>
+    </div>
+
+    <!-- 17. Properties -->
+    <h2 id="properties">
+      <span lang="en">17. Properties Panel</span>
+      <span lang="es">17. Panel de Propiedades</span>
+    </h2>
+
+    <div lang="en">
+      <p>When you select an element, the Properties tab in the right sidebar shows all editable parameters. Changes apply immediately.</p>
+
+      <h3>Common Properties</h3>
+      <ul>
+        <li><strong>Position</strong> &mdash; X, Y coordinates in meters</li>
+        <li><strong>Rotation</strong> &mdash; Angle in degrees</li>
+        <li><strong>Color</strong> &mdash; Click the color swatch to open a picker</li>
+        <li><strong>Delete</strong> &mdash; Red button to remove the selected element</li>
+      </ul>
+
+      <h3>Numeric Inputs</h3>
+      <p>Type a value directly or use the up/down arrows. Units are displayed next to each field (m for meters, degrees for angles).</p>
+    </div>
+
+    <div lang="es">
+      <p>Cuando seleccionas un elemento, la pesta&ntilde;a de Propiedades en la barra lateral derecha muestra todos los par&aacute;metros editables. Los cambios se aplican inmediatamente.</p>
+
+      <h3>Propiedades Comunes</h3>
+      <ul>
+        <li><strong>Posici&oacute;n</strong> &mdash; Coordenadas X, Y en metros</li>
+        <li><strong>Rotaci&oacute;n</strong> &mdash; &Aacute;ngulo en grados</li>
+        <li><strong>Color</strong> &mdash; Clic en la muestra de color para abrir el selector</li>
+        <li><strong>Eliminar</strong> &mdash; Bot&oacute;n rojo para eliminar el elemento seleccionado</li>
+      </ul>
+
+      <h3>Entradas Num&eacute;ricas</h3>
+      <p>Escribe un valor directamente o usa las flechas arriba/abajo. Las unidades se muestran junto a cada campo (m para metros, grados para &aacute;ngulos).</p>
+    </div>
+
+    <!-- 18. Tips -->
+    <h2 id="tips">
+      <span lang="en">18. Tips &amp; Workflows</span>
+      <span lang="es">18. Consejos y Flujos de Trabajo</span>
+    </h2>
+
+    <div lang="en">
+      <h3>Efficient Wall Drawing</h3>
+      <div class="tip"><strong>Chain mode:</strong> When drawing walls, hold <span class="kbd">Shift</span> on the second click to immediately start a new wall from that endpoint. This lets you quickly draw entire room perimeters without restarting.</div>
+
+      <h3>Quick Room Creation</h3>
+      <ol>
+        <li>Draw 4 walls forming a rectangle (use chain mode)</li>
+        <li>Switch to Room tool (<span class="kbd">R</span>)</li>
+        <li>Click inside the rectangle</li>
+        <li>Name and style the room in Properties</li>
+      </ol>
+
+      <h3>Furnishing a Room</h3>
+      <ol>
+        <li>Switch to Furniture tool (<span class="kbd">F</span>)</li>
+        <li>Open the Library tab and browse categories</li>
+        <li>Click an item, move to position, press <span class="kbd">R</span> to rotate if needed</li>
+        <li>Click to place, repeat for more items</li>
+      </ol>
+
+      <h3>Professional Exports</h3>
+      <div class="tip"><strong>Best practice:</strong> Set your scale first (e.g., 1:100), enable the title block, fill in project name and author, then export as PDF for print-ready architectural drawings.</div>
+
+      <h3>Multi-Floor Workflow</h3>
+      <ol>
+        <li>Complete the ground floor plan</li>
+        <li>Click <strong>+</strong> to add a new floor, or duplicate the ground floor</li>
+        <li>Switch between floors using the tabs</li>
+        <li>Each floor maintains independent elements</li>
+        <li>Section and 3D views show all floors stacked</li>
+      </ol>
+
+      <h3>Using Architectural Lines</h3>
+      <div class="tip"><strong>Site plans:</strong> Use Boundary (Colindancia) lines for property boundaries, Lot Limit lines for lot limits, and Axis (Eje) lines for structural axes. These follow Latin American architectural conventions.</div>
+
+      <div class="warn"><strong>Remember:</strong> Save your project regularly with <span class="kbd">Ctrl</span>+<span class="kbd">S</span>. While auto-save helps, browser storage can be cleared.</div>
+    </div>
+
+    <div lang="es">
+      <h3>Dibujo Eficiente de Muros</h3>
+      <div class="tip"><strong>Modo cadena:</strong> Al dibujar muros, mant&eacute;n <span class="kbd">Shift</span> en el segundo clic para iniciar inmediatamente un nuevo muro desde ese punto. Esto te permite dibujar r&aacute;pidamente per&iacute;metros completos sin reiniciar.</div>
+
+      <h3>Creaci&oacute;n R&aacute;pida de Cuartos</h3>
+      <ol>
+        <li>Dibuja 4 muros formando un rect&aacute;ngulo (usa modo cadena)</li>
+        <li>Cambia a la herramienta Cuarto (<span class="kbd">R</span>)</li>
+        <li>Haz clic dentro del rect&aacute;ngulo</li>
+        <li>Nombra y dale estilo al cuarto en Propiedades</li>
+      </ol>
+
+      <h3>Amueblar un Cuarto</h3>
+      <ol>
+        <li>Cambia a la herramienta de Muebles (<span class="kbd">F</span>)</li>
+        <li>Abre la pesta&ntilde;a Biblioteca y explora las categor&iacute;as</li>
+        <li>Haz clic en un elemento, mueve a posici&oacute;n, presiona <span class="kbd">R</span> para rotar si es necesario</li>
+        <li>Clic para colocar, repite para m&aacute;s elementos</li>
+      </ol>
+
+      <h3>Exportaciones Profesionales</h3>
+      <div class="tip"><strong>Mejor pr&aacute;ctica:</strong> Establece tu escala primero (ej., 1:100), activa el cuadro de t&iacute;tulo, llena el nombre del proyecto y autor, luego exporta como PDF para dibujos arquitect&oacute;nicos listos para imprimir.</div>
+
+      <h3>Flujo de Trabajo Multi-Piso</h3>
+      <ol>
+        <li>Completa el plano de planta baja</li>
+        <li>Clic en <strong>+</strong> para agregar un nuevo piso, o duplica la planta baja</li>
+        <li>Cambia entre pisos usando las pesta&ntilde;as</li>
+        <li>Cada piso mantiene elementos independientes</li>
+        <li>Las vistas de Corte y 3D muestran todos los pisos apilados</li>
+      </ol>
+
+      <h3>Usando L&iacute;neas Arquitect&oacute;nicas</h3>
+      <div class="tip"><strong>Planos de sitio:</strong> Usa l&iacute;neas de Colindancia para l&iacute;mites de propiedad, L&iacute;mite de Lote para l&iacute;mites de lote, y Eje para ejes estructurales. Estas siguen las convenciones arquitect&oacute;nicas latinoamericanas.</div>
+
+      <div class="warn"><strong>Recuerda:</strong> Guarda tu proyecto regularmente con <span class="kbd">Ctrl</span>+<span class="kbd">S</span>. Aunque el autoguardado ayuda, el almacenamiento del navegador puede limpiarse.</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div style="font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 6px;">
+        <span style="color: var(--green);">Easy</span><span style="color: var(--terracotta);">Plans</span>
+      </div>
+      <p lang="en">Made by Armando Acevedo D.</p>
+      <p lang="es">Hecho por Armando Acevedo D.</p>
+      <p lang="en">Free &amp; open source &bull; Version 1.0.0</p>
+      <p lang="es">Gratis y c&oacute;digo abierto &bull; Versi&oacute;n 1.0.0</p>
+      <p style="margin-top: 8px;">
+        <span lang="en">For support: </span>
+        <span lang="es">Para apoyo: </span>
+        <a href="https://ko-fi.com/armandoad" style="color: var(--green);">ko-fi.com/armandoad</a>
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    function setLang(lang) {
+      document.body.classList.toggle('lang-es', lang === 'es');
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim() === lang.toUpperCase());
+      });
+      document.documentElement.lang = lang;
+      localStorage.setItem('easyplans-manual-lang', lang);
+    }
+
+    // Restore language preference or detect from app
+    (function() {
+      const saved = localStorage.getItem('easyplans-manual-lang');
+      const appLang = localStorage.getItem('easyplans-language');
+      const lang = saved || appLang || 'en';
+      if (lang === 'es') setLang('es');
+    })();
+  </script>
+</body>
+</html>
