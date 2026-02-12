@@ -9,7 +9,7 @@ import { useTranslation } from '@/utils/i18n.ts';
 const KOFI_URL = 'https://ko-fi.com/armandoad';
 const GITHUB_URL = 'https://github.com/Pokernick01/easyplans';
 const APP_VERSION = '1.0.0';
-const SHARE_URL = 'https://easyplans.app';
+const SHARE_URL = 'https://easyplans.org';
 const CONTACT_EMAIL = 'aad1972@gmail.com';
 
 // ---------------------------------------------------------------------------
