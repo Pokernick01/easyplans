@@ -176,8 +176,8 @@ const dict: Record<string, { en: string; es: string }> = {
   'archStyle.colindancia': { en: 'Boundary', es: 'Colindancia' },
   'archStyle.limite-lote': { en: 'Lot Limit', es: 'L\u00edmite de Lote' },
   'archStyle.eje': { en: 'Axis', es: 'Eje' },
-  'archStyle.setback': { en: 'Setback', es: 'Setback' },
-  'archStyle.center': { en: 'Center', es: 'Center' },
+  'archStyle.setback': { en: 'Setback', es: 'Restricci\u00f3n' },
+  'archStyle.center': { en: 'Center', es: 'Eje Central' },
 
   // -- Selector headers --
   'selector.lineStyle': { en: 'Line Style', es: 'Estilo de L\u00ednea' },
