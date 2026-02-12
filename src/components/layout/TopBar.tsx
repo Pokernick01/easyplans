@@ -93,6 +93,7 @@ export function TopBar() {
   const toggleDimensions = useUIStore((s) => s.toggleDimensions);
   const setExportDialogOpen = useUIStore((s) => s.setExportDialogOpen);
   const setSupportDialogOpen = useUIStore((s) => s.setSupportDialogOpen);
+  const setSuggestionDialogOpen = useUIStore((s) => s.setSuggestionDialogOpen);
   const isMobile = useUIStore((s) => s.isMobile);
 
   const language = useUIStore((s) => s.language);
@@ -386,7 +387,7 @@ export function TopBar() {
 
         {/* Help / Manual button — uses <a> tag to avoid popup blockers */}
         <a
-          href="/manual.html"
+          href={`/manual.html?lang=${language}`}
           target="_blank"
           rel="noopener noreferrer"
           title={t('tooltip.help')}
@@ -406,17 +407,19 @@ export function TopBar() {
           {!isMobile && t('ui.help')}
         </a>
 
-        {/* Suggestions / Email button */}
-        <a
-          href="mailto:aad1972@gmail.com?subject=EasyPlans%20-%20Suggestion"
+        {/* Suggestions button */}
+        <button
+          onClick={() => setSuggestionDialogOpen(true)}
           title={t('support.suggestions')}
           className="ep-btn-ghost flex items-center gap-1 cursor-pointer"
           style={{
             padding: '3px 8px',
             fontSize: 11,
-            textDecoration: 'none',
             color: 'var(--ep-text-dim)',
             borderRadius: 'var(--ep-radius-sm)',
+            background: 'none',
+            border: 'none',
+            fontFamily: "'DM Sans', system-ui, sans-serif",
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -424,7 +427,7 @@ export function TopBar() {
             <polyline points="22,6 12,13 2,6" />
           </svg>
           {!isMobile && t('support.suggestions')}
-        </a>
+        </button>
 
         {/* Ko-fi Support Button — official Ko-fi orange style */}
         <button

@@ -6,12 +6,14 @@ import { RightSidebar } from './RightSidebar.tsx';
 import { BottomBar } from './BottomBar.tsx';
 import { ExportDialog } from '@/components/dialogs/ExportDialog.tsx';
 import SupportDialog from '@/components/dialogs/SupportDialog.tsx';
+import SuggestionDialog from '@/components/dialogs/SuggestionDialog.tsx';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useProjectStore } from '@/store/project-store.ts';
 
 export function AppShell() {
   const exportDialogOpen = useUIStore((s) => s.exportDialogOpen);
   const supportDialogOpen = useUIStore((s) => s.supportDialogOpen);
+  const suggestionDialogOpen = useUIStore((s) => s.suggestionDialogOpen);
   const isMobile = useUIStore((s) => s.isMobile);
   const setIsMobile = useUIStore((s) => s.setIsMobile);
 
@@ -81,6 +83,7 @@ export function AppShell() {
       <BottomBar />
       {exportDialogOpen && <ExportDialog />}
       {supportDialogOpen && <SupportDialog />}
+      {suggestionDialogOpen && <SuggestionDialog />}
     </div>
   );
 }

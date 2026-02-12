@@ -29,6 +29,7 @@ interface UIState {
   facadeDirection: FacadeDirection;
   exportDialogOpen: boolean;
   supportDialogOpen: boolean;
+  suggestionDialogOpen: boolean;
   rightSidebarOpen: boolean;
   leftSidebarOpen: boolean;
   isMobile: boolean;
@@ -65,6 +66,7 @@ interface UIActions {
   setFacadeDirection: (dir: FacadeDirection) => void;
   setExportDialogOpen: (open: boolean) => void;
   setSupportDialogOpen: (open: boolean) => void;
+  setSuggestionDialogOpen: (open: boolean) => void;
   toggleRightSidebar: () => void;
   toggleLeftSidebar: () => void;
   setIsMobile: (isMobile: boolean) => void;
@@ -115,6 +117,7 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   facadeDirection: 'south',
   exportDialogOpen: false,
   supportDialogOpen: false,
+  suggestionDialogOpen: false,
   rightSidebarOpen: true,
   leftSidebarOpen: true,
   isMobile: typeof window !== 'undefined' && window.innerWidth < 768,
@@ -202,6 +205,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   setSupportDialogOpen: (open) =>
     set({ supportDialogOpen: open }),
+
+  setSuggestionDialogOpen: (open) =>
+    set({ suggestionDialogOpen: open }),
 
   toggleRightSidebar: () =>
     set((s) => ({ rightSidebarOpen: !s.rightSidebarOpen })),

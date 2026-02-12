@@ -8,6 +8,14 @@
     <title>EasyPlans - Architectural Floor Plans</title>
   </head>
   <body>
+    <!-- Hidden form for Netlify Forms bot detection -->
+    <form name="suggestions" netlify netlify-honeypot="bot-field" hidden>
+      <input name="bot-field" />
+      <input name="name" />
+      <input name="email" />
+      <textarea name="message"></textarea>
+    </form>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

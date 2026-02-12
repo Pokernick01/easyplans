@@ -218,19 +218,22 @@ export default function SupportDialog() {
               {t('support.manual')}
             </a>
 
-            {/* Suggestions / Email */}
-            <a
-              href={`mailto:${CONTACT_EMAIL}?subject=EasyPlans%20-%20Suggestion&body=%0A%0A---%0ASent%20from%20EasyPlans%20v${APP_VERSION}`}
+            {/* Suggestions */}
+            <button
               className="ep-btn-secondary"
+              onClick={() => {
+                close(false);
+                useUIStore.getState().setSuggestionDialogOpen(true);
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
                 padding: '10px 16px',
-                textDecoration: 'none',
                 fontSize: 13,
                 borderRadius: 8,
+                cursor: 'pointer',
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -238,7 +241,7 @@ export default function SupportDialog() {
                 <polyline points="22,6 12,13 2,6" />
               </svg>
               {t('support.suggestions')}
-            </a>
+            </button>
           </div>
 
           {/* Suggestions hint */}

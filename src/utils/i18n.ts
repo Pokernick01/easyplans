@@ -298,6 +298,34 @@ const dict: Record<string, { en: string; es: string }> = {
   'tooltip.help': { en: 'User Manual', es: 'Manual de Usuario' },
   'support.manual': { en: 'User Manual', es: 'Manual de Usuario' },
   'support.manualHint': { en: 'Learn how to use all the tools', es: 'Aprende a usar todas las herramientas' },
+
+  // -- Suggestion Form --
+  'suggestion.title': { en: 'Send a Suggestion', es: 'Enviar Sugerencia' },
+  'suggestion.subtitle': {
+    en: 'Have ideas, feedback, or found a bug? Let us know!',
+    es: '\u00bfTienes ideas, comentarios o encontraste un error? \u00a1Cu\u00e9ntanos!',
+  },
+  'suggestion.name': { en: 'Name', es: 'Nombre' },
+  'suggestion.namePlaceholder': { en: 'Your name', es: 'Tu nombre' },
+  'suggestion.email': { en: 'Email', es: 'Correo' },
+  'suggestion.emailPlaceholder': { en: 'your@email.com', es: 'tu@correo.com' },
+  'suggestion.message': { en: 'Message', es: 'Mensaje' },
+  'suggestion.messagePlaceholder': {
+    en: 'Tell us your suggestion, idea, or report a bug...',
+    es: 'Cu\u00e9ntanos tu sugerencia, idea, o reporta un error...',
+  },
+  'suggestion.optional': { en: 'optional', es: 'opcional' },
+  'suggestion.send': { en: 'Send', es: 'Enviar' },
+  'suggestion.sending': { en: 'Sending...', es: 'Enviando...' },
+  'suggestion.thankYou': { en: 'Thank you!', es: '\u00a1Gracias!' },
+  'suggestion.received': {
+    en: 'Your suggestion has been received. We appreciate your feedback!',
+    es: 'Tu sugerencia ha sido recibida. \u00a1Agradecemos tus comentarios!',
+  },
+  'suggestion.error': {
+    en: 'Something went wrong. Please try again.',
+    es: 'Algo sali\u00f3 mal. Por favor int\u00e9ntalo de nuevo.',
+  },
 };
 
 /**

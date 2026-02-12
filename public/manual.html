@@ -79,10 +79,18 @@
     }
     .spacer-for-bar { height: 52px; }
 
-    /* Bilingual text toggling */
-    [lang="es"] { display: none; }
-    body.lang-es [lang="es"] { display: revert; }
-    body.lang-es [lang="en"] { display: none; }
+    /* Bilingual text toggling — hide ES by default, swap when body has .lang-es */
+    [lang="es"] { display: none !important; }
+    body.lang-es [lang="en"] { display: none !important; }
+    body.lang-es [lang="es"] { display: unset !important; }
+    /* Restore specific display types for ES elements */
+    body.lang-es div[lang="es"] { display: block !important; }
+    body.lang-es table[lang="es"] { display: table !important; }
+    body.lang-es p[lang="es"] { display: block !important; }
+    body.lang-es h2[lang="es"], body.lang-es h3[lang="es"] { display: block !important; }
+    body.lang-es span[lang="es"] { display: inline !important; }
+    body.lang-es ol[lang="es"], body.lang-es ul[lang="es"] { display: block !important; }
+    body.lang-es a[lang="es"] { display: inline !important; }
 
     /* Cover */
     .cover {
@@ -1343,11 +1351,12 @@
       localStorage.setItem('easyplans-manual-lang', lang);
     }
 
-    // Restore language preference or detect from app
+    // Restore language preference: URL param > localStorage > default EN
     (function() {
+      const params = new URLSearchParams(window.location.search);
+      const urlLang = params.get('lang');
       const saved = localStorage.getItem('easyplans-manual-lang');
-      const appLang = localStorage.getItem('easyplans-language');
-      const lang = saved || appLang || 'en';
+      const lang = urlLang || saved || 'en';
       if (lang === 'es') setLang('es');
     })();
   </script>
