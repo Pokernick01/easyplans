@@ -183,8 +183,8 @@ export class WallTool implements BaseTool {
       thickness: DEFAULT_WALL_THICKNESS,
       height: DEFAULT_WALL_HEIGHT,
       openings: [],
-      color: '#808080',
-      fillColor: '#d3d3d3',
+      color: '#000000',
+      fillColor: '#ffffff',
       fillPattern: 'solid',
     });
 

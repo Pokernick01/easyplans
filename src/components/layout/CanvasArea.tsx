@@ -426,7 +426,7 @@ export function CanvasArea() {
       ctx.lineTo(door.width / 2, 0);
       ctx.stroke();
 
-      ctx.strokeStyle = isSelected ? '#2d6a4f' : '#808080';
+      ctx.strokeStyle = isSelected ? '#2d6a4f' : '#000000';
       ctx.lineWidth = 0.02;
       let swingDir = door.swing === 'left' ? -1 : 1;
       if (door.flipSide) swingDir *= -1;
@@ -760,7 +760,7 @@ export function CanvasArea() {
         ctx.scale(stair.flipH ? -1 : 1, stair.flipV ? -1 : 1);
       }
 
-      ctx.strokeStyle = isSelected ? '#2d6a4f' : '#808080';
+      ctx.strokeStyle = isSelected ? '#2d6a4f' : '#000000';
       ctx.lineWidth = 0.02;
       ctx.fillStyle = 'transparent';
 
@@ -792,7 +792,7 @@ export function CanvasArea() {
         ctx.lineTo(w / 2 + 0.08, l * 0.25);
         ctx.stroke();
         // "UP" / "DN" label
-        ctx.fillStyle = isSelected ? '#2d6a4f' : '#808080';
+        ctx.fillStyle = isSelected ? '#2d6a4f' : '#000000';
         const fontSize = Math.min(w, l) * 0.12;
         ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = 'center';

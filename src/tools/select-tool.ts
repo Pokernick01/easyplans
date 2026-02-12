@@ -98,9 +98,10 @@ export class SelectTool implements BaseTool {
     this.dragDelta = { x: 0, y: 0 };
 
     // First, check if clicking on a resize handle of a selected stair
+    // Only trigger resize if clicking near the edges — interior clicks start drag
     if (ui.selectedIds.length === 1) {
       const handleHit = this.hitTestResizeHandles(worldPos, ui.selectedIds[0]);
-      if (handleHit) {
+      if (handleHit && !this.isInsideStairBody(worldPos, ui.selectedIds[0])) {
         this.phase = 'RESIZING';
         this.resizeHandle = handleHit.handle;
         this.resizeElementId = ui.selectedIds[0];
@@ -416,6 +417,28 @@ export class SelectTool implements BaseTool {
       { handle: 'left', x: x, y: y + l / 2 },
       { handle: 'right', x: x + w, y: y + l / 2 },
     ];
+  }
+
+  /** Check if worldPos is inside the stair body (interior, away from edges).
+   *  Used to prefer drag over resize when clicking in the center. */
+  private isInsideStairBody(worldPos: Point, elementId: string): boolean {
+    const project = useProjectStore.getState();
+    const floorIndex = project.project.activeFloorIndex;
+    const floor = project.project.floors[floorIndex];
+    if (!floor) return false;
+    const el = floor.elements[elementId];
+    if (!el || el.type !== 'stair') return false;
+    const sp = el.position as { x?: number; y?: number; point?: Point };
+    const px = sp.x ?? sp.point?.x ?? 0;
+    const py = sp.y ?? sp.point?.y ?? 0;
+    // Inset margin — clicks within this margin from edges are "handle zone"
+    const margin = HANDLE_SIZE + 0.05;
+    return (
+      worldPos.x > px + margin &&
+      worldPos.x < px + el.width - margin &&
+      worldPos.y > py + margin &&
+      worldPos.y < py + el.length - margin
+    );
   }
 
   /** Check if worldPos is on a resize handle of a selected element. */

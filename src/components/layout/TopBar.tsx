@@ -141,7 +141,9 @@ export function TopBar() {
         background: '#ece8e1',
         borderBottom: '1px solid rgba(180,172,160,0.4)',
         minWidth: 0,
-        overflow: 'hidden',
+        overflow: 'visible',
+        position: 'relative',
+        zIndex: 50,
       }}
     >
       {/* Left: Logo + Language toggle */}
