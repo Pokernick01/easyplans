@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thank You — EasyPlans</title>
+</head>
+<body>
+  <!--
+    This page exists solely for Netlify Forms detection.
+    Netlify's build bot scans static HTML files for forms with data-netlify="true".
+    The actual form submission happens via AJAX from the React SPA.
+  -->
+  <form name="suggestions" data-netlify="true" data-netlify-honeypot="bot-field" action="/form-thank-you.html" method="POST">
+    <input type="hidden" name="form-name" value="suggestions" />
+    <input name="bot-field" />
+    <input name="name" />
+    <input name="email" />
+    <textarea name="message"></textarea>
+    <button type="submit">Send</button>
+  </form>
+  <p>Thank you for your suggestion!</p>
+</body>
+</html>

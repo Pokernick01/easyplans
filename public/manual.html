@@ -1336,13 +1336,14 @@
       var hide = lang === 'es' ? 'en' : 'es';
 
       // Hide all elements of the other language
-      var toHide = document.querySelectorAll('[lang="' + hide + '"]');
+      // Use body [lang] to skip the <html> element itself
+      var toHide = document.querySelectorAll('body [lang="' + hide + '"]');
       for (var i = 0; i < toHide.length; i++) {
         toHide[i].style.display = 'none';
       }
 
       // Show all elements of the chosen language with correct display type
-      var toShow = document.querySelectorAll('[lang="' + show + '"]');
+      var toShow = document.querySelectorAll('body [lang="' + show + '"]');
       for (var j = 0; j < toShow.length; j++) {
         var el = toShow[j];
         var tag = el.tagName.toLowerCase();

@@ -28,7 +28,7 @@ export default function SuggestionDialog() {
         message: message.trim(),
       });
 
-      const res = await fetch('/', {
+      const res = await fetch('/form-thank-you.html', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
