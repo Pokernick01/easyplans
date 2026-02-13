@@ -129,6 +129,7 @@ export function CanvasArea() {
   // Track panning state
   const isPanning = useRef(false);
   const lastPanPos = useRef({ x: 0, y: 0 });
+  const isSpaceHeld = useRef(false);
 
   // Track isometric rotation drag
   const isIsoRotating = useRef(false);
@@ -434,34 +435,42 @@ export function CanvasArea() {
       const hingeX = (door.hinge === 'end') ? door.width / 2 : -door.width / 2;
 
       if (doorStyle === 'single') {
-        // Single door: leaf line + swing arc
+        // Single door: leaf line + swing arc using openAngle
+        const openRad = (door.openAngle * Math.PI) / 180;
+        // Leaf line (door panel)
         ctx.beginPath();
         ctx.moveTo(hingeX, 0);
         ctx.lineTo(hingeX, swingDir * door.width);
         ctx.stroke();
+
+        // Swing arc
         ctx.beginPath();
         if (door.hinge === 'end') {
-          // Hinge at right side
-          const startAngle = swingDir > 0 ? Math.PI : -Math.PI / 2;
-          const endAngle = swingDir > 0 ? Math.PI / 2 : Math.PI;
-          ctx.arc(hingeX, 0, door.width, startAngle, endAngle, swingDir < 0);
+          const base = swingDir > 0 ? Math.PI / 2 : -Math.PI / 2;
+          const start = Math.PI - base;
+          const end = start + swingDir * openRad;
+          ctx.arc(hingeX, 0, door.width, start, end, swingDir < 0);
         } else {
-          // Hinge at left side (original)
-          const startAngle = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const endAngle = swingDir > 0 ? 0 : Math.PI;
-          ctx.arc(hingeX, 0, door.width, startAngle, endAngle, swingDir < 0);
+          const start = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+          const end = start + swingDir * openRad;
+          ctx.arc(hingeX, 0, door.width, start, end, swingDir < 0);
         }
         ctx.stroke();
       } else if (doorStyle === 'double') {
-        // Double door: two leaves opening from center
+        // Double door: two leaves opening from center, using openAngle
         const halfW = door.width / 2;
+        const openRad = (door.openAngle * Math.PI) / 180;
         // Left leaf
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(0, swingDir * halfW);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(0, 0, halfW, swingDir > 0 ? -Math.PI / 2 : Math.PI / 2, swingDir > 0 ? 0 : Math.PI, swingDir < 0);
+        {
+          const start = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+          const end = start + swingDir * openRad;
+          ctx.arc(0, 0, halfW, start, end, swingDir < 0);
+        }
         ctx.stroke();
         // Right leaf (mirrored)
         ctx.beginPath();
@@ -469,7 +478,11 @@ export function CanvasArea() {
         ctx.lineTo(0, -swingDir * halfW);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(0, 0, halfW, -swingDir > 0 ? -Math.PI / 2 : Math.PI / 2, -swingDir > 0 ? 0 : Math.PI, -swingDir < 0);
+        {
+          const start = -swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+          const end = start + (-swingDir) * openRad;
+          ctx.arc(0, 0, halfW, start, end, -swingDir < 0);
+        }
         ctx.stroke();
       } else if (doorStyle === 'sliding') {
         // Sliding door: two offset lines with arrow
@@ -1391,8 +1404,16 @@ export function CanvasArea() {
   // -----------------------------------------------------------------------
 
   const handleMouseDown = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {
-    // Middle button pan
-    if (e.button === 1) {
+    // Middle button or right-click = pan
+    if (e.button === 1 || e.button === 2) {
+      e.preventDefault();
+      isPanning.current = true;
+      lastPanPos.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    // Space + left click = pan
+    if (e.button === 0 && isSpaceHeld.current) {
       e.preventDefault();
       isPanning.current = true;
       lastPanPos.current = { x: e.clientX, y: e.clientY };
@@ -1450,8 +1471,9 @@ export function CanvasArea() {
   }, [getWorldPos]);
 
   const handleMouseUp = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {
-    if (e.button === 1) {
+    if (e.button === 1 || e.button === 2 || (e.button === 0 && isPanning.current)) {
       isPanning.current = false;
+      return;
     }
 
     if (isIsoRotating.current) {
@@ -1580,7 +1602,24 @@ export function CanvasArea() {
   // Keyboard event handlers
   // -----------------------------------------------------------------------
 
+  const handleKeyUp = useCallback((e: ReactKeyboardEvent) => {
+    if (e.key === ' ') {
+      isSpaceHeld.current = false;
+      // If we were panning via space+drag, stop panning
+      if (isPanning.current) {
+        isPanning.current = false;
+      }
+    }
+  }, []);
+
   const handleKeyDown = useCallback((e: ReactKeyboardEvent) => {
+    // Space key: enable pan mode
+    if (e.key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      isSpaceHeld.current = true;
+      return;
+    }
+
     // Copy
     if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
       e.preventDefault();
@@ -1748,9 +1787,10 @@ export function CanvasArea() {
       case 'arrowdown':
       case 'arrowleft':
       case 'arrowright': {
+        e.preventDefault();
         const { selectedIds } = useUIStore.getState();
         if (selectedIds.length > 0) {
-          e.preventDefault();
+          // Move selected elements
           const step = e.shiftKey ? 0.01 : 0.05; // Shift = 1cm, normal = 5cm
           let dx = 0, dy = 0;
           if (e.key === 'ArrowUp') dy = -step;
@@ -1762,6 +1802,15 @@ export function CanvasArea() {
             useProjectStore.getState().moveElement(floorIndex, id, dx, dy);
           }
           useUIStore.getState().markDirty();
+        } else {
+          // Pan canvas when nothing selected
+          const panStep = e.shiftKey ? 20 : 60; // pixels
+          let pdx = 0, pdy = 0;
+          if (e.key === 'ArrowUp') pdy = panStep;
+          else if (e.key === 'ArrowDown') pdy = -panStep;
+          else if (e.key === 'ArrowLeft') pdx = panStep;
+          else if (e.key === 'ArrowRight') pdx = -panStep;
+          useUIStore.getState().panBy(pdx, pdy);
         }
         break;
       }
@@ -1821,6 +1870,7 @@ export function CanvasArea() {
         onWheel={handleWheel}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

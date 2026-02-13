@@ -380,7 +380,7 @@
       <p>Tool palette with all drawing tools. Click a tool or use its keyboard shortcut to activate it. The active tool is highlighted in green.</p>
 
       <h3>Canvas Area</h3>
-      <p>The main drawing area. Drag on empty space to pan. Use scroll wheel to zoom. All drawing happens here.</p>
+      <p>The main drawing area. Pan by right-click dragging, middle-click dragging, or holding Space + left-click drag. Use scroll wheel to zoom. Arrow keys pan when nothing is selected. All drawing happens here.</p>
 
       <h3>Right Sidebar</h3>
       <p>Two tabs:</p>
@@ -404,7 +404,7 @@
       <p>Paleta de herramientas con todas las herramientas de dibujo. Haz clic en una herramienta o usa su atajo de teclado para activarla. La herramienta activa se resalta en verde.</p>
 
       <h3>&Aacute;rea del Lienzo</h3>
-      <p>El &aacute;rea principal de dibujo. Arrastra en el espacio vac&iacute;o para desplazar. Usa la rueda del rat&oacute;n para hacer zoom. Todo el dibujo ocurre aqu&iacute;.</p>
+      <p>El &aacute;rea principal de dibujo. Desplaza arrastrando con clic derecho, clic medio, o manteniendo Espacio + clic izquierdo. Usa la rueda del rat&oacute;n para hacer zoom. Las flechas desplazan cuando no hay nada seleccionado. Todo el dibujo ocurre aqu&iacute;.</p>
 
       <h3>Barra Lateral Derecha</h3>
       <p>Dos pesta&ntilde;as:</p>
@@ -496,6 +496,9 @@
       <tr><td><span class="kbd">+</span> / <span class="kbd">=</span></td><td>Zoom in</td></tr>
       <tr><td><span class="kbd">-</span></td><td>Zoom out</td></tr>
       <tr><td><span class="kbd">0</span></td><td>Reset zoom to 100%</td></tr>
+      <tr><td>Right-click drag</td><td>Pan canvas</td></tr>
+      <tr><td><span class="kbd">Space</span> + drag</td><td>Pan canvas</td></tr>
+      <tr><td><span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Pan canvas (when nothing selected)</td></tr>
       <tr><td><span class="kbd">Esc</span></td><td>Deselect / cancel action</td></tr>
     </table>
     <table lang="es">
@@ -505,6 +508,9 @@
       <tr><td><span class="kbd">+</span> / <span class="kbd">=</span></td><td>Acercar zoom</td></tr>
       <tr><td><span class="kbd">-</span></td><td>Alejar zoom</td></tr>
       <tr><td><span class="kbd">0</span></td><td>Restablecer zoom a 100%</td></tr>
+      <tr><td>Clic derecho + arrastrar</td><td>Desplazar lienzo</td></tr>
+      <tr><td><span class="kbd">Espacio</span> + arrastrar</td><td>Desplazar lienzo</td></tr>
+      <tr><td><span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Desplazar lienzo (sin selecci&oacute;n)</td></tr>
       <tr><td><span class="kbd">Esc</span></td><td>Deseleccionar / cancelar acci&oacute;n</td></tr>
     </table>
 
@@ -542,6 +548,7 @@
       <tr><td><span class="kbd">Shift</span>+click</td><td>Select tool</td><td>Multi-select</td></tr>
       <tr><td><span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Element(s) selected</td><td>Nudge 5 cm</td></tr>
       <tr><td><span class="kbd">Shift</span>+<span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Element(s) selected</td><td>Fine nudge 1 cm</td></tr>
+      <tr><td><span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Nothing selected</td><td>Pan canvas</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">C</span></td><td>Element(s) selected</td><td>Copy</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">X</span></td><td>Element(s) selected</td><td>Cut</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">V</span></td><td>After copy/cut</td><td>Paste</td></tr>
@@ -557,6 +564,7 @@
       <tr><td><span class="kbd">Shift</span>+clic</td><td>Herramienta Seleccionar</td><td>Multi-selecci&oacute;n</td></tr>
       <tr><td><span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Elemento(s) seleccionado(s)</td><td>Mover 5 cm</td></tr>
       <tr><td><span class="kbd">Shift</span>+<span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Elemento(s) seleccionado(s)</td><td>Mover fino 1 cm</td></tr>
+      <tr><td><span class="kbd">&uarr;&darr;&larr;&rarr;</span></td><td>Sin selecci&oacute;n</td><td>Desplazar lienzo</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">C</span></td><td>Elemento(s) seleccionado(s)</td><td>Copiar</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">X</span></td><td>Elemento(s) seleccionado(s)</td><td>Cortar</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">V</span></td><td>Despu&eacute;s de copiar/cortar</td><td>Pegar</td></tr>
@@ -670,7 +678,7 @@
         <tr><td>Width</td><td>0.9 m</td></tr>
         <tr><td>Height</td><td>2.1 m</td></tr>
         <tr><td>Swing</td><td>Left / Right</td></tr>
-        <tr><td>Open angle</td><td>90 degrees</td></tr>
+        <tr><td>Open angle</td><td>90 degrees (adjustable via slider or type value, 5&ndash;180&deg;)</td></tr>
         <tr><td>Hinge</td><td>Start / End</td></tr>
         <tr><td>Side</td><td>Interior / Exterior</td></tr>
       </table>
@@ -698,7 +706,7 @@
         <tr><td>Ancho</td><td>0.9 m</td></tr>
         <tr><td>Altura</td><td>2.1 m</td></tr>
         <tr><td>Apertura</td><td>Izquierda / Derecha</td></tr>
-        <tr><td>&Aacute;ngulo de apertura</td><td>90 grados</td></tr>
+        <tr><td>&Aacute;ngulo de apertura</td><td>90 grados (ajustable con deslizador o escribir valor, 5&ndash;180&deg;)</td></tr>
         <tr><td>Bisagra</td><td>Inicio / Fin</td></tr>
         <tr><td>Lado</td><td>Interior / Exterior</td></tr>
       </table>

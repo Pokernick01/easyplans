@@ -349,18 +349,29 @@ function DoorProperties({ element, floorIndex }: { element: Door; floorIndex: nu
         <div className="flex items-center gap-2">
           <input
             type="range"
-            min={0}
+            min={5}
             max={180}
             step={5}
             value={element.openAngle}
             onChange={(e) =>
               updateElement(floorIndex, element.id, { openAngle: Number(e.target.value) })
             }
-            className="w-16"
+            className="w-14"
           />
-          <span className="text-xs w-8 text-right" style={{ color: '#2c2c2c' }}>
-            {element.openAngle}&deg;
-          </span>
+          <input
+            type="number"
+            min={5}
+            max={180}
+            step={1}
+            value={element.openAngle}
+            onChange={(e) => {
+              const val = Math.max(5, Math.min(180, Number(e.target.value) || 90));
+              updateElement(floorIndex, element.id, { openAngle: val });
+            }}
+            className="w-12 text-xs text-right rounded px-1 py-0.5"
+            style={{ background: '#ece8e1', color: '#2c2c2c', border: '1px solid #d5cfc6' }}
+          />
+          <span className="text-xs" style={{ color: '#6b6560' }}>&deg;</span>
         </div>
       </div>
     </div>
