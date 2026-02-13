@@ -80,6 +80,7 @@ const dict: Record<string, { en: string; es: string }> = {
   'ui.redo': { en: 'Redo', es: 'Rehacer' },
   'ui.export': { en: 'Export', es: 'Exportar' },
   'ui.save': { en: 'Save', es: 'Guardar' },
+  'ui.saveAs': { en: 'Save as:', es: 'Guardar como:' },
   'ui.load': { en: 'Load', es: 'Cargar' },
   'ui.custom': { en: 'Custom...', es: 'Personalizado...' },
 

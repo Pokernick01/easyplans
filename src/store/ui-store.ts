@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Point } from '@/types/geometry.ts';
 import type { ToolType, ToolState } from '@/types/tools.ts';
 import type { ViewMode, FacadeDirection } from '@/types/project.ts';
-import type { ArchLineStyle, DoorStyle, WindowStyle, StairStyle } from '@/types/elements.ts';
+import type { ArchLineStyle, DoorStyle, WindowStyle, StairStyle, WallFillPattern } from '@/types/elements.ts';
 import type { Language } from '@/utils/i18n.ts';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +40,14 @@ interface UIState {
   isoRotation: number; // degrees, rotation around vertical axis for isometric view
   clipboard: string | null; // JSON string of copied elements
   language: Language;
+  // Wall defaults — persist across new wall draws until changed
+  wallDefaults: {
+    thickness: number;
+    height: number;
+    color: string;
+    fillColor: string;
+    fillPattern: WallFillPattern;
+  };
 }
 
 interface UIActions {
@@ -77,6 +85,7 @@ interface UIActions {
   setIsoRotation: (angle: number) => void;
   setClipboard: (data: string | null) => void;
   setLanguage: (lang: Language) => void;
+  setWallDefaults: (defaults: Partial<UIState['wallDefaults']>) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,6 +137,13 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   isoRotation: 45,
   clipboard: null,
   language: 'es',
+  wallDefaults: {
+    thickness: 0.15,
+    height: 2.8,
+    color: '#000000',
+    fillColor: '#ffffff',
+    fillPattern: 'solid' as WallFillPattern,
+  },
 
   // ---- Actions ----
 
@@ -238,4 +254,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   setLanguage: (lang) =>
     set({ language: lang }),
+
+  setWallDefaults: (defaults) =>
+    set((s) => ({
+      wallDefaults: { ...s.wallDefaults, ...defaults },
+    })),
 }));

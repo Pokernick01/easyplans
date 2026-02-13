@@ -109,7 +109,7 @@ export class WallTool implements BaseTool {
         data: {
           start: this.startPoint,
           end: this.currentEnd,
-          thickness: DEFAULT_WALL_THICKNESS,
+          thickness: useUIStore.getState().wallDefaults.thickness,
         },
       };
     }
@@ -168,11 +168,12 @@ export class WallTool implements BaseTool {
     return points;
   }
 
-  /** Add a wall segment to the project store. */
+  /** Add a wall segment to the project store, using persistent wall defaults. */
   private commitWall(start: Point, end: Point): void {
     const project = useProjectStore.getState();
     const ui = useUIStore.getState();
     const floorIndex = project.project.activeFloorIndex;
+    const wd = ui.wallDefaults;
 
     project.addWall({
       floorIndex,
@@ -180,12 +181,12 @@ export class WallTool implements BaseTool {
       visible: true,
       start: { x: start.x, y: start.y },
       end: { x: end.x, y: end.y },
-      thickness: DEFAULT_WALL_THICKNESS,
-      height: DEFAULT_WALL_HEIGHT,
+      thickness: wd.thickness,
+      height: wd.height,
       openings: [],
-      color: '#000000',
-      fillColor: '#ffffff',
-      fillPattern: 'solid',
+      color: wd.color,
+      fillColor: wd.fillColor,
+      fillPattern: wd.fillPattern,
     });
 
     ui.markDirty();

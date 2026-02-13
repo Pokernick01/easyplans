@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useProjectStore } from '@/store/project-store';
+import { t } from '@/utils/i18n';
 import type { Project } from '@/types/project';
 
 // ---------------------------------------------------------------------------
@@ -102,9 +103,9 @@ export function useProjectFile() {
     // Default filename from project name
     const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
 
-    // Prompt user for filename
+    // Prompt user for filename (translated)
     const userInput = window.prompt(
-      'Save as:',
+      t('ui.saveAs'),
       defaultName,
     );
     if (userInput === null) return; // User cancelled

@@ -104,6 +104,7 @@ const ROOM_PATTERN_KEYS: Record<FillPattern, string> = {
 
 function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: number }) {
   const updateElement = useProjectStore((s) => s.updateElement);
+  const setWallDefaults = useUIStore((s) => s.setWallDefaults);
   const t = useTranslation();
 
   const dx = element.end.x - element.start.x;
@@ -165,7 +166,7 @@ function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: nu
       <NumberInput
         label={t('field.thickness')}
         value={element.thickness}
-        onChange={(v) => updateElement(floorIndex, element.id, { thickness: v })}
+        onChange={(v) => { updateElement(floorIndex, element.id, { thickness: v }); setWallDefaults({ thickness: v }); }}
         unit="m"
         min={0.05}
         max={1.0}
@@ -174,7 +175,7 @@ function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: nu
       <NumberInput
         label={t('field.height')}
         value={element.height}
-        onChange={(v) => updateElement(floorIndex, element.id, { height: v })}
+        onChange={(v) => { updateElement(floorIndex, element.id, { height: v }); setWallDefaults({ height: v }); }}
         unit="m"
         min={0.5}
         max={10}
@@ -185,7 +186,7 @@ function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: nu
         <input
           type="color"
           value={element.color}
-          onChange={(e) => updateElement(floorIndex, element.id, { color: e.target.value })}
+          onChange={(e) => { updateElement(floorIndex, element.id, { color: e.target.value }); setWallDefaults({ color: e.target.value }); }}
           className="w-8 h-6 rounded cursor-pointer border-0"
           style={{ background: 'transparent' }}
         />
@@ -195,7 +196,7 @@ function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: nu
         <input
           type="color"
           value={element.fillColor}
-          onChange={(e) => updateElement(floorIndex, element.id, { fillColor: e.target.value })}
+          onChange={(e) => { updateElement(floorIndex, element.id, { fillColor: e.target.value }); setWallDefaults({ fillColor: e.target.value }); }}
           className="w-8 h-6 rounded cursor-pointer border-0"
           style={{ background: 'transparent' }}
         />
@@ -204,9 +205,10 @@ function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: nu
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.wallPattern')}</label>
         <select
           value={element.fillPattern || 'solid'}
-          onChange={(e) =>
-            updateElement(floorIndex, element.id, { fillPattern: e.target.value as WallFillPattern })
-          }
+          onChange={(e) => {
+            updateElement(floorIndex, element.id, { fillPattern: e.target.value as WallFillPattern });
+            setWallDefaults({ fillPattern: e.target.value as WallFillPattern });
+          }}
           className="px-2 py-1 text-xs rounded cursor-pointer outline-none"
           style={{
             background: '#ece8e1',
