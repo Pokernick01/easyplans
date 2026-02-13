@@ -65,6 +65,11 @@ export class SelectTool implements BaseTool {
   /** ID of the element that was hit on mouse-down (if any). */
   private hitElementId: string | null = null;
 
+  /** Last click position for cycle-through selection. */
+  private lastClickWorld: Point = { x: 0, y: 0 };
+  /** Index of last selected element in overlapping set for cycling. */
+  private cycleIndex: number = 0;
+
   /** Active resize handle being dragged. */
   private resizeHandle: ResizeHandle | null = null;
   /** Element ID being resized. */
@@ -520,27 +525,60 @@ export class SelectTool implements BaseTool {
    * Elements are tested in reverse order so that the most-recently-added
    * element (rendered on top) wins.
    */
-  private hitTest(worldPos: Point): string | null {
+  /**
+   * Find all elements that overlap at the given position, ordered by
+   * priority: doors/windows first, then other elements in reverse order.
+   */
+  private hitTestAll(worldPos: Point): string[] {
     const elements = this.getActiveFloorElements();
+    const hits: string[] = [];
 
-    // First pass: test doors and windows (they sit on top of walls and should
-    // be picked before the wall behind them)
+    // First pass: doors and windows (they sit on top of walls)
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
       if ((el.type === 'door' || el.type === 'window') && this.hitTestElement(el, worldPos)) {
-        return el.id;
+        hits.push(el.id);
       }
     }
 
-    // Second pass: test everything else in reverse order
+    // Second pass: everything else in reverse order
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
       if (el.type !== 'door' && el.type !== 'window' && this.hitTestElement(el, worldPos)) {
-        return el.id;
+        hits.push(el.id);
       }
     }
 
-    return null;
+    return hits;
+  }
+
+  /**
+   * Hit-test with click-through cycling: if the user clicks in the same spot
+   * on an already-selected element, cycle to the next overlapping element.
+   */
+  private hitTest(worldPos: Point): string | null {
+    const hits = this.hitTestAll(worldPos);
+    if (hits.length === 0) return null;
+    if (hits.length === 1) return hits[0];
+
+    // Check if clicking roughly the same spot as last click
+    const dx = worldPos.x - this.lastClickWorld.x;
+    const dy = worldPos.y - this.lastClickWorld.y;
+    const sameSpot = Math.sqrt(dx * dx + dy * dy) < HIT_THRESHOLD;
+
+    const ui = useUIStore.getState();
+    const currentlySelected = ui.selectedIds.length === 1 ? ui.selectedIds[0] : null;
+
+    if (sameSpot && currentlySelected && hits.includes(currentlySelected)) {
+      // Cycle to next overlapping element
+      const currentIdx = hits.indexOf(currentlySelected);
+      this.cycleIndex = (currentIdx + 1) % hits.length;
+    } else {
+      this.cycleIndex = 0;
+    }
+
+    this.lastClickWorld = { x: worldPos.x, y: worldPos.y };
+    return hits[this.cycleIndex];
   }
 
   private hitTestElement(el: AnyElement, worldPos: Point): boolean {
