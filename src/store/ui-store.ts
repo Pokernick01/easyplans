@@ -38,6 +38,9 @@ interface UIState {
   activeWindowStyle: WindowStyle;
   activeStairStyle: StairStyle;
   isoRotation: number; // degrees, rotation around vertical axis for isometric view
+  isoElevation: number; // degrees, tilt angle for isometric view (0 = flat, 90 = top-down)
+  sectionDirection: FacadeDirection; // direction of section cut
+  sectionOffset: number; // meters offset from center for section cut line
   clipboard: string | null; // JSON string of copied elements
   language: Language;
   // Wall defaults — persist across new wall draws until changed
@@ -91,6 +94,9 @@ interface UIActions {
   setWindowStyle: (style: WindowStyle) => void;
   setStairStyle: (style: StairStyle) => void;
   setIsoRotation: (angle: number) => void;
+  setIsoElevation: (angle: number) => void;
+  setSectionDirection: (dir: FacadeDirection) => void;
+  setSectionOffset: (offset: number) => void;
   setClipboard: (data: string | null) => void;
   setLanguage: (lang: Language) => void;
   setWallDefaults: (defaults: Partial<UIState['wallDefaults']>) => void;
@@ -145,6 +151,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   activeWindowStyle: 'single',
   activeStairStyle: 'straight',
   isoRotation: 45,
+  isoElevation: 30,
+  sectionDirection: 'south' as FacadeDirection,
+  sectionOffset: 0,
   clipboard: null,
   language: 'es',
   wallDefaults: {
@@ -265,6 +274,15 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   setIsoRotation: (angle) =>
     set({ isoRotation: angle }),
+
+  setIsoElevation: (angle) =>
+    set({ isoElevation: Math.min(89, Math.max(-5, angle)) }),
+
+  setSectionDirection: (dir) =>
+    set({ sectionDirection: dir, sectionOffset: 0 }),
+
+  setSectionOffset: (offset) =>
+    set({ sectionOffset: offset }),
 
   setClipboard: (data) =>
     set({ clipboard: data }),

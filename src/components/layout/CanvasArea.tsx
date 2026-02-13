@@ -134,9 +134,10 @@ export function CanvasArea() {
   const lastPanPos = useRef({ x: 0, y: 0 });
   const isSpaceHeld = useRef(false);
 
-  // Track isometric rotation drag
+  // Track isometric rotation drag (azimuth + elevation)
   const isIsoRotating = useRef(false);
   const lastIsoRotateX = useRef(0);
+  const lastIsoRotateY = useRef(0);
 
   // Touch support
   const touchCount = useRef(0);
@@ -206,8 +207,81 @@ export function CanvasArea() {
     if (viewMode !== 'plan') {
       const floorHeight = floor.height || 3.0;
 
+      // Direction labels for UI overlays
+      const DIR_LABELS: Record<string, string> = { north: 'Norte / North', south: 'Sur / South', east: 'Este / East', west: 'Oeste / West' };
+      const DIR_SHORT: Record<string, string> = { north: 'N', south: 'S', east: 'E', west: 'W' };
+      const ALL_DIRS = ['north', 'south', 'east', 'west'] as const;
+
+      /** Draw direction button bar on canvas. Returns button rects for click handling. */
+      function drawDirectionBar(activeDir: string, y: number, showOffset = false, offset = 0) {
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const btnW = 28, btnH = 22, gap = 4;
+        const totalW = ALL_DIRS.length * (btnW + gap) - gap + (showOffset ? 120 : 0);
+        const startX = (width - totalW) / 2;
+
+        for (let i = 0; i < ALL_DIRS.length; i++) {
+          const dir = ALL_DIRS[i];
+          const bx = startX + i * (btnW + gap);
+          const isActive = dir === activeDir;
+
+          ctx.fillStyle = isActive ? 'rgba(45,106,79,0.85)' : 'rgba(0,0,0,0.06)';
+          ctx.beginPath();
+          ctx.roundRect(bx, y, btnW, btnH, 4);
+          ctx.fill();
+          ctx.strokeStyle = isActive ? '#2d6a4f' : 'rgba(0,0,0,0.2)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = isActive ? '#fff' : '#555';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(DIR_SHORT[dir], bx + btnW / 2, y + btnH / 2);
+        }
+
+        // Offset controls for section
+        if (showOffset) {
+          const offX = startX + ALL_DIRS.length * (btnW + gap) + 10;
+          // Minus button
+          ctx.fillStyle = 'rgba(0,0,0,0.06)';
+          ctx.beginPath();
+          ctx.roundRect(offX, y, btnH, btnH, 4);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+          ctx.stroke();
+          ctx.fillStyle = '#555';
+          ctx.font = 'bold 14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('◀', offX + btnH / 2, y + btnH / 2);
+
+          // Offset label
+          ctx.fillStyle = '#666';
+          ctx.font = '11px sans-serif';
+          ctx.fillText(`${offset >= 0 ? '+' : ''}${offset.toFixed(1)}m`, offX + btnH + 30, y + btnH / 2);
+
+          // Plus button
+          const plusX = offX + btnH + 60;
+          ctx.fillStyle = 'rgba(0,0,0,0.06)';
+          ctx.beginPath();
+          ctx.roundRect(plusX, y, btnH, btnH, 4);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+          ctx.stroke();
+          ctx.fillStyle = '#555';
+          ctx.font = 'bold 14px sans-serif';
+          ctx.fillText('▶', plusX + btnH / 2, y + btnH / 2);
+        }
+
+        ctx.restore();
+      }
+
       if (viewMode === 'section') {
-        // Cross-section view — use dedicated renderer for detailed output
+        // Cross-section view with direction support
+        const sectionDir = uiState.sectionDirection ?? 'south';
+        const sectionOffset = uiState.sectionOffset ?? 0;
+
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         for (const w of walls) {
           for (const p of [w.start, w.end]) {
@@ -218,30 +292,49 @@ export function CanvasArea() {
           }
         }
         if (minX === Infinity) { minX = -5; maxX = 5; minY = -5; maxY = 5; }
-        const cutY = (minY + maxY) / 2;
-        const cutLine = { start: { x: minX - 1, y: cutY }, end: { x: maxX + 1, y: cutY } };
+
+        // Build cut line based on direction
+        let cutLine;
+        let cutY: number;
+        if (sectionDir === 'north' || sectionDir === 'south') {
+          // Horizontal cut (east-west line at constant Y)
+          cutY = (minY + maxY) / 2 + sectionOffset;
+          cutLine = { start: { x: minX - 1, y: cutY }, end: { x: maxX + 1, y: cutY } };
+        } else {
+          // Vertical cut (north-south line at constant X)
+          const cutX = (minX + maxX) / 2 + sectionOffset;
+          cutY = cutX; // for furniture proximity filtering
+          cutLine = { start: { x: cutX, y: minY - 1 }, end: { x: cutX, y: maxY + 1 } };
+        }
+
         const sectionElements = generateCrossSection(cutLine, walls, doors, windows, floorHeight);
 
-        // Reset transform and use the dedicated screen-space renderer
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        renderCrossSection(ctx, width, height, sectionElements, camera.getPixelsPerMeter(), furniture, cutY);
+        renderCrossSection(ctx, width, height, sectionElements, camera.getPixelsPerMeter(), furniture, cutY, DIR_LABELS[sectionDir]);
+
+        // Draw direction bar below title
+        drawDirectionBar(sectionDir, 34, true, sectionOffset);
         camera.applyTransform(ctx);
       }
 
       if (viewMode === 'facade') {
-        // Facade / elevation view — use dedicated renderer for detailed output
-        const facadeElements = generateFacade('north', walls, doors, windows, floorHeight, furniture);
+        // Facade view with direction support
+        const facadeDir = uiState.facadeDirection ?? 'south';
+        const facadeElements = generateFacade(facadeDir, walls, doors, windows, floorHeight, furniture);
 
-        // Reset transform and use the dedicated screen-space renderer
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        renderFacade(ctx, width, height, facadeElements, camera.getPixelsPerMeter(), 'Norte');
+        renderFacade(ctx, width, height, facadeElements, camera.getPixelsPerMeter(), DIR_LABELS[facadeDir]);
+
+        // Draw direction bar below title
+        drawDirectionBar(facadeDir, 34);
         camera.applyTransform(ctx);
       }
 
       if (viewMode === 'isometric') {
-        // 3D Isometric view
+        // 3D Isometric view with orbital rotation (azimuth + elevation)
         const isoRotation = uiState.isoRotation ?? 45;
-        const isoFaces = generateIsometricView(walls, doors, windows, rooms, floorHeight, isoRotation, furniture);
+        const isoElevation = uiState.isoElevation ?? 30;
+        const isoFaces = generateIsometricView(walls, doors, windows, rooms, floorHeight, isoRotation, furniture, isoElevation);
 
         for (const face of isoFaces) {
           if (face.points.length < 3) continue;
@@ -259,17 +352,50 @@ export function CanvasArea() {
           ctx.stroke();
         }
 
-        // Isometric title
+        // Title + preset buttons
         ctx.save();
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.fillStyle = '#666';
-        ctx.font = '14px sans-serif';
+        ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`VISTA ISOM\u00c9TRICA 3D  \u2022  ${Math.round(isoRotation)}\u00b0`, width / 2, 30);
+        ctx.fillText(`VISTA 3D  \u2022  ${Math.round(isoRotation)}\u00b0 / ${Math.round(isoElevation)}\u00b0`, width / 2, 18);
+
+        // Preset view buttons
+        const presets = [
+          { label: 'Iso', rot: 45, elev: 30 },
+          { label: 'Top', rot: 0, elev: 85 },
+          { label: 'Front', rot: 0, elev: 5 },
+          { label: 'Side', rot: 90, elev: 5 },
+        ];
+        const pbW = 42, pbH = 20, pbGap = 4;
+        const pbTotalW = presets.length * (pbW + pbGap) - pbGap;
+        const pbStartX = (width - pbTotalW) / 2;
+        const pbY = 28;
+
+        for (let i = 0; i < presets.length; i++) {
+          const p = presets[i];
+          const bx = pbStartX + i * (pbW + pbGap);
+          const isActive = Math.abs(isoRotation - p.rot) < 2 && Math.abs(isoElevation - p.elev) < 2;
+
+          ctx.fillStyle = isActive ? 'rgba(45,106,79,0.85)' : 'rgba(0,0,0,0.06)';
+          ctx.beginPath();
+          ctx.roundRect(bx, pbY, pbW, pbH, 4);
+          ctx.fill();
+          ctx.strokeStyle = isActive ? '#2d6a4f' : 'rgba(0,0,0,0.2)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = isActive ? '#fff' : '#555';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.label, bx + pbW / 2, pbY + pbH / 2);
+        }
+
         // Drag hint
         ctx.fillStyle = '#999';
-        ctx.font = '11px sans-serif';
-        ctx.fillText('Arrastra para rotar', width / 2, 48);
+        ctx.font = '10px sans-serif';
+        ctx.fillText('Arrastra \u2194\u2195 para rotar / Drag to orbit', width / 2, pbY + pbH + 14);
         ctx.restore();
         camera.applyTransform(ctx);
       }
@@ -1685,12 +1811,93 @@ export function CanvasArea() {
       return;
     }
 
-    // In isometric mode, left-click drag rotates the 3D view
+    // Non-plan view interaction
     const viewMode = useUIStore.getState().viewMode;
-    if (viewMode === 'isometric' && e.button === 0) {
-      isIsoRotating.current = true;
-      lastIsoRotateX.current = e.clientX;
-      return;
+    if (viewMode !== 'plan' && e.button === 0) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const cw = rect.width;
+
+      const ALL_DIRS = ['north', 'south', 'east', 'west'] as const;
+      const btnW = 28, btnH = 22, gap = 4;
+
+      if (viewMode === 'section' || viewMode === 'facade') {
+        const showOffset = viewMode === 'section';
+        const totalW = ALL_DIRS.length * (btnW + gap) - gap + (showOffset ? 120 : 0);
+        const startX = (cw - totalW) / 2;
+        const barY = 34;
+
+        // Check direction buttons
+        for (let i = 0; i < ALL_DIRS.length; i++) {
+          const bx = startX + i * (btnW + gap);
+          if (mx >= bx && mx <= bx + btnW && my >= barY && my <= barY + btnH) {
+            const ui = useUIStore.getState();
+            if (viewMode === 'section') {
+              ui.setSectionDirection(ALL_DIRS[i]);
+            } else {
+              ui.setFacadeDirection(ALL_DIRS[i]);
+            }
+            ui.markDirty();
+            return;
+          }
+        }
+
+        // Check offset buttons (section only)
+        if (showOffset) {
+          const offX = startX + ALL_DIRS.length * (btnW + gap) + 10;
+          // Minus button
+          if (mx >= offX && mx <= offX + btnH && my >= barY && my <= barY + btnH) {
+            const ui = useUIStore.getState();
+            ui.setSectionOffset(ui.sectionOffset - 0.5);
+            ui.markDirty();
+            return;
+          }
+          // Plus button
+          const plusX = offX + btnH + 60;
+          if (mx >= plusX && mx <= plusX + btnH && my >= barY && my <= barY + btnH) {
+            const ui = useUIStore.getState();
+            ui.setSectionOffset(ui.sectionOffset + 0.5);
+            ui.markDirty();
+            return;
+          }
+        }
+      }
+
+      if (viewMode === 'isometric') {
+        // Check preset buttons
+        const presets = [
+          { label: 'Iso', rot: 45, elev: 30 },
+          { label: 'Top', rot: 0, elev: 85 },
+          { label: 'Front', rot: 0, elev: 5 },
+          { label: 'Side', rot: 90, elev: 5 },
+        ];
+        const pbW = 42, pbH = 20, pbGap = 4;
+        const pbTotalW = presets.length * (pbW + pbGap) - pbGap;
+        const pbStartX = (cw - pbTotalW) / 2;
+        const pbY = 28;
+
+        for (let i = 0; i < presets.length; i++) {
+          const bx = pbStartX + i * (pbW + pbGap);
+          if (mx >= bx && mx <= bx + pbW && my >= pbY && my <= pbY + pbH) {
+            const ui = useUIStore.getState();
+            ui.setIsoRotation(presets[i].rot);
+            ui.setIsoElevation(presets[i].elev);
+            ui.markDirty();
+            return;
+          }
+        }
+
+        // If not clicking a button, start orbital drag
+        isIsoRotating.current = true;
+        lastIsoRotateX.current = e.clientX;
+        lastIsoRotateY.current = e.clientY;
+        return;
+      }
+
+      return; // Don't pass to tools in section/facade mode
     }
 
     const worldPos = getWorldPos(e);
@@ -1715,13 +1922,16 @@ export function CanvasArea() {
       return;
     }
 
-    // Isometric rotation drag
+    // Isometric orbital drag (azimuth + elevation)
     if (isIsoRotating.current) {
       const dx = e.clientX - lastIsoRotateX.current;
+      const dy = e.clientY - lastIsoRotateY.current;
       lastIsoRotateX.current = e.clientX;
+      lastIsoRotateY.current = e.clientY;
       const ui = useUIStore.getState();
-      // 1 pixel = 0.5 degrees of rotation
+      // 1 pixel = 0.5 degrees azimuth, 0.3 degrees elevation
       ui.setIsoRotation(ui.isoRotation + dx * 0.5);
+      ui.setIsoElevation(ui.isoElevation + dy * 0.3);
       ui.markDirty();
       return;
     }

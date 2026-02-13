@@ -120,6 +120,7 @@ function drawDimensionVertical(
  * @param pixelsPerMeter Scale factor (pixels per meter).
  * @param furniture      Optional furniture items for Neufert silhouettes.
  * @param cutY           Y coordinate of the cut line (for proximity filtering).
+ * @param directionLabel Optional direction label for the title (e.g. "Norte").
  */
 export function renderCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -129,6 +130,7 @@ export function renderCrossSection(
   pixelsPerMeter: number,
   furniture?: FurnitureItem[],
   cutY?: number,
+  directionLabel?: string,
 ): void {
   // --- 1. Clear canvas ---
   ctx.save();
@@ -177,7 +179,8 @@ export function renderCrossSection(
   ctx.fillStyle = '#222222';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText('CORTE / CROSS SECTION', canvasWidth / 2, 12);
+  const dirSuffix = directionLabel ? ` - ${directionLabel.toUpperCase()}` : '';
+  ctx.fillText(`CORTE / CROSS SECTION${dirSuffix}`, canvasWidth / 2, 12);
   ctx.restore();
 
   // --- 4. Draw ground line ---

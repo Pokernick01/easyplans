@@ -1,5 +1,6 @@
 import type { Wall, Door, Window, FurnitureItem } from '@/types/elements';
 import { sub, normalize, perpendicular, distance } from '@/engine/math/vector';
+import { classifyStamp, elevationHeight, elevationWidth } from '@/engine/views/neufert-elevation';
 
 // ---------------------------------------------------------------------------
 // Facade element -- a single rendered element in the elevation view
@@ -21,6 +22,8 @@ export interface FacadeElement {
   filled: boolean;
   /** Optional: silhouette shape type for special rendering. */
   silhouetteType?: 'person' | 'tree' | 'car' | 'furniture';
+  /** Original stampId for Neufert elevation draws. */
+  stampId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,46 +193,17 @@ export function generateFacade(
       // Project furniture position onto the facade horizontal axis
       const posH = cfg.horizAxis === 'x' ? item.position.x : item.position.y;
       const projX = posH * cfg.horizSign;
-      const stampId = item.stampId.toLowerCase();
 
-      // Determine silhouette type and visual height
+      // Use Neufert classification for proper heights/widths
+      const stampType = classifyStamp(item.stampId);
+      const silHeight = elevationHeight(stampType);
+      const silWidth = elevationWidth(stampType);
+
+      // Determine silhouette category for the renderer
       let silType: 'person' | 'tree' | 'car' | 'furniture' = 'furniture';
-      let silHeight = 0.5; // default furniture height
-      let silWidth = Math.max(item.width, item.depth) * item.scale;
-      let silColor = '#888888';
-
-      if (stampId.includes('person') || stampId.includes('wheelchair') || stampId.includes('group')) {
-        silType = 'person';
-        silHeight = stampId.includes('child') ? 1.2 : 1.7;
-        silWidth = stampId.includes('group') ? 1.0 : 0.45;
-        silColor = '#556677';
-      } else if (stampId.includes('tree')) {
-        silType = 'tree';
-        silHeight = stampId.includes('large') ? 5.0 : 3.0;
-        silWidth = stampId.includes('large') ? 3.0 : 1.8;
-        silColor = '#4a7a4a';
-      } else if (stampId.includes('bush')) {
-        silType = 'tree';
-        silHeight = 1.0;
-        silWidth = 1.0;
-        silColor = '#5a8a5a';
-      } else if (stampId.includes('car')) {
-        silType = 'car';
-        silHeight = 1.5;
-        silWidth = 4.0;
-        silColor = '#666688';
-      } else if (stampId.includes('bed')) {
-        silHeight = 0.5;
-      } else if (stampId.includes('sofa') || stampId.includes('armchair')) {
-        silHeight = 0.8;
-      } else if (stampId.includes('table') || stampId.includes('desk') || stampId.includes('counter')) {
-        silHeight = 0.75;
-      } else if (stampId.includes('wardrobe') || stampId.includes('bookshelf') || stampId.includes('fridge')) {
-        silHeight = 1.8;
-      } else if (stampId.includes('lamp') || stampId.includes('light') || stampId.includes('chandelier')) {
-        silHeight = 0.3;
-        silColor = '#aa9944';
-      }
+      if (stampType === 'person' || stampType === 'child') silType = 'person';
+      else if (stampType === 'tree' || stampType === 'bush') silType = 'tree';
+      else if (stampType === 'car') silType = 'car';
 
       elements.push({
         type: 'silhouette',
@@ -237,9 +211,10 @@ export function generateFacade(
         y: 0,
         width: silWidth,
         height: silHeight,
-        color: silColor,
+        color: '#555555',
         filled: true,
         silhouetteType: silType,
+        stampId: item.stampId,
       });
     }
   }

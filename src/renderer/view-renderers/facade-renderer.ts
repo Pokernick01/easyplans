@@ -281,17 +281,18 @@ export function renderFacade(
     const sw = sil.width * effectivePPM;
     const sh = sil.height * effectivePPM;
 
-    // Map silhouetteType back to a pseudo-stampId for the Neufert drawer
-    const pseudoStampId = sil.silhouetteType === 'person' ? 'person-standing'
-      : sil.silhouetteType === 'tree' ? 'tree-large'
-      : sil.silhouetteType === 'car' ? 'car'
-      : 'generic';
+    // Use original stampId if available, else fallback to pseudo-stampId
+    const stampId = sil.stampId
+      ?? (sil.silhouetteType === 'person' ? 'person-standing'
+        : sil.silhouetteType === 'tree' ? 'tree-large'
+        : sil.silhouetteType === 'car' ? 'car'
+        : 'generic');
 
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.translate(sx, sy);
     ctx.scale(sw / sil.width, sh / sil.height);
-    drawNeufertElevation(ctx, pseudoStampId, sil.width, sil.height, '#444');
+    drawNeufertElevation(ctx, stampId, sil.width, sil.height, '#444');
     ctx.restore();
   }
 }

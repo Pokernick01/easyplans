@@ -234,6 +234,19 @@ const dict: Record<string, { en: string; es: string }> = {
   'ui.saveAsBtn': { en: 'Save As', es: 'Guardar como' },
   'tooltip.saveAs': { en: 'Save As New File', es: 'Guardar como Nuevo Archivo' },
 
+  // -- Section / Facade directions --
+  'dir.north': { en: 'North', es: 'Norte' },
+  'dir.south': { en: 'South', es: 'Sur' },
+  'dir.east': { en: 'East', es: 'Este' },
+  'dir.west': { en: 'West', es: 'Oeste' },
+
+  // -- Isometric preset views --
+  'iso.preset.iso': { en: 'Isometric', es: 'Isom\u00e9trica' },
+  'iso.preset.top': { en: 'Top', es: 'Superior' },
+  'iso.preset.front': { en: 'Front', es: 'Frontal' },
+  'iso.preset.side': { en: 'Side', es: 'Lateral' },
+  'iso.dragHint': { en: 'Drag \u2194\u2195 to orbit', es: 'Arrastra \u2194\u2195 para rotar' },
+
   // -- Stair labels --
   'stair.up': { en: 'UP', es: 'SUBE' },
   'stair.down': { en: 'DN', es: 'BAJA' },

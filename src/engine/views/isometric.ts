@@ -32,25 +32,32 @@ export interface IsoFace {
 // ---------------------------------------------------------------------------
 
 /**
- * Project a 3D point (x, y, z) into 2D isometric screen coordinates.
+ * Project a 3D point (x, y, z) into 2D screen coordinates using
+ * an orbital camera with azimuth (horizontal rotation) and elevation
+ * (vertical tilt) angles.
  *
- * Uses the standard isometric angles (30 degrees from horizontal).
- * X axis goes right-down, Y axis goes left-down, Z axis goes up.
- *
- * @param rotationDeg  Rotation angle in degrees around the vertical (Z) axis.
- *                     Default 0 = standard isometric orientation.
+ * @param rotationDeg   Azimuth rotation in degrees around the vertical (Z) axis.
+ * @param elevationDeg  Elevation angle in degrees (0 = side view, 90 = top-down).
+ *                      Default 30 = standard isometric angle.
  */
-export function isoProject(x: number, y: number, z: number, rotationDeg = 0): Point {
-  // Rotate around the Z axis before projecting
-  const rad = (rotationDeg * Math.PI) / 180;
-  const cosR = Math.cos(rad);
-  const sinR = Math.sin(rad);
-  const rx = x * cosR - y * sinR;
-  const ry = x * sinR + y * cosR;
+export function isoProject(x: number, y: number, z: number, rotationDeg = 0, elevationDeg = 30): Point {
+  // 1. Rotate around the Z axis (azimuth)
+  const azRad = (rotationDeg * Math.PI) / 180;
+  const cosAz = Math.cos(azRad);
+  const sinAz = Math.sin(azRad);
+  const rx = x * cosAz - y * sinAz;
+  const ry = x * sinAz + y * cosAz;
 
+  // 2. Apply elevation tilt (orbital camera looking down)
+  const elRad = (elevationDeg * Math.PI) / 180;
+  const cosEl = Math.cos(elRad);
+  const sinEl = Math.sin(elRad);
+
+  // Screen X = rotated X (horizontal)
+  // Screen Y = rotated Y projected by elevation + Z projected by elevation
   return {
-    x: (rx - ry) * Math.cos(Math.PI / 6),
-    y: (rx + ry) * Math.sin(Math.PI / 6) - z,
+    x: rx,
+    y: ry * sinEl - z * cosEl,
   };
 }
 
@@ -104,16 +111,18 @@ function solidifyColor(color: string): string {
 // Average depth of a set of 3D points
 // ---------------------------------------------------------------------------
 
-function averageDepth(pts: Array<{ x: number; y: number; z: number }>, rotationDeg = 0): number {
-  const rad = (rotationDeg * Math.PI) / 180;
-  const cosR = Math.cos(rad);
-  const sinR = Math.sin(rad);
+function averageDepth(pts: Array<{ x: number; y: number; z: number }>, rotationDeg = 0, elevationDeg = 30): number {
+  const azRad = (rotationDeg * Math.PI) / 180;
+  const cosAz = Math.cos(azRad);
+  const sinAz = Math.sin(azRad);
+  const elRad = (elevationDeg * Math.PI) / 180;
+  const cosEl = Math.cos(elRad);
+  const sinEl = Math.sin(elRad);
   let sum = 0;
   for (const p of pts) {
-    // Rotate around Z axis to match projection, then compute depth
-    const rx = p.x * cosR - p.y * sinR;
-    const ry = p.x * sinR + p.y * cosR;
-    sum += rx + ry;
+    // Rotate around Z axis, then compute depth along the view direction
+    const ry = p.x * sinAz + p.y * cosAz;
+    sum += ry * cosEl + p.z * sinEl;
   }
   return sum / pts.length;
 }
@@ -218,8 +227,9 @@ function wallBackFaceQuad(
  * @param windows     Windows (used to cut openings in walls).
  * @param rooms       Rooms (drawn as floor polygons).
  * @param floorHeight Floor-to-floor height in meters.
- * @param rotationDeg Rotation angle in degrees around the vertical axis.
- * @param furniture   Furniture items rendered as simple extruded boxes.
+ * @param rotationDeg  Azimuth rotation angle in degrees around the vertical axis.
+ * @param furniture    Furniture items rendered as simple extruded boxes.
+ * @param elevationDeg Elevation tilt angle in degrees (default 30 = isometric).
  * @returns Sorted array of IsoFace objects (back-to-front).
  */
 export function generateIsometricView(
@@ -230,6 +240,7 @@ export function generateIsometricView(
   floorHeight: number,
   rotationDeg = 0,
   furniture: FurnitureItem[] = [],
+  elevationDeg = 30,
 ): IsoFace[] {
   const faces: IsoFace[] = [];
 
@@ -261,13 +272,13 @@ export function generateIsometricView(
   for (const room of rooms) {
     if (room.polygon.length < 3) continue;
 
-    const projectedPoints = room.polygon.map((p) => isoProject(p.x, p.y, 0, rotationDeg));
+    const projectedPoints = room.polygon.map((p) => isoProject(p.x, p.y, 0, rotationDeg, elevationDeg));
     const depthPts = room.polygon.map((p) => ({ x: p.x, y: p.y, z: 0 }));
 
     faces.push({
       points: projectedPoints,
       color: solidifyColor(room.color),
-      depth: averageDepth(depthPts, rotationDeg),
+      depth: averageDepth(depthPts, rotationDeg, elevationDeg),
       type: 'floor',
     });
   }
@@ -304,9 +315,9 @@ export function generateIsometricView(
 
     // ----- Top face -----
     const topFace: IsoFace = {
-      points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: adjustBrightness(baseColor, 1.3),
-      depth: averageDepth(top3D, rotationDeg),
+      depth: averageDepth(top3D, rotationDeg, elevationDeg),
       type: 'wall-top',
     };
     faces.push(topFace);
@@ -314,36 +325,36 @@ export function generateIsometricView(
     // ----- Front face (startLeft -> endLeft, bottom to top) -----
     const frontPts3D = [bottom3D[0], bottom3D[1], top3D[1], top3D[0]];
     faces.push({
-      points: frontPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: frontPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: adjustBrightness(baseColor, 1.0),
-      depth: averageDepth(frontPts3D, rotationDeg),
+      depth: averageDepth(frontPts3D, rotationDeg, elevationDeg),
       type: 'wall-front',
     });
 
     // ----- Back face (endRight -> startRight, bottom to top) -----
     const backPts3D = [bottom3D[2], bottom3D[3], top3D[3], top3D[2]];
     faces.push({
-      points: backPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: backPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: adjustBrightness(baseColor, 0.9),
-      depth: averageDepth(backPts3D, rotationDeg),
+      depth: averageDepth(backPts3D, rotationDeg, elevationDeg),
       type: 'wall-front',
     });
 
     // ----- Left side face (startRight -> startLeft, bottom to top) -----
     const leftPts3D = [bottom3D[3], bottom3D[0], top3D[0], top3D[3]];
     faces.push({
-      points: leftPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: leftPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: adjustBrightness(baseColor, 0.7),
-      depth: averageDepth(leftPts3D, rotationDeg),
+      depth: averageDepth(leftPts3D, rotationDeg, elevationDeg),
       type: 'wall-side',
     });
 
     // ----- Right side face (endLeft -> endRight, bottom to top) -----
     const rightPts3D = [bottom3D[1], bottom3D[2], top3D[2], top3D[1]];
     faces.push({
-      points: rightPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: rightPts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: adjustBrightness(baseColor, 0.7),
-      depth: averageDepth(rightPts3D, rotationDeg),
+      depth: averageDepth(rightPts3D, rotationDeg, elevationDeg),
       type: 'wall-side',
     });
   }
@@ -371,18 +382,18 @@ export function generateIsometricView(
     // Front face opening
     const frontQuad = wallFaceQuad(wall, tStart, tEnd, zBottom, zTop);
     faces.push({
-      points: frontQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: frontQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: 'rgb(40,35,30)',
-      depth: averageDepth(frontQuad, rotationDeg) + 0.001,
+      depth: averageDepth(frontQuad, rotationDeg, elevationDeg) + 0.001,
       type: 'door-opening',
     });
 
     // Back face opening
     const backQuad = wallBackFaceQuad(wall, tStart, tEnd, zBottom, zTop);
     faces.push({
-      points: backQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: backQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: 'rgb(40,35,30)',
-      depth: averageDepth(backQuad, rotationDeg) + 0.001,
+      depth: averageDepth(backQuad, rotationDeg, elevationDeg) + 0.001,
       type: 'door-opening',
     });
   }
@@ -411,9 +422,9 @@ export function generateIsometricView(
     // Dark opening frame on front face
     const frontOpeningQuad = wallFaceQuad(wall, tStart, tEnd, zBottom, zTop);
     faces.push({
-      points: frontOpeningQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: frontOpeningQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: 'rgb(50,45,40)',
-      depth: averageDepth(frontOpeningQuad, rotationDeg) + 0.001,
+      depth: averageDepth(frontOpeningQuad, rotationDeg, elevationDeg) + 0.001,
       type: 'window-opening',
     });
 
@@ -427,18 +438,18 @@ export function generateIsometricView(
       { x: cStart.x, y: cStart.y, z: zTop },
     ];
     faces.push({
-      points: glassQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: glassQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: 'rgba(140,200,230,0.5)',
-      depth: averageDepth(glassQuad, rotationDeg) + 0.0005,
+      depth: averageDepth(glassQuad, rotationDeg, elevationDeg) + 0.0005,
       type: 'window-glass',
     });
 
     // Dark opening on back face
     const backOpeningQuad = wallBackFaceQuad(wall, tStart, tEnd, zBottom, zTop);
     faces.push({
-      points: backOpeningQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: backOpeningQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: 'rgb(50,45,40)',
-      depth: averageDepth(backOpeningQuad, rotationDeg) + 0.001,
+      depth: averageDepth(backOpeningQuad, rotationDeg, elevationDeg) + 0.001,
       type: 'window-opening',
     });
   }
@@ -487,9 +498,9 @@ export function generateIsometricView(
 
     // ----- Top face -----
     faces.push({
-      points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+      points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
       color: adjustBrightness(baseColor, 1.2),
-      depth: averageDepth(top3D, rotationDeg),
+      depth: averageDepth(top3D, rotationDeg, elevationDeg),
       type: 'furniture-box',
     });
 
@@ -502,9 +513,9 @@ export function generateIsometricView(
       const brightness = i < 2 ? 1.0 : 0.75;
 
       faces.push({
-        points: sidePts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg)),
+        points: sidePts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
         color: adjustBrightness(baseColor, brightness),
-        depth: averageDepth(sidePts3D, rotationDeg),
+        depth: averageDepth(sidePts3D, rotationDeg, elevationDeg),
         type: 'furniture-box',
       });
     }
