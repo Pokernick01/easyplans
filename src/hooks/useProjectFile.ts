@@ -10,6 +10,14 @@ import type { Project } from '@/types/project';
 const LOCAL_STORAGE_KEY = 'easyplans-autosave';
 const FILE_EXTENSION = '.easyplan';
 
+// Module-level file handle for "Save" (write to same file without picker)
+let currentFileHandle: FileSystemFileHandle | null = null;
+
+/** Check if the File System Access API is available */
+function hasFileSystemAccess(): boolean {
+  return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+}
+
 // ---------------------------------------------------------------------------
 // Security: strip __proto__ and constructor keys to prevent prototype pollution
 // ---------------------------------------------------------------------------
@@ -58,7 +66,35 @@ export function useProjectFile() {
   // Load project from file picker
   // -----------------------------------------------------------------------
 
-  const loadProject = useCallback((): void => {
+  const loadProject = useCallback(async (): Promise<void> => {
+    // Try File System Access API first (Chrome/Edge)
+    if (hasFileSystemAccess()) {
+      try {
+        const [handle] = await (window as unknown as { showOpenFilePicker: (opts: unknown) => Promise<FileSystemFileHandle[]> }).showOpenFilePicker({
+          types: [{
+            description: 'EasyPlans Project',
+            accept: { 'application/json': [FILE_EXTENSION, '.json'] },
+          }],
+          multiple: false,
+        });
+        const file = await handle.getFile();
+        const text = await file.text();
+        const data = sanitizeJSON(text);
+        if (!isValidProject(data)) {
+          console.error('Invalid project file: missing required fields.');
+          return;
+        }
+        currentFileHandle = handle; // Store handle so Save can write to the same file
+        store.getState().loadProject(data);
+        return;
+      } catch (err) {
+        // User cancelled or API error — fall through to legacy
+        if ((err as Error).name === 'AbortError') return;
+        console.warn('File System Access API failed, falling back to legacy:', err);
+      }
+    }
+
+    // Legacy fallback
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = `${FILE_EXTENSION},.json`;
@@ -79,6 +115,7 @@ export function useProjectFile() {
             return;
           }
 
+          currentFileHandle = null; // Legacy load has no handle
           store.getState().loadProject(data);
         } catch (err) {
           console.error('Failed to parse project file:', err);
@@ -96,20 +133,37 @@ export function useProjectFile() {
   // Save project to file download
   // -----------------------------------------------------------------------
 
-  const saveProject = useCallback((): void => {
-    const json = store.getState().getProjectJSON();
-    const project = store.getState().project;
+  /** Write JSON content to a FileSystemFileHandle */
+  const writeToHandle = useCallback(async (handle: FileSystemFileHandle, json: string): Promise<void> => {
+    const writable = await handle.createWritable();
+    await writable.write(json);
+    await writable.close();
+  }, []);
 
-    // Default filename from project name
-    const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
+  /** Open the native file picker and return the chosen handle (or null). */
+  const pickSaveFile = useCallback(async (defaultName: string): Promise<FileSystemFileHandle | null> => {
+    if (!hasFileSystemAccess()) return null;
+    try {
+      const handle = await (window as unknown as { showSaveFilePicker: (opts: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+        suggestedName: `${defaultName}${FILE_EXTENSION}`,
+        types: [{
+          description: 'EasyPlans Project',
+          accept: { 'application/json': [FILE_EXTENSION] },
+        }],
+      });
+      return handle;
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.warn('showSaveFilePicker failed:', err);
+      }
+      return null;
+    }
+  }, []);
 
-    // Prompt user for filename (translated)
-    const userInput = window.prompt(
-      t('ui.saveAs'),
-      defaultName,
-    );
-    if (userInput === null) return; // User cancelled
-
+  /** Legacy save: prompt + download */
+  const legacySave = useCallback((json: string, defaultName: string): void => {
+    const userInput = window.prompt(t('ui.saveAs'), defaultName);
+    if (userInput === null) return;
     const safeName = userInput.trim().replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || defaultName;
 
     const blob = new Blob([json], { type: 'application/json' });
@@ -122,6 +176,60 @@ export function useProjectFile() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, []);
+
+  const saveProject = useCallback(async (): Promise<void> => {
+    const json = store.getState().getProjectJSON();
+    const project = store.getState().project;
+    const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
+
+    // 1. If we have a file handle, write directly (no dialog)
+    if (currentFileHandle) {
+      try {
+        await writeToHandle(currentFileHandle, json);
+        return;
+      } catch (err) {
+        console.warn('Failed to write to existing handle, falling back to picker:', err);
+        currentFileHandle = null;
+      }
+    }
+
+    // 2. Try native file picker
+    if (hasFileSystemAccess()) {
+      const handle = await pickSaveFile(defaultName);
+      if (handle) {
+        currentFileHandle = handle;
+        await writeToHandle(handle, json);
+        return;
+      }
+      return; // User cancelled
+    }
+
+    // 3. Legacy fallback
+    legacySave(json, defaultName);
+  }, [writeToHandle, pickSaveFile, legacySave]);
+
+  const saveProjectAs = useCallback(async (): Promise<void> => {
+    // Clear handle to force picker
+    currentFileHandle = null;
+
+    const json = store.getState().getProjectJSON();
+    const project = store.getState().project;
+    const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
+
+    // Try native file picker
+    if (hasFileSystemAccess()) {
+      const handle = await pickSaveFile(defaultName);
+      if (handle) {
+        currentFileHandle = handle;
+        await writeToHandle(handle, json);
+        return;
+      }
+      return; // User cancelled
+    }
+
+    // Legacy fallback
+    legacySave(json, defaultName);
+  }, [writeToHandle, pickSaveFile, legacySave]);
 
   // -----------------------------------------------------------------------
   // Auto-save to localStorage
@@ -157,5 +265,5 @@ export function useProjectFile() {
     }
   }, []);
 
-  return { loadProject, saveProject, autoSave, autoLoad };
+  return { loadProject, saveProject, saveProjectAs, autoSave, autoLoad };
 }

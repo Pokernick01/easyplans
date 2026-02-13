@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useTranslation } from '@/utils/i18n.ts';
 import type { ToolType } from '@/types/tools.ts';
-import type { DoorStyle, WindowStyle, StairStyle } from '@/types/elements.ts';
+import type { DoorStyle, WindowStyle, StairStyle, ShapeKind } from '@/types/elements.ts';
 
 // ---------------------------------------------------------------------------
 // SVG Tool Icons — uniform 24×24 line-art style, 1.5px stroke
@@ -171,6 +171,19 @@ function StairIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function ShapeIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={S} strokeLinecap="round" strokeLinejoin="round">
+      {/* Rectangle */}
+      <rect x="3" y="13" width="8" height="8" rx="0.5" />
+      {/* Circle */}
+      <circle cx="17" cy="7" r="5" />
+      {/* Triangle */}
+      <polygon points="13,20 17,13 21,20" />
+    </svg>
+  );
+}
+
 function EraserIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={S} strokeLinecap="round" strokeLinejoin="round">
@@ -206,6 +219,7 @@ const TOOLS: ToolDef[] = [
   { id: 'stamp', icon: <StampIcon />, labelKey: 'tool.stamp', shortcut: 'F' },
   { id: 'archline', icon: <ArchLineIcon />, labelKey: 'tool.archline', shortcut: 'L' },
   { id: 'stair', icon: <StairIcon />, labelKey: 'tool.stair', shortcut: 'H' },
+  { id: 'shape', icon: <ShapeIcon />, labelKey: 'tool.shape', shortcut: 'O' },
   { id: 'eraser', icon: <EraserIcon />, labelKey: 'tool.eraser', shortcut: 'E' },
 ];
 
@@ -228,6 +242,10 @@ const STAIR_STYLE_KEYS: Record<StairStyle, string> = {
   straight: 'stairStyle.straight', 'l-shaped': 'stairStyle.l-shaped', 'u-shaped': 'stairStyle.u-shaped',
   spiral: 'stairStyle.spiral', winder: 'stairStyle.winder', curved: 'stairStyle.curved',
 };
+const SHAPE_KINDS: ShapeKind[] = ['rectangle', 'circle', 'triangle'];
+const SHAPE_KIND_KEYS: Record<ShapeKind, string> = {
+  rectangle: 'shapeKind.rectangle', circle: 'shapeKind.circle', triangle: 'shapeKind.triangle',
+};
 
 // ---------------------------------------------------------------------------
 // StyleSubMenu — popout panel next to tool button
@@ -238,9 +256,11 @@ function StyleSubMenu({ toolId }: { toolId: ToolType }) {
   const activeDoorStyle = useUIStore((s) => s.activeDoorStyle);
   const activeWindowStyle = useUIStore((s) => s.activeWindowStyle);
   const activeStairStyle = useUIStore((s) => s.activeStairStyle);
+  const activeShapeKind = useUIStore((s) => s.activeShapeKind);
   const setDoorStyle = useUIStore((s) => s.setDoorStyle);
   const setWindowStyle = useUIStore((s) => s.setWindowStyle);
   const setStairStyle = useUIStore((s) => s.setStairStyle);
+  const setShapeKind = useUIStore((s) => s.setShapeKind);
 
   let items: { key: string; label: string; active: boolean; onClick: () => void }[] = [];
 
@@ -258,6 +278,11 @@ function StyleSubMenu({ toolId }: { toolId: ToolType }) {
     items = STAIR_STYLES.map((s) => ({
       key: s, label: t(STAIR_STYLE_KEYS[s]), active: activeStairStyle === s,
       onClick: () => setStairStyle(s),
+    }));
+  } else if (toolId === 'shape') {
+    items = SHAPE_KINDS.map((s) => ({
+      key: s, label: t(SHAPE_KIND_KEYS[s]), active: activeShapeKind === s,
+      onClick: () => setShapeKind(s),
     }));
   } else {
     return null;
@@ -315,7 +340,7 @@ function StyleSubMenu({ toolId }: { toolId: ToolType }) {
 // ToolButton
 // ---------------------------------------------------------------------------
 
-const TOOLS_WITH_SUBMENU = new Set<ToolType>(['door', 'window', 'stair']);
+const TOOLS_WITH_SUBMENU = new Set<ToolType>(['door', 'window', 'stair', 'shape']);
 
 function ToolButton({ tool, compact }: { tool: ToolDef; compact?: boolean }) {
   const activeTool = useUIStore((s) => s.activeTool);

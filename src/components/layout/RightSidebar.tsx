@@ -29,6 +29,8 @@ import type {
   FillPattern,
   WallFillPattern,
   DoorSwing,
+  Shape,
+  ShapeKind,
 } from '@/types/elements.ts';
 import type { StampCategory } from '@/types/library.ts';
 
@@ -971,6 +973,135 @@ function ArchLineProperties({ element, floorIndex }: { element: ArchLine; floorI
 }
 
 // ---------------------------------------------------------------------------
+// Shape kind constants
+// ---------------------------------------------------------------------------
+
+const SHAPE_KINDS: ShapeKind[] = ['rectangle', 'circle', 'triangle'];
+const SHAPE_KIND_KEYS: Record<ShapeKind, string> = {
+  rectangle: 'shapeKind.rectangle',
+  circle: 'shapeKind.circle',
+  triangle: 'shapeKind.triangle',
+};
+
+function ShapeProperties({ element, floorIndex }: { element: Shape; floorIndex: number }) {
+  const updateElement = useProjectStore((s) => s.updateElement);
+  const setShapeDefaults = useUIStore((s) => s.setShapeDefaults);
+  const t = useTranslation();
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="text-xs font-medium mb-1" style={{ color: '#2d6a4f' }}>
+        {t('prop.shape')}
+      </div>
+      <div className="flex items-center justify-between py-1">
+        <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.shapeKind')}</label>
+        <select
+          value={element.shapeKind}
+          onChange={(e) =>
+            updateElement(floorIndex, element.id, { shapeKind: e.target.value as ShapeKind })
+          }
+          className="px-2 py-1 text-xs rounded cursor-pointer outline-none"
+          style={{
+            background: '#ece8e1',
+            color: '#2c2c2c',
+            border: '1px solid #d5cfc6',
+          }}
+        >
+          {SHAPE_KINDS.map((s) => (
+            <option key={s} value={s}>
+              {t(SHAPE_KIND_KEYS[s])}
+            </option>
+          ))}
+        </select>
+      </div>
+      <UnitNumberInput
+        label="X"
+        value={element.position.x}
+        onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, x: v } })}
+      />
+      <UnitNumberInput
+        label="Y"
+        value={element.position.y}
+        onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, y: v } })}
+      />
+      <UnitNumberInput
+        label={t('field.width')}
+        value={element.width}
+        onChange={(v) => updateElement(floorIndex, element.id, { width: v })}
+        min={0.05}
+        max={50}
+      />
+      <UnitNumberInput
+        label={t('field.height')}
+        value={element.height}
+        onChange={(v) => updateElement(floorIndex, element.id, { height: v })}
+        min={0.05}
+        max={50}
+      />
+      <NumberInput
+        label={t('field.rotation')}
+        value={element.rotation}
+        onChange={(v) => updateElement(floorIndex, element.id, { rotation: v })}
+        unit={'\u00B0'}
+        min={0}
+        max={360}
+        step={5}
+      />
+      <div className="flex items-center justify-between py-1">
+        <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.filled')}</label>
+        <input
+          type="checkbox"
+          checked={element.filled}
+          onChange={(e) => {
+            updateElement(floorIndex, element.id, { filled: e.target.checked });
+            setShapeDefaults({ filled: e.target.checked });
+          }}
+          className="w-4 h-4 cursor-pointer"
+        />
+      </div>
+      {element.filled && (
+        <div className="flex items-center justify-between py-1">
+          <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.fillColor')}</label>
+          <input
+            type="color"
+            value={element.fillColor}
+            onChange={(e) => {
+              updateElement(floorIndex, element.id, { fillColor: e.target.value });
+              setShapeDefaults({ fillColor: e.target.value });
+            }}
+            className="w-8 h-6 rounded cursor-pointer border-0"
+            style={{ background: 'transparent' }}
+          />
+        </div>
+      )}
+      <div className="flex items-center justify-between py-1">
+        <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.strokeColor')}</label>
+        <input
+          type="color"
+          value={element.strokeColor}
+          onChange={(e) => {
+            updateElement(floorIndex, element.id, { strokeColor: e.target.value });
+            setShapeDefaults({ strokeColor: e.target.value });
+          }}
+          className="w-8 h-6 rounded cursor-pointer border-0"
+          style={{ background: 'transparent' }}
+        />
+      </div>
+      <UnitNumberInput
+        label={t('field.strokeWidth')}
+        value={element.strokeWidth}
+        onChange={(v) => {
+          updateElement(floorIndex, element.id, { strokeWidth: v });
+          setShapeDefaults({ strokeWidth: v });
+        }}
+        min={0.005}
+        max={0.5}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Line style selector (shown when archline tool is active)
 // ---------------------------------------------------------------------------
 
@@ -1127,6 +1258,80 @@ function StairStyleSelector() {
 }
 
 // ---------------------------------------------------------------------------
+// Shape kind selector (shown when shape tool is active)
+// ---------------------------------------------------------------------------
+
+function ShapeKindSelector() {
+  const activeShapeKind = useUIStore((s) => s.activeShapeKind);
+  const setShapeKind = useUIStore((s) => s.setShapeKind);
+  const shapeDefaults = useUIStore((s) => s.shapeDefaults);
+  const setShapeDefaults = useUIStore((s) => s.setShapeDefaults);
+  const t = useTranslation();
+
+  return (
+    <div
+      className="p-3 shrink-0"
+      style={{ borderBottom: '1px solid #d5cfc6' }}
+    >
+      <div className="text-xs font-medium mb-2" style={{ color: '#2d6a4f' }}>
+        {t('selector.shapeKind')}
+      </div>
+      <div className="flex flex-col gap-1">
+        {SHAPE_KINDS.map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => setShapeKind(kind)}
+            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded cursor-pointer transition-colors"
+            style={{
+              background: activeShapeKind === kind ? '#ddd7cc' : '#ece8e1',
+              color: activeShapeKind === kind ? '#2d6a4f' : '#6b6560',
+              border: `1px solid ${activeShapeKind === kind ? '#2d6a4f' : '#d5cfc6'}`,
+              textAlign: 'left',
+            }}
+          >
+            <span style={{ color: '#2c2c2c' }}>{t(SHAPE_KIND_KEYS[kind])}</span>
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1 mt-3">
+        <div className="flex items-center justify-between py-1">
+          <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.filled')}</label>
+          <input
+            type="checkbox"
+            checked={shapeDefaults.filled}
+            onChange={(e) => setShapeDefaults({ filled: e.target.checked })}
+            className="w-4 h-4 cursor-pointer"
+          />
+        </div>
+        {shapeDefaults.filled && (
+          <div className="flex items-center justify-between py-1">
+            <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.fillColor')}</label>
+            <input
+              type="color"
+              value={shapeDefaults.fillColor}
+              onChange={(e) => setShapeDefaults({ fillColor: e.target.value })}
+              className="w-8 h-6 rounded cursor-pointer border-0"
+              style={{ background: 'transparent' }}
+            />
+          </div>
+        )}
+        <div className="flex items-center justify-between py-1">
+          <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.strokeColor')}</label>
+          <input
+            type="color"
+            value={shapeDefaults.strokeColor}
+            onChange={(e) => setShapeDefaults({ strokeColor: e.target.value })}
+            className="w-8 h-6 rounded cursor-pointer border-0"
+            style={{ background: 'transparent' }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Element property router
 // ---------------------------------------------------------------------------
 
@@ -1150,6 +1355,8 @@ function ElementProperties({ element, floorIndex }: { element: AnyElement; floor
       return <ArchLineProperties element={element} floorIndex={floorIndex} />;
     case 'stair':
       return <StairProperties element={element} floorIndex={floorIndex} />;
+    case 'shape':
+      return <ShapeProperties element={element} floorIndex={floorIndex} />;
     default:
       return null;
   }
@@ -1180,6 +1387,7 @@ function PropertiesPanel() {
         {activeTool === 'door' && <DoorStyleSelector />}
         {activeTool === 'window' && <WindowStyleSelector />}
         {activeTool === 'stair' && <StairStyleSelector />}
+        {activeTool === 'shape' && <ShapeKindSelector />}
         <div className="flex-1 flex items-center justify-center p-6">
           <span className="text-xs text-center" style={{ color: '#6b6560', wordWrap: 'break-word', overflowWrap: 'break-word', maxWidth: '100%', padding: '0 8px' }}>
             {t('ui.selectToEdit')}

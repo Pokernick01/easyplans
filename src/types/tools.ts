@@ -15,7 +15,8 @@ export type ToolType =
   | 'stamp'
   | 'eraser'
   | 'archline'
-  | 'stair';
+  | 'stair'
+  | 'shape';
 
 // ---------------------------------------------------------------------------
 // Tool state -- current phase of the active tool's interaction

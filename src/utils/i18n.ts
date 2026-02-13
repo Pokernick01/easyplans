@@ -206,6 +206,34 @@ const dict: Record<string, { en: string; es: string }> = {
   'floor.ground': { en: 'Ground Floor', es: 'Planta Baja' },
   'floor.level': { en: 'Floor', es: 'Piso' },
 
+  // -- Tool name --
+  'tool.shape': { en: 'Shapes', es: 'Formas' },
+
+  // -- Tool hint --
+  'hint.shape': {
+    en: 'Click-drag to draw a shape. Shift for equal proportions.',
+    es: 'Clic y arrastrar para dibujar forma. Shift para proporciones iguales.',
+  },
+
+  // -- Shape kinds --
+  'shapeKind.rectangle': { en: 'Rectangle', es: 'Rect\u00e1ngulo' },
+  'shapeKind.circle': { en: 'Circle', es: 'C\u00edrculo' },
+  'shapeKind.triangle': { en: 'Triangle', es: 'Tri\u00e1ngulo' },
+
+  // -- Shape selector header --
+  'selector.shapeKind': { en: 'Shape Type', es: 'Tipo de Forma' },
+
+  // -- Shape property labels --
+  'prop.shape': { en: 'Shape', es: 'Forma' },
+  'field.shapeKind': { en: 'Shape', es: 'Forma' },
+  'field.filled': { en: 'Filled', es: 'Relleno' },
+  'field.strokeColor': { en: 'Stroke Color', es: 'Color Trazo' },
+  'field.strokeWidth': { en: 'Stroke Width', es: 'Grosor Trazo' },
+
+  // -- Save As --
+  'ui.saveAsBtn': { en: 'Save As', es: 'Guardar como' },
+  'tooltip.saveAs': { en: 'Save As New File', es: 'Guardar como Nuevo Archivo' },
+
   // -- Stair labels --
   'stair.up': { en: 'UP', es: 'SUBE' },
   'stair.down': { en: 'DN', es: 'BAJA' },

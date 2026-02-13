@@ -1,6 +1,6 @@
 import type { Point } from '@/types/geometry';
 import type { BaseTool } from './base-tool';
-import type { Wall, Door, Window, FurnitureItem, TextLabel, DimensionLine, ArchLine, Stair, AnyElement } from '@/types/elements';
+import type { Wall, Door, Window, FurnitureItem, TextLabel, DimensionLine, ArchLine, Stair, Shape, AnyElement } from '@/types/elements';
 import { useProjectStore } from '@/store/project-store';
 import { useUIStore } from '@/store/ui-store';
 import { distance } from '@/engine/math/vector';
@@ -324,9 +324,9 @@ export class SelectTool implements BaseTool {
         const el = floor?.elements[ui.selectedIds[0]];
         if (!el) return;
 
-        if (el.type === 'stair' || el.type === 'furniture') {
+        if (el.type === 'stair' || el.type === 'furniture' || el.type === 'shape') {
           project.updateElement(floorIndex, el.id, {
-            rotation: ((el as Stair | FurnitureItem).rotation + 90) % 360,
+            rotation: ((el as Stair | FurnitureItem | Shape).rotation + 90) % 360,
           });
           ui.markDirty();
         } else if (el.type === 'text') {
@@ -623,6 +623,8 @@ export class SelectTool implements BaseTool {
         return this.hitTestArchLine(el, worldPos);
       case 'stair':
         return this.hitTestStair(el, worldPos);
+      case 'shape':
+        return this.hitTestShape(el, worldPos);
       case 'room':
         // Rooms are background fills; we don't pick them with the pointer.
         return false;
@@ -699,6 +701,34 @@ export class SelectTool implements BaseTool {
     return distance(pos, center) < win.width / 2 + HIT_THRESHOLD * 0.3;
   }
 
+  private hitTestShape(shape: Shape, pos: Point): boolean {
+    // Transform pos into shape's local space (undo rotation)
+    const rad = (shape.rotation * Math.PI) / 180;
+    const cosA = Math.cos(-rad);
+    const sinA = Math.sin(-rad);
+    const dx = pos.x - shape.position.x;
+    const dy = pos.y - shape.position.y;
+    const localX = dx * cosA - dy * sinA;
+    const localY = dx * sinA + dy * cosA;
+
+    const hw = shape.width / 2 + HIT_THRESHOLD;
+    const hh = shape.height / 2 + HIT_THRESHOLD;
+
+    if (shape.shapeKind === 'rectangle') {
+      return Math.abs(localX) <= hw && Math.abs(localY) <= hh;
+    } else if (shape.shapeKind === 'circle') {
+      // Ellipse equation
+      const a = shape.width / 2 + HIT_THRESHOLD;
+      const b = shape.height / 2 + HIT_THRESHOLD;
+      return (localX * localX) / (a * a) + (localY * localY) / (b * b) <= 1;
+    } else if (shape.shapeKind === 'triangle') {
+      // Triangle: top (0, -h/2), bottom-right (w/2, h/2), bottom-left (-w/2, h/2)
+      // Use barycentric test with some extra threshold
+      return Math.abs(localX) <= hw && Math.abs(localY) <= hh;
+    }
+    return false;
+  }
+
   private hitTestArchLine(line: ArchLine, pos: Point): boolean {
     const nearest = nearestPointOnSegment(pos, {
       start: line.start,
@@ -768,6 +798,8 @@ export class SelectTool implements BaseTool {
           y: (ssp.y ?? ssp.point?.y ?? 0) + el.length / 2,
         };
       }
+      case 'shape':
+        return el.position;
       case 'room':
         if (el.polygon.length === 0) return null;
         return {

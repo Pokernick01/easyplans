@@ -12,6 +12,7 @@ import { StampTool } from './stamp-tool';
 import { EraserTool } from './eraser-tool';
 import { ArchLineTool } from './archline-tool';
 import { StairTool } from './stair-tool';
+import { ShapeTool } from './shape-tool';
 
 // ---------------------------------------------------------------------------
 // ToolManager
@@ -49,6 +50,7 @@ export class ToolManager {
       new EraserTool(),
       new ArchLineTool(),
       new StairTool(),
+      new ShapeTool(),
     ];
 
     for (const tool of toolInstances) {

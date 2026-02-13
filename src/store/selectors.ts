@@ -10,6 +10,7 @@ import type {
   DimensionLine,
   ArchLine,
   Stair,
+  Shape,
 } from '@/types/elements.ts';
 import type { useProjectStore } from './project-store.ts';
 
@@ -109,6 +110,14 @@ export function getStairs(state: ProjectStoreState): Stair[] {
   const elements = getActiveElements(state);
   return Object.values(elements).filter(
     (el): el is Stair => el.type === 'stair',
+  );
+}
+
+/** Return all shapes on the active floor. */
+export function getShapes(state: ProjectStoreState): Shape[] {
+  const elements = getActiveElements(state);
+  return Object.values(elements).filter(
+    (el): el is Shape => el.type === 'shape',
   );
 }
 

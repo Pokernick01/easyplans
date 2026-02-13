@@ -15,6 +15,7 @@ import type {
   DimensionLine,
   ArchLine,
   Stair,
+  Shape,
   AnyElement,
 } from '@/types/elements.ts';
 
@@ -37,6 +38,7 @@ interface ProjectActions {
   addDimension: (dim: Omit<DimensionLine, 'id' | 'type'>) => string;
   addArchLine: (line: Omit<ArchLine, 'id' | 'type'>) => string;
   addStair: (stair: Omit<Stair, 'id' | 'type'>) => string;
+  addShape: (shape: Omit<Shape, 'id' | 'type'>) => string;
 
   // --- Element mutation ---
   updateElement: (floorIndex: number, id: string, patch: Partial<AnyElement>) => void;
@@ -266,6 +268,24 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         return id;
       },
 
+      addShape: (shape) => {
+        const id = generateId();
+        set((state) => ({
+          project: touch({
+            ...state.project,
+            floors: updateFloorElements(
+              state.project.floors,
+              shape.floorIndex,
+              (els) => ({
+                ...els,
+                [id]: { ...shape, id, type: 'shape' as const },
+              }),
+            ),
+          }),
+        }));
+        return id;
+      },
+
       // ----------------------------------------------------------------
       // Element mutation
       // ----------------------------------------------------------------
@@ -350,6 +370,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
                   case 'furniture':
                   case 'text':
                   case 'stair':
+                  case 'shape':
                     moved = {
                       ...el,
                       position: {

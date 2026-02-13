@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Point } from '@/types/geometry.ts';
 import type { ToolType, ToolState } from '@/types/tools.ts';
 import type { ViewMode, FacadeDirection } from '@/types/project.ts';
-import type { ArchLineStyle, DoorStyle, WindowStyle, StairStyle, WallFillPattern } from '@/types/elements.ts';
+import type { ArchLineStyle, DoorStyle, WindowStyle, StairStyle, WallFillPattern, ShapeKind } from '@/types/elements.ts';
 import type { Language } from '@/utils/i18n.ts';
 
 // ---------------------------------------------------------------------------
@@ -48,6 +48,14 @@ interface UIState {
     fillColor: string;
     fillPattern: WallFillPattern;
   };
+  // Shape tool state
+  activeShapeKind: ShapeKind;
+  shapeDefaults: {
+    filled: boolean;
+    fillColor: string;
+    strokeColor: string;
+    strokeWidth: number;
+  };
 }
 
 interface UIActions {
@@ -86,6 +94,8 @@ interface UIActions {
   setClipboard: (data: string | null) => void;
   setLanguage: (lang: Language) => void;
   setWallDefaults: (defaults: Partial<UIState['wallDefaults']>) => void;
+  setShapeKind: (kind: ShapeKind) => void;
+  setShapeDefaults: (defaults: Partial<UIState['shapeDefaults']>) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +153,13 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
     color: '#000000',
     fillColor: '#ffffff',
     fillPattern: 'solid' as WallFillPattern,
+  },
+  activeShapeKind: 'rectangle' as ShapeKind,
+  shapeDefaults: {
+    filled: false,
+    fillColor: '#cccccc',
+    strokeColor: '#000000',
+    strokeWidth: 0.02,
   },
 
   // ---- Actions ----
@@ -258,5 +275,13 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   setWallDefaults: (defaults) =>
     set((s) => ({
       wallDefaults: { ...s.wallDefaults, ...defaults },
+    })),
+
+  setShapeKind: (kind) =>
+    set({ activeShapeKind: kind }),
+
+  setShapeDefaults: (defaults) =>
+    set((s) => ({
+      shapeDefaults: { ...s.shapeDefaults, ...defaults },
     })),
 }));

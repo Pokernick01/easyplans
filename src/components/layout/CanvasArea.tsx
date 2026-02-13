@@ -17,8 +17,9 @@ import {
   getDimensions,
   getArchLines,
   getStairs,
+  getShapes,
 } from '@/store/selectors.ts';
-import type { ArchLineStyle, StairStyle, AnyElement, FillPattern, WallFillPattern } from '@/types/elements.ts';
+import type { ArchLineStyle, StairStyle, AnyElement, FillPattern, WallFillPattern, ShapeKind } from '@/types/elements.ts';
 import { roomPatternFns, wallPatternFns } from '@/renderer/layers/pattern-library.ts';
 import { stampRegistry } from '@/library/index.ts';
 import { toolManager } from '@/tools/tool-manager.ts';
@@ -196,6 +197,7 @@ export function CanvasArea() {
     const texts = getTexts(projectState);
     const dimensions = getDimensions(projectState);
     const stairs = getStairs(projectState);
+    const shapes = getShapes(projectState);
     const viewMode = uiState.viewMode as ViewMode;
 
     // ===================================================================
@@ -1118,6 +1120,57 @@ export function CanvasArea() {
       }
     }
 
+    // ----- Shapes -----
+    for (const shape of shapes) {
+      if (!shape.visible) continue;
+      const isSelected = selectedIds.has(shape.id);
+      const odx = isSelected ? dragDx : 0;
+      const ody = isSelected ? dragDy : 0;
+
+      ctx.save();
+      ctx.translate(shape.position.x + odx, shape.position.y + ody);
+      ctx.rotate((shape.rotation * Math.PI) / 180);
+
+      const hw = shape.width / 2;
+      const hh = shape.height / 2;
+
+      ctx.beginPath();
+      if (shape.shapeKind === 'rectangle') {
+        ctx.rect(-hw, -hh, shape.width, shape.height);
+      } else if (shape.shapeKind === 'circle') {
+        ctx.ellipse(0, 0, hw, hh, 0, 0, Math.PI * 2);
+      } else if (shape.shapeKind === 'triangle') {
+        ctx.moveTo(0, -hh);
+        ctx.lineTo(hw, hh);
+        ctx.lineTo(-hw, hh);
+        ctx.closePath();
+      }
+
+      if (shape.filled) {
+        ctx.fillStyle = shape.fillColor;
+        ctx.fill();
+      }
+      ctx.strokeStyle = shape.strokeColor;
+      ctx.lineWidth = shape.strokeWidth;
+      ctx.stroke();
+
+      if (isSelected) {
+        ctx.strokeStyle = '#2d6a4f';
+        ctx.lineWidth = 0.02;
+        ctx.setLineDash([0.04, 0.04]);
+        if (shape.shapeKind === 'circle') {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, hw + 0.03, hh + 0.03, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          ctx.strokeRect(-hw - 0.03, -hh - 0.03, shape.width + 0.06, shape.height + 0.06);
+        }
+        ctx.setLineDash([]);
+      }
+
+      ctx.restore();
+    }
+
     // ----- Text Labels -----
     for (const text of texts) {
       if (!text.visible) continue;
@@ -1322,6 +1375,48 @@ export function CanvasArea() {
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 0.02;
         ctx.strokeRect(-0.5, -1.5, 1.0, 3.0);
+        ctx.restore();
+      }
+
+      if (preview.type === 'shape') {
+        const sd = preview.data as {
+          start: { x: number; y: number };
+          end: { x: number; y: number };
+          shapeKind: ShapeKind;
+          filled: boolean;
+          fillColor: string;
+          strokeColor: string;
+        };
+        const sx = Math.min(sd.start.x, sd.end.x);
+        const sy = Math.min(sd.start.y, sd.end.y);
+        const sw = Math.abs(sd.end.x - sd.start.x);
+        const sh = Math.abs(sd.end.y - sd.start.y);
+        const cx = sx + sw / 2;
+        const cy = sy + sh / 2;
+
+        ctx.save();
+        ctx.strokeStyle = sd.strokeColor;
+        ctx.lineWidth = 0.02;
+        ctx.setLineDash([0.05, 0.05]);
+
+        ctx.beginPath();
+        if (sd.shapeKind === 'rectangle') {
+          ctx.rect(sx, sy, sw, sh);
+        } else if (sd.shapeKind === 'circle') {
+          ctx.ellipse(cx, cy, sw / 2, sh / 2, 0, 0, Math.PI * 2);
+        } else if (sd.shapeKind === 'triangle') {
+          ctx.moveTo(cx, sy);
+          ctx.lineTo(sx + sw, sy + sh);
+          ctx.lineTo(sx, sy + sh);
+          ctx.closePath();
+        }
+
+        if (sd.filled) {
+          ctx.fillStyle = sd.fillColor + '66';
+          ctx.fill();
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
         ctx.restore();
       }
 
@@ -1928,7 +2023,7 @@ export function CanvasArea() {
         parsed = raw;
       } catch { return; }
       // Validate: only allow known element types
-      const validTypes = new Set(['wall', 'door', 'window', 'room', 'furniture', 'text', 'dimension', 'archline', 'stair']);
+      const validTypes = new Set(['wall', 'door', 'window', 'room', 'furniture', 'text', 'dimension', 'archline', 'stair', 'shape']);
       parsed = parsed.filter((el) => el != null && typeof el === 'object' && validTypes.has((el as Record<string, unknown>).type as string));
       if (parsed.length === 0) return;
       const store = useProjectStore.getState();
@@ -1999,6 +2094,13 @@ export function CanvasArea() {
             newIds.push(store.addStair(s as Omit<import('@/types/elements.ts').Stair, 'id' | 'type'>));
             break;
           }
+          case 'shape': {
+            const sh = rest as Record<string, unknown>;
+            const shPos = sh.position as { x: number; y: number };
+            sh.position = { x: shPos.x + 0.5, y: shPos.y + 0.5 };
+            newIds.push(store.addShape(sh as Omit<import('@/types/elements.ts').Shape, 'id' | 'type'>));
+            break;
+          }
         }
       }
       useUIStore.getState().select(newIds);
@@ -2037,6 +2139,7 @@ export function CanvasArea() {
       case 'l': setTool('archline'); break;
       case 'h': setTool('stair'); break;
       case 'e': setTool('eraser'); break;
+      case 'o': setTool('shape'); break;
       case 'g': toggleGrid(); break;
       case 's': toggleSnap(); break;
       case 'escape': useUIStore.getState().clearSelection(); break;
@@ -2103,6 +2206,7 @@ export function CanvasArea() {
     eraser: 'pointer',
     archline: 'crosshair',
     stair: 'crosshair',
+    shape: 'crosshair',
   };
   const canvasCursor = viewMode === 'isometric' ? 'grab' : (cursorMap[activeTool] ?? 'default');
 

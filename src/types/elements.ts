@@ -13,7 +13,8 @@ export type ElementType =
   | 'text'
   | 'dimension'
   | 'archline'
-  | 'stair';
+  | 'stair'
+  | 'shape';
 
 // ---------------------------------------------------------------------------
 // Fill patterns for rooms
@@ -300,6 +301,42 @@ export interface Stair extends BaseElement {
 // Union of all element types
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Shape kind variants
+// ---------------------------------------------------------------------------
+
+export type ShapeKind = 'rectangle' | 'circle' | 'triangle';
+
+// ---------------------------------------------------------------------------
+// Shape (geometric drawing primitive)
+// ---------------------------------------------------------------------------
+
+export interface Shape extends BaseElement {
+  type: 'shape';
+  /** Center position of the shape bounding box (meters). */
+  position: Point;
+  /** Bounding box width in meters. */
+  width: number;
+  /** Bounding box height in meters. */
+  height: number;
+  /** Which geometric shape to render. @default 'rectangle' */
+  shapeKind: ShapeKind;
+  /** Rotation in degrees. @default 0 */
+  rotation: number;
+  /** Whether the shape is filled. @default false */
+  filled: boolean;
+  /** Fill color (used when filled=true). @default '#cccccc' */
+  fillColor: string;
+  /** Stroke/outline color. @default '#000000' */
+  strokeColor: string;
+  /** Stroke width in meters. @default 0.02 */
+  strokeWidth: number;
+}
+
+// ---------------------------------------------------------------------------
+// Union of all element types
+// ---------------------------------------------------------------------------
+
 export type AnyElement =
   | Wall
   | Door
@@ -309,4 +346,5 @@ export type AnyElement =
   | TextLabel
   | DimensionLine
   | ArchLine
-  | Stair;
+  | Stair
+  | Shape;
