@@ -3,6 +3,9 @@ import type { StampDefinition } from '@/types/library.ts';
 import { useProjectStore } from '@/store/project-store.ts';
 import { useUIStore } from '@/store/ui-store.ts';
 import { NumberInput } from '@/components/shared/NumberInput.tsx';
+import { UnitNumberInput } from '@/components/shared/UnitNumberInput.tsx';
+import { formatAreaInUnit } from '@/utils/units.ts';
+import type { DisplayUnit } from '@/utils/units.ts';
 import { stampRegistry, getStampsByCategory } from '@/library/index.ts';
 import { categories } from '@/library/categories.ts';
 import type { CategoryInfo } from '@/library/categories.ts';
@@ -126,60 +129,46 @@ function WallProperties({ element, floorIndex }: { element: Wall; floorIndex: nu
       <div className="text-xs font-medium mb-1" style={{ color: '#2d6a4f' }}>
         {t('prop.wall')}
       </div>
-      <NumberInput
+      <UnitNumberInput
         label={t('field.length')}
-        value={Math.round(length * 1000) / 1000}
+        value={length}
         onChange={handleLengthChange}
-        unit="m"
         min={0.01}
         max={100}
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.startX')}
-        value={Math.round(element.start.x * 1000) / 1000}
+        value={element.start.x}
         onChange={(v) => updateElement(floorIndex, element.id, { start: { ...element.start, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.startY')}
-        value={Math.round(element.start.y * 1000) / 1000}
+        value={element.start.y}
         onChange={(v) => updateElement(floorIndex, element.id, { start: { ...element.start, y: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.endX')}
-        value={Math.round(element.end.x * 1000) / 1000}
+        value={element.end.x}
         onChange={(v) => updateElement(floorIndex, element.id, { end: { ...element.end, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.endY')}
-        value={Math.round(element.end.y * 1000) / 1000}
+        value={element.end.y}
         onChange={(v) => updateElement(floorIndex, element.id, { end: { ...element.end, y: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.thickness')}
         value={element.thickness}
         onChange={(v) => { updateElement(floorIndex, element.id, { thickness: v }); setWallDefaults({ thickness: v }); }}
-        unit="m"
         min={0.05}
         max={1.0}
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.height')}
         value={element.height}
         onChange={(v) => { updateElement(floorIndex, element.id, { height: v }); setWallDefaults({ height: v }); }}
-        unit="m"
         min={0.5}
         max={10}
-        step={0.1}
       />
       <div className="flex items-center justify-between py-1">
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.color')}</label>
@@ -266,23 +255,19 @@ function DoorProperties({ element, floorIndex }: { element: Door; floorIndex: nu
         max={1}
         step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.width')}
         value={element.width}
         onChange={(v) => updateElement(floorIndex, element.id, { width: v })}
-        unit="m"
         min={0.3}
         max={3.0}
-        step={0.05}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.height')}
         value={element.height}
         onChange={(v) => updateElement(floorIndex, element.id, { height: v })}
-        unit="m"
         min={0.5}
         max={4.0}
-        step={0.05}
       />
       <div className="flex items-center justify-between py-1">
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.opening')}</label>
@@ -419,32 +404,26 @@ function WindowProperties({ element, floorIndex }: { element: Window; floorIndex
         max={1}
         step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.width')}
         value={element.width}
         onChange={(v) => updateElement(floorIndex, element.id, { width: v })}
-        unit="m"
         min={0.3}
         max={5.0}
-        step={0.05}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.height')}
         value={element.height}
         onChange={(v) => updateElement(floorIndex, element.id, { height: v })}
-        unit="m"
         min={0.3}
         max={4.0}
-        step={0.05}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.sillHeight')}
         value={element.sillHeight}
         onChange={(v) => updateElement(floorIndex, element.id, { sillHeight: v })}
-        unit="m"
         min={0}
         max={3.0}
-        step={0.05}
       />
     </div>
   );
@@ -452,6 +431,7 @@ function WindowProperties({ element, floorIndex }: { element: Window; floorIndex
 
 function RoomProperties({ element, floorIndex }: { element: Room; floorIndex: number }) {
   const updateElement = useProjectStore((s) => s.updateElement);
+  const du: DisplayUnit = useProjectStore((s) => s.project.displayUnit) || 'm';
   const t = useTranslation();
 
   return (
@@ -507,7 +487,7 @@ function RoomProperties({ element, floorIndex }: { element: Room; floorIndex: nu
       <div className="flex items-center justify-between py-1">
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.area')}</label>
         <span className="text-xs" style={{ color: '#2c2c2c' }}>
-          {element.area.toFixed(2)} m&sup2;
+          {formatAreaInUnit(element.area, du)}
         </span>
       </div>
     </div>
@@ -526,19 +506,15 @@ function FurnitureProperties({ element, floorIndex }: { element: FurnitureItem; 
       <div className="text-xs font-medium mb-1" style={{ color: '#2d6a4f' }}>
         {t('prop.furniture')}{stampName ? ` - ${stampName}` : ''}
       </div>
-      <NumberInput
+      <UnitNumberInput
         label="X"
-        value={Math.round(element.position.x * 1000) / 1000}
+        value={element.position.x}
         onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label="Y"
-        value={Math.round(element.position.y * 1000) / 1000}
+        value={element.position.y}
         onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, y: v } })}
-        unit="m"
-        step={0.01}
       />
       <NumberInput
         label={t('field.rotation')}
@@ -568,23 +544,19 @@ function FurnitureProperties({ element, floorIndex }: { element: FurnitureItem; 
           </span>
         </div>
       </div>
-      <NumberInput
+      <UnitNumberInput
         label={t('field.width')}
         value={element.width}
         onChange={(v) => updateElement(floorIndex, element.id, { width: v })}
-        unit="m"
         min={0.1}
         max={10}
-        step={0.05}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.depth')}
         value={element.depth}
         onChange={(v) => updateElement(floorIndex, element.id, { depth: v })}
-        unit="m"
         min={0.1}
         max={10}
-        step={0.05}
       />
       <div className="flex items-center justify-between py-1">
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.color')}</label>
@@ -625,19 +597,15 @@ function TextProperties({ element, floorIndex }: { element: TextLabel; floorInde
       <div className="text-xs font-medium mb-1" style={{ color: '#2d6a4f' }}>
         {t('prop.text')}
       </div>
-      <NumberInput
+      <UnitNumberInput
         label="X"
-        value={Math.round(element.position.x * 1000) / 1000}
+        value={element.position.x}
         onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label="Y"
-        value={Math.round(element.position.y * 1000) / 1000}
+        value={element.position.y}
         onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, y: v } })}
-        unit="m"
-        step={0.01}
       />
       <NumberInput
         label={t('field.rotation')}
@@ -708,51 +676,39 @@ function DimensionProperties({ element, floorIndex }: { element: DimensionLine; 
       <div className="text-xs font-medium mb-1" style={{ color: '#2d6a4f' }}>
         {t('prop.dimension')}
       </div>
-      <NumberInput
+      <UnitNumberInput
         label={t('field.length')}
-        value={Math.round(length * 1000) / 1000}
+        value={length}
         onChange={handleLengthChange}
-        unit="m"
         min={0.01}
         max={100}
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.startX')}
-        value={Math.round(element.start.x * 1000) / 1000}
+        value={element.start.x}
         onChange={(v) => updateElement(floorIndex, element.id, { start: { ...element.start, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.startY')}
-        value={Math.round(element.start.y * 1000) / 1000}
+        value={element.start.y}
         onChange={(v) => updateElement(floorIndex, element.id, { start: { ...element.start, y: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.endX')}
-        value={Math.round(element.end.x * 1000) / 1000}
+        value={element.end.x}
         onChange={(v) => updateElement(floorIndex, element.id, { end: { ...element.end, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.endY')}
-        value={Math.round(element.end.y * 1000) / 1000}
+        value={element.end.y}
         onChange={(v) => updateElement(floorIndex, element.id, { end: { ...element.end, y: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.offset')}
         value={element.offset}
         onChange={(v) => updateElement(floorIndex, element.id, { offset: v })}
-        unit="m"
         min={0}
         max={5}
-        step={0.05}
       />
     </div>
   );
@@ -788,19 +744,15 @@ function StairProperties({ element, floorIndex }: { element: Stair; floorIndex: 
           ))}
         </select>
       </div>
-      <NumberInput
+      <UnitNumberInput
         label="X"
-        value={Math.round(element.position.x * 1000) / 1000}
+        value={element.position.x}
         onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label="Y"
-        value={Math.round(element.position.y * 1000) / 1000}
+        value={element.position.y}
         onChange={(v) => updateElement(floorIndex, element.id, { position: { ...element.position, y: v } })}
-        unit="m"
-        step={0.01}
       />
       <NumberInput
         label={t('field.rotation')}
@@ -811,23 +763,19 @@ function StairProperties({ element, floorIndex }: { element: Stair; floorIndex: 
         max={360}
         step={5}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.width')}
         value={element.width}
         onChange={(v) => updateElement(floorIndex, element.id, { width: v })}
-        unit="m"
         min={0.5}
         max={5.0}
-        step={0.05}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.length')}
         value={element.length}
         onChange={(v) => updateElement(floorIndex, element.id, { length: v })}
-        unit="m"
         min={0.5}
         max={10.0}
-        step={0.1}
       />
       <NumberInput
         label={t('field.treads')}
@@ -838,14 +786,12 @@ function StairProperties({ element, floorIndex }: { element: Stair; floorIndex: 
         max={30}
         step={1}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.riserHeight')}
         value={element.riserHeight}
         onChange={(v) => updateElement(floorIndex, element.id, { riserHeight: v })}
-        unit="m"
         min={0.1}
         max={0.3}
-        step={0.005}
       />
       <div className="flex items-center justify-between py-1">
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.direction')}</label>
@@ -955,14 +901,12 @@ function ArchLineProperties({ element, floorIndex }: { element: ArchLine; floorI
       <div className="text-xs font-medium mb-1" style={{ color: '#2d6a4f' }}>
         {t('prop.archline')}
       </div>
-      <NumberInput
+      <UnitNumberInput
         label={t('field.length')}
-        value={Math.round(length * 1000) / 1000}
+        value={length}
         onChange={handleLengthChange}
-        unit="m"
         min={0.01}
         max={100}
-        step={0.01}
       />
       <NumberInput
         label={t('field.angle')}
@@ -973,33 +917,25 @@ function ArchLineProperties({ element, floorIndex }: { element: ArchLine; floorI
         max={360}
         step={1}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.startX')}
-        value={Math.round(element.start.x * 1000) / 1000}
+        value={element.start.x}
         onChange={(v) => update({ start: { ...element.start, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.startY')}
-        value={Math.round(element.start.y * 1000) / 1000}
+        value={element.start.y}
         onChange={(v) => update({ start: { ...element.start, y: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.endX')}
-        value={Math.round(element.end.x * 1000) / 1000}
+        value={element.end.x}
         onChange={(v) => update({ end: { ...element.end, x: v } })}
-        unit="m"
-        step={0.01}
       />
-      <NumberInput
+      <UnitNumberInput
         label={t('field.endY')}
-        value={Math.round(element.end.y * 1000) / 1000}
+        value={element.end.y}
         onChange={(v) => update({ end: { ...element.end, y: v } })}
-        unit="m"
-        step={0.01}
       />
       <div className="flex items-center justify-between py-1">
         <label className="text-xs" style={{ color: '#6b6560' }}>{t('field.style')}</label>

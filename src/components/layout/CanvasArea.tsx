@@ -23,6 +23,8 @@ import { roomPatternFns, wallPatternFns } from '@/renderer/layers/pattern-librar
 import { stampRegistry } from '@/library/index.ts';
 import { toolManager } from '@/tools/tool-manager.ts';
 import { t } from '@/utils/i18n.ts';
+import { formatInUnit, formatAreaInUnit } from '@/utils/units.ts';
+import type { DisplayUnit } from '@/utils/units.ts';
 import { generateCrossSection } from '@/engine/views/cross-section.ts';
 import { generateFacade } from '@/engine/views/facade.ts';
 import { generateIsometricView } from '@/engine/views/isometric.ts';
@@ -174,6 +176,7 @@ export function CanvasArea() {
 
     // Get project data
     const projectState = useProjectStore.getState();
+    const displayUnit: DisplayUnit = projectState.project.displayUnit || 'm';
     const floor = getActiveFloor(projectState);
     if (!floor) {
       useUIStore.getState().markClean();
@@ -330,7 +333,7 @@ export function CanvasArea() {
         ctx.fillText(room.label, cx, cy);
         ctx.fillStyle = '#888';
         ctx.font = '0.10px sans-serif';
-        ctx.fillText(`${room.area.toFixed(1)} m\u00B2`, cx, cy + 0.2);
+        ctx.fillText(formatAreaInUnit(room.area, displayUnit), cx, cy + 0.2);
         ctx.restore();
       }
     }
@@ -1075,7 +1078,7 @@ export function CanvasArea() {
         ctx.font = `600 ${screenFontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(`${length.toFixed(2)} m`, 0, -3);
+        ctx.fillText(formatInUnit(length, displayUnit), 0, -3);
         ctx.restore();
 
         if (isSelected && (dragDx !== 0 || dragDy !== 0)) {
@@ -1125,7 +1128,7 @@ export function CanvasArea() {
           ctx.font = `600 ${wFontSize}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(`${len.toFixed(2)} m`, 0, -(wd.thickness / 2 + 0.03) * ppmW);
+          ctx.fillText(formatInUnit(len, displayUnit), 0, -(wd.thickness / 2 + 0.03) * ppmW);
           ctx.restore();
         }
       }
@@ -1174,7 +1177,7 @@ export function CanvasArea() {
           ctx.font = `600 ${dFontSize}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(`${dLen.toFixed(2)} m`, 0, -3);
+          ctx.fillText(formatInUnit(dLen, displayUnit), 0, -3);
           ctx.restore();
         }
       }

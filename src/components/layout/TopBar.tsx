@@ -5,6 +5,7 @@ import { IconButton } from '@/components/shared/IconButton.tsx';
 import { useTranslation } from '@/utils/i18n.ts';
 import { useProjectFile } from '@/hooks/useProjectFile.ts';
 import type { ViewMode } from '@/types/project.ts';
+import { DISPLAY_UNITS, UNIT_LABELS, type DisplayUnit } from '@/utils/units.ts';
 
 // ---------------------------------------------------------------------------
 // View mode icons (SVG)
@@ -101,6 +102,8 @@ export function TopBar() {
 
   const scale = useProjectStore((s) => s.project.scale);
   const setScale = useProjectStore((s) => s.setScale);
+  const displayUnit = useProjectStore((s) => s.project.displayUnit);
+  const setDisplayUnit = useProjectStore((s) => s.setDisplayUnit);
 
   const t = useTranslation();
   const { saveProject, loadProject: loadProjectFile } = useProjectFile();
@@ -109,8 +112,10 @@ export function TopBar() {
   const [customScaleInput, setCustomScaleInput] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const scaleDropdownRef = useRef<HTMLDivElement>(null);
+  const [unitOpen, setUnitOpen] = useState(false);
+  const unitDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close scale dropdown when clicking outside
   useEffect(() => {
     if (!scaleOpen) return;
     const handler = (e: Event) => {
@@ -122,6 +127,18 @@ export function TopBar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [scaleOpen]);
+
+  // Close unit dropdown when clicking outside
+  useEffect(() => {
+    if (!unitOpen) return;
+    const handler = (e: Event) => {
+      if (unitDropdownRef.current && !unitDropdownRef.current.contains(e.target as Node)) {
+        setUnitOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [unitOpen]);
 
   const handleUndo = () => {
     const { undo } = useProjectStore.temporal.getState();
@@ -301,6 +318,39 @@ export function TopBar() {
                   </button>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Unit selector */}
+        <div className="relative" ref={unitDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setUnitOpen(!unitOpen)}
+            className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
+            style={{ background: 'rgba(0,0,0,0.04)' }}
+            title={t('tooltip.units')}
+          >
+            {UNIT_LABELS[displayUnit || 'm']}
+          </button>
+          {unitOpen && (
+            <div
+              className="ep-dropdown absolute top-full right-0 mt-1 z-50"
+              style={{ maxHeight: 280, overflowY: 'auto', minWidth: 150 }}
+            >
+              {DISPLAY_UNITS.map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => {
+                    setDisplayUnit(u);
+                    setUnitOpen(false);
+                  }}
+                  className={`ep-dropdown-item ${u === (displayUnit || 'm') ? 'selected' : ''}`}
+                >
+                  {t(`unit.${u}`)}
+                </button>
+              ))}
             </div>
           )}
         </div>

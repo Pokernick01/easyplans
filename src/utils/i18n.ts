@@ -213,6 +213,16 @@ const dict: Record<string, { en: string; es: string }> = {
   // -- Room default label --
   'room.default': { en: 'Room', es: 'Cuarto' },
 
+  // -- Unit settings --
+  'ui.units': { en: 'Units', es: 'Unidades' },
+  'tooltip.units': { en: 'Display Units', es: 'Unidades de Medida' },
+  'unit.mm': { en: 'Millimeters (mm)', es: 'Mil\u00edmetros (mm)' },
+  'unit.cm': { en: 'Centimeters (cm)', es: 'Cent\u00edmetros (cm)' },
+  'unit.m': { en: 'Meters (m)', es: 'Metros (m)' },
+  'unit.ft': { en: 'Feet (ft)', es: 'Pies (ft)' },
+  'unit.in': { en: 'Inches (in)', es: 'Pulgadas (in)' },
+  'unit.ft-in': { en: 'Feet & Inches', es: 'Pies y Pulgadas' },
+
   // -- Misc --
   'ui.delete': { en: 'Delete', es: 'Eliminar' },
   'ui.reset': { en: 'Reset', es: 'Restablecer' },

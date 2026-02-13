@@ -4,6 +4,7 @@ import { generateId } from '@/utils/id.ts';
 import { DEFAULT_FLOOR_HEIGHT } from '@/utils/constants.ts';
 import { t } from '@/utils/i18n.ts';
 import type { Project, Floor, ScaleRatio } from '@/types/project.ts';
+import type { DisplayUnit } from '@/utils/units.ts';
 import type {
   Wall,
   Door,
@@ -45,6 +46,7 @@ interface ProjectActions {
 
   // --- Project-level ---
   setScale: (scale: ScaleRatio) => void;
+  setDisplayUnit: (unit: DisplayUnit) => void;
   setProjectMeta: (meta: Partial<{ name: string; author: string }>) => void;
   addFloor: () => void;
   duplicateFloor: (index: number) => void;
@@ -69,6 +71,7 @@ function createDefaultProject(name = 'Untitled Project'): Project {
     createdAt: now,
     updatedAt: now,
     units: 'meters',
+    displayUnit: 'm' as DisplayUnit,
     scale: '1:100',
     paperSize: 'A4',
     floors: [
@@ -407,6 +410,12 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         }));
       },
 
+      setDisplayUnit: (unit) => {
+        set((state) => ({
+          project: touch({ ...state.project, displayUnit: unit }),
+        }));
+      },
+
       setProjectMeta: (meta) => {
         set((state) => ({
           project: touch({ ...state.project, ...meta }),
@@ -552,6 +561,10 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
               }
             }
           }
+        }
+        // Backward-compat: default displayUnit for old projects
+        if (!data.displayUnit) {
+          (data as Project).displayUnit = 'm';
         }
         set({ project: data });
       },

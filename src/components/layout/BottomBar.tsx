@@ -4,6 +4,7 @@ import { useProjectStore } from '@/store/project-store.ts';
 import { getActiveElements } from '@/store/selectors.ts';
 import { useTranslation } from '@/utils/i18n.ts';
 import type { ToolType } from '@/types/tools.ts';
+import { metersToUnit, unitDecimals, UNIT_LABELS } from '@/utils/units.ts';
 
 // ---------------------------------------------------------------------------
 // FloorTab - individual floor tab with hover delete button
@@ -179,6 +180,7 @@ export function BottomBar() {
 
   const floors = useProjectStore((s) => s.project.floors);
   const activeFloorIndex = useProjectStore((s) => s.project.activeFloorIndex);
+  const displayUnit = useProjectStore((s) => s.project.displayUnit) || 'm';
 
   const t = useTranslation();
 
@@ -186,6 +188,10 @@ export function BottomBar() {
   const toolHint = (tool: ToolType) => t(`hint.${tool}`);
 
   const zoomPercent = Math.round(zoom * 100);
+  const dec = unitDecimals(displayUnit);
+  const uLabel = UNIT_LABELS[displayUnit];
+  const cx = metersToUnit(cursorWorldPos.x, displayUnit);
+  const cy = metersToUnit(cursorWorldPos.y, displayUnit);
 
   return (
     <div
@@ -201,10 +207,10 @@ export function BottomBar() {
       {/* Left: Cursor position */}
       <div className="flex items-center gap-3" style={{ color: '#8a8480', minWidth: isMobile ? 100 : 160 }}>
         <span>
-          X: <span style={{ color: '#3a3530' }}>{cursorWorldPos.x.toFixed(2)}m</span>
+          X: <span style={{ color: '#3a3530' }}>{cx.toFixed(dec)}{uLabel}</span>
         </span>
         <span>
-          Y: <span style={{ color: '#3a3530' }}>{cursorWorldPos.y.toFixed(2)}m</span>
+          Y: <span style={{ color: '#3a3530' }}>{cy.toFixed(dec)}{uLabel}</span>
         </span>
       </div>
 

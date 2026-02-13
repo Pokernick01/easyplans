@@ -1,5 +1,6 @@
 import type { Point, Line } from './geometry.ts';
 import type { AnyElement } from './elements.ts';
+import type { DisplayUnit } from '@/utils/units.ts';
 
 // ---------------------------------------------------------------------------
 // Scale
@@ -69,6 +70,8 @@ export interface Project {
   updatedAt: string;
   /** Measurement unit -- always meters internally. */
   units: 'meters';
+  /** Display unit for the UI (coordinates, properties, dimensions). Saved with project. */
+  displayUnit: DisplayUnit;
   /** Drawing scale for print / export. */
   scale: ScaleRatio;
   /** Target paper size for PDF export. */

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useProjectStore } from '@/store/project-store.ts';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useTranslation } from '@/utils/i18n.ts';
+import { formatInUnit, formatAreaInUnit, type DisplayUnit } from '@/utils/units.ts';
 import { exportToPNG } from '@/engine/export/png-export.ts';
 import { exportToPDF } from '@/engine/export/pdf-export.ts';
 import {
@@ -98,6 +99,7 @@ export function ExportDialog() {
     // -----------------------------------------------------------------------
     const state = useProjectStore.getState();
     const scale = state.project.scale; // e.g. "1:100"
+    const du: DisplayUnit = state.project.displayUnit || 'm';
 
     const walls = getWalls(state);
     const doors = getDoors(state);
@@ -242,7 +244,7 @@ export function ExportDialog() {
           // Area text below label
           ctx.font = `${9 * px}px "Segoe UI", Arial, sans-serif`;
           ctx.fillStyle = '#888888';
-          ctx.fillText(`${room.area.toFixed(1)} m\u00B2`, cx, cy + 16 * px);
+          ctx.fillText(formatAreaInUnit(room.area, du), cx, cy + 16 * px);
           ctx.restore();
         }
       }
@@ -503,7 +505,7 @@ export function ExportDialog() {
         ctx.fillStyle = '#333333';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(`${length.toFixed(2)} m`, 0, -2 * px);
+        ctx.fillText(formatInUnit(length, du), 0, -2 * px);
         ctx.restore();
       }
 
