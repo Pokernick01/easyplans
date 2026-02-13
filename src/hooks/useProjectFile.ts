@@ -99,11 +99,22 @@ export function useProjectFile() {
     const json = store.getState().getProjectJSON();
     const project = store.getState().project;
 
+    // Default filename from project name
+    const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
+
+    // Prompt user for filename
+    const userInput = window.prompt(
+      'Save as:',
+      defaultName,
+    );
+    if (userInput === null) return; // User cancelled
+
+    const safeName = userInput.trim().replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || defaultName;
+
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const safeName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
     link.download = `${safeName}${FILE_EXTENSION}`;
     document.body.appendChild(link);
     link.click();

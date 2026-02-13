@@ -435,31 +435,32 @@ export function CanvasArea() {
       const hingeX = (door.hinge === 'end') ? door.width / 2 : -door.width / 2;
 
       if (doorStyle === 'single') {
-        // Single door: leaf line + swing arc using openAngle
-        const openRad = (door.openAngle * Math.PI) / 180;
-        // Leaf line (door panel)
+        // Single door: leaf line + swing arc
+        // openAngle controls how far the arc sweeps (default 90°)
+        const ratio = door.openAngle / 90; // 1.0 = 90°, 0.5 = 45°, 2.0 = 180°
         ctx.beginPath();
         ctx.moveTo(hingeX, 0);
         ctx.lineTo(hingeX, swingDir * door.width);
         ctx.stroke();
-
-        // Swing arc
         ctx.beginPath();
         if (door.hinge === 'end') {
-          const base = swingDir > 0 ? Math.PI / 2 : -Math.PI / 2;
-          const start = Math.PI - base;
-          const end = start + swingDir * openRad;
-          ctx.arc(hingeX, 0, door.width, start, end, swingDir < 0);
+          // Hinge at right side
+          const startAngle = swingDir > 0 ? Math.PI : -Math.PI / 2;
+          const fullEnd = swingDir > 0 ? Math.PI / 2 : Math.PI;
+          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
+          ctx.arc(hingeX, 0, door.width, startAngle, endAngle, swingDir < 0);
         } else {
-          const start = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const end = start + swingDir * openRad;
-          ctx.arc(hingeX, 0, door.width, start, end, swingDir < 0);
+          // Hinge at left side (default)
+          const startAngle = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+          const fullEnd = swingDir > 0 ? 0 : Math.PI;
+          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
+          ctx.arc(hingeX, 0, door.width, startAngle, endAngle, swingDir < 0);
         }
         ctx.stroke();
       } else if (doorStyle === 'double') {
-        // Double door: two leaves opening from center, using openAngle
+        // Double door: two leaves opening from center
         const halfW = door.width / 2;
-        const openRad = (door.openAngle * Math.PI) / 180;
+        const ratio = door.openAngle / 90;
         // Left leaf
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -467,9 +468,10 @@ export function CanvasArea() {
         ctx.stroke();
         ctx.beginPath();
         {
-          const start = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const end = start + swingDir * openRad;
-          ctx.arc(0, 0, halfW, start, end, swingDir < 0);
+          const startAngle = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+          const fullEnd = swingDir > 0 ? 0 : Math.PI;
+          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
+          ctx.arc(0, 0, halfW, startAngle, endAngle, swingDir < 0);
         }
         ctx.stroke();
         // Right leaf (mirrored)
@@ -479,9 +481,10 @@ export function CanvasArea() {
         ctx.stroke();
         ctx.beginPath();
         {
-          const start = -swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const end = start + (-swingDir) * openRad;
-          ctx.arc(0, 0, halfW, start, end, -swingDir < 0);
+          const startAngle = -swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+          const fullEnd = -swingDir > 0 ? 0 : Math.PI;
+          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
+          ctx.arc(0, 0, halfW, startAngle, endAngle, -swingDir < 0);
         }
         ctx.stroke();
       } else if (doorStyle === 'sliding') {
