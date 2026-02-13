@@ -454,66 +454,67 @@ export function CanvasArea() {
       ctx.lineWidth = 0.02;
 
       if (doorStyle === 'single') {
-        // Single door: leaf line + swing arc (Neufert style)
-        const ratio = door.openAngle / 90;
-        // Door leaf (thick line from hinge to open position)
+        // Single door: thick leaf line + thin swing arc (Neufert style)
+        //
+        // Wall runs along X axis. Hinge at hingeX, opposite jamb at -hingeX.
+        // closedAngle = angle from hinge toward opposite jamb (along wall).
+        // Arc sweeps from closedAngle by openAngle toward the swing side (+Y or -Y).
+        //
+        const openRad = (door.openAngle * Math.PI) / 180;
+        // Closed angle: from hinge toward opposite jamb
+        const closedAngle = (door.hinge === 'start') ? 0 : Math.PI;
+        // Sweep: hinge=start sweeps same as swingDir; hinge=end sweeps opposite
+        const flipForHinge = (door.hinge === 'start') ? 1 : -1;
+        const sweepAngle = swingDir * flipForHinge * openRad;
+        const leafAngle = closedAngle + sweepAngle;
+
+        // Door leaf — thick line from hinge to open position
         ctx.lineWidth = 0.03;
         ctx.beginPath();
         ctx.moveTo(hingeX, 0);
-        ctx.lineTo(hingeX, swingDir * door.width);
+        ctx.lineTo(hingeX + Math.cos(leafAngle) * door.width, Math.sin(leafAngle) * door.width);
         ctx.stroke();
-        // Swing arc (thin)
+
+        // Swing arc — thin line from closed to open
         ctx.lineWidth = 0.012;
         ctx.beginPath();
-        if (door.hinge === 'end') {
-          const startAngle = swingDir > 0 ? Math.PI : -Math.PI / 2;
-          const fullEnd = swingDir > 0 ? Math.PI / 2 : Math.PI;
-          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
-          ctx.arc(hingeX, 0, door.width, startAngle, endAngle, swingDir < 0);
-        } else {
-          const startAngle = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const fullEnd = swingDir > 0 ? 0 : Math.PI;
-          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
-          ctx.arc(hingeX, 0, door.width, startAngle, endAngle, swingDir < 0);
-        }
+        const ccw = (swingDir * flipForHinge) < 0;
+        ctx.arc(hingeX, 0, door.width, closedAngle, leafAngle, ccw);
         ctx.stroke();
         ctx.lineWidth = 0.02;
       } else if (doorStyle === 'double') {
-        // Double door: two leaves opening from center (Neufert style)
+        // Double door: two leaves from center, each half-width (Neufert style)
         const halfW = door.width / 2;
-        const ratio = door.openAngle / 90;
-        // Left leaf (thick)
+        const openRad = (door.openAngle * Math.PI) / 180;
+
+        // Left leaf: hinge at center (x=0), closed pointing left (toward -width/2)
+        const closedL = Math.PI; // pointing left
+        const sweepL = swingDir > 0 ? openRad : -openRad;
+        const openL = closedL + sweepL;
         ctx.lineWidth = 0.03;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(0, swingDir * halfW);
+        ctx.lineTo(Math.cos(openL) * halfW, Math.sin(openL) * halfW);
         ctx.stroke();
-        // Left arc (thin)
         ctx.lineWidth = 0.012;
         ctx.beginPath();
-        {
-          const startAngle = swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const fullEnd = swingDir > 0 ? 0 : Math.PI;
-          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
-          ctx.arc(0, 0, halfW, startAngle, endAngle, swingDir < 0);
-        }
+        ctx.arc(0, 0, halfW, closedL, openL, swingDir < 0);
         ctx.stroke();
-        // Right leaf (thick)
+
+        // Right leaf: hinge at center, closed pointing right (toward +width/2)
+        const closedR = 0; // pointing right
+        const sweepR = swingDir > 0 ? -openRad : openRad;
+        const openR = closedR + sweepR;
         ctx.lineWidth = 0.03;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(0, -swingDir * halfW);
+        ctx.lineTo(Math.cos(openR) * halfW, Math.sin(openR) * halfW);
         ctx.stroke();
-        // Right arc (thin)
         ctx.lineWidth = 0.012;
         ctx.beginPath();
-        {
-          const startAngle = -swingDir > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const fullEnd = -swingDir > 0 ? 0 : Math.PI;
-          const endAngle = startAngle + (fullEnd - startAngle) * ratio;
-          ctx.arc(0, 0, halfW, startAngle, endAngle, -swingDir < 0);
-        }
+        ctx.arc(0, 0, halfW, closedR, openR, swingDir > 0);
         ctx.stroke();
+
         ctx.lineWidth = 0.02;
       } else if (doorStyle === 'sliding') {
         // Sliding door: two offset lines with arrow
