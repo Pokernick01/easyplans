@@ -410,23 +410,36 @@ export class SelectTool implements BaseTool {
   getStairHandles(stair: Stair): { handle: ResizeHandle; x: number; y: number }[] {
     // Guard: recover from malformed position (SnapResult instead of Point)
     const sp = stair.position as { x?: number; y?: number; point?: Point };
-    const x = sp.x ?? sp.point?.x ?? 0;
-    const y = sp.y ?? sp.point?.y ?? 0;
+    const ox = sp.x ?? sp.point?.x ?? 0;
+    const oy = sp.y ?? sp.point?.y ?? 0;
     const w = stair.width;
     const l = stair.length;
-    return [
-      { handle: 'top-left', x: x, y: y },
-      { handle: 'top-right', x: x + w, y: y },
-      { handle: 'bottom-left', x: x, y: y + l },
-      { handle: 'bottom-right', x: x + w, y: y + l },
-      { handle: 'top', x: x + w / 2, y: y },
-      { handle: 'bottom', x: x + w / 2, y: y + l },
-      { handle: 'left', x: x, y: y + l / 2 },
-      { handle: 'right', x: x + w, y: y + l / 2 },
+
+    // Local handle positions (before rotation)
+    const localHandles: { handle: ResizeHandle; lx: number; ly: number }[] = [
+      { handle: 'top-left', lx: 0, ly: 0 },
+      { handle: 'top-right', lx: w, ly: 0 },
+      { handle: 'bottom-left', lx: 0, ly: l },
+      { handle: 'bottom-right', lx: w, ly: l },
+      { handle: 'top', lx: w / 2, ly: 0 },
+      { handle: 'bottom', lx: w / 2, ly: l },
+      { handle: 'left', lx: 0, ly: l / 2 },
+      { handle: 'right', lx: w, ly: l / 2 },
     ];
+
+    // Apply rotation around the stair origin (top-left corner)
+    const rad = (stair.rotation * Math.PI) / 180;
+    const cosA = Math.cos(rad);
+    const sinA = Math.sin(rad);
+
+    return localHandles.map(({ handle, lx, ly }) => ({
+      handle,
+      x: ox + lx * cosA - ly * sinA,
+      y: oy + lx * sinA + ly * cosA,
+    }));
   }
 
-  /** Check if worldPos is inside the stair bounding box. */
+  /** Check if worldPos is inside the stair bounding box (rotation-aware). */
   private isInsideStairBounds(worldPos: Point, elementId: string): boolean {
     const project = useProjectStore.getState();
     const floorIndex = project.project.activeFloorIndex;
@@ -437,11 +450,21 @@ export class SelectTool implements BaseTool {
     const sp = el.position as { x?: number; y?: number; point?: Point };
     const px = sp.x ?? sp.point?.x ?? 0;
     const py = sp.y ?? sp.point?.y ?? 0;
+
+    // Transform worldPos into the stair's local coordinate space (undo rotation)
+    const rad = (el.rotation * Math.PI) / 180;
+    const cosA = Math.cos(-rad);
+    const sinA = Math.sin(-rad);
+    const dx = worldPos.x - px;
+    const dy = worldPos.y - py;
+    const localX = dx * cosA - dy * sinA;
+    const localY = dx * sinA + dy * cosA;
+
     return (
-      worldPos.x >= px &&
-      worldPos.x <= px + el.width &&
-      worldPos.y >= py &&
-      worldPos.y <= py + el.length
+      localX >= 0 &&
+      localX <= el.width &&
+      localY >= 0 &&
+      localY <= el.length
     );
   }
 
@@ -613,11 +636,19 @@ export class SelectTool implements BaseTool {
     const sp = stair.position as { x?: number; y?: number; point?: Point };
     const px = sp.x ?? sp.point?.x ?? 0;
     const py = sp.y ?? sp.point?.y ?? 0;
+
+    // Transform pos into the stair's local coordinate space (undo rotation)
+    const rad = (stair.rotation * Math.PI) / 180;
+    const cosA = Math.cos(-rad);
+    const sinA = Math.sin(-rad);
+    const dx = pos.x - px;
+    const dy = pos.y - py;
+    const localX = dx * cosA - dy * sinA;
+    const localY = dx * sinA + dy * cosA;
+
     const hw = stair.width / 2 + HIT_THRESHOLD;
     const hl = stair.length / 2 + HIT_THRESHOLD;
-    const cx = px + stair.width / 2;
-    const cy = py + stair.length / 2;
-    return Math.abs(pos.x - cx) <= hw && Math.abs(pos.y - cy) <= hl;
+    return Math.abs(localX - stair.width / 2) <= hw && Math.abs(localY - stair.length / 2) <= hl;
   }
 
   private hitTestWall(wall: Wall, pos: Point): boolean {
@@ -657,13 +688,15 @@ export class SelectTool implements BaseTool {
   private hitTestDoor(door: Door, pos: Point): boolean {
     const center = this.getDoorWindowCenter(door);
     if (!center) return false;
-    return distance(pos, center) < door.width / 2 + HIT_THRESHOLD;
+    // Use tighter hit area (half the extra threshold) so nearby elements are easier to click
+    return distance(pos, center) < door.width / 2 + HIT_THRESHOLD * 0.3;
   }
 
   private hitTestWindow(win: Window, pos: Point): boolean {
     const center = this.getDoorWindowCenter(win);
     if (!center) return false;
-    return distance(pos, center) < win.width / 2 + HIT_THRESHOLD;
+    // Use tighter hit area (half the extra threshold) so nearby elements are easier to click
+    return distance(pos, center) < win.width / 2 + HIT_THRESHOLD * 0.3;
   }
 
   private hitTestArchLine(line: ArchLine, pos: Point): boolean {

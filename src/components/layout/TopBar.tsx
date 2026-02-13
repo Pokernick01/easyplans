@@ -152,15 +152,16 @@ export function TopBar() {
 
   return (
     <div
-      className="flex items-center justify-between px-4 shrink-0 select-none"
+      className="flex items-center justify-between shrink-0 select-none"
       style={{
-        height: 46,
+        height: isMobile ? 40 : 46,
         background: '#ece8e1',
         borderBottom: '1px solid rgba(180,172,160,0.4)',
         minWidth: 0,
         overflow: 'visible',
         position: 'relative',
         zIndex: 50,
+        padding: isMobile ? '0 6px' : '0 16px',
       }}
     >
       {/* Left: Logo + Language toggle */}
@@ -204,7 +205,7 @@ export function TopBar() {
 
       {/* Center: View mode tabs */}
       <div
-        className="flex items-center rounded-xl p-1 gap-1"
+        className="flex items-center rounded-xl p-1 gap-0.5"
         style={{
           background: 'rgba(0,0,0,0.04)',
           border: '1px solid rgba(180,172,160,0.35)',
@@ -221,18 +222,19 @@ export function TopBar() {
               type="button"
               onClick={() => setViewMode(mode)}
               className={`ep-view-tab ${isActive ? 'active' : ''}`}
+              title={t(labelKey)}
             >
               {icon}
-              {t(labelKey)}
+              {!isMobile && t(labelKey)}
             </button>
           );
         })}
       </div>
 
       {/* Right: controls */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Scale selector */}
-        <div className="relative" ref={scaleDropdownRef}>
+      <div className="flex items-center shrink-0" style={{ gap: isMobile ? 1 : 6 }}>
+        {/* Scale selector — hidden on mobile to save space */}
+        {!isMobile && <div className="relative" ref={scaleDropdownRef}>
           <button
             type="button"
             onClick={() => {
@@ -320,10 +322,10 @@ export function TopBar() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
-        {/* Unit selector */}
-        <div className="relative" ref={unitDropdownRef}>
+        {/* Unit selector — hidden on mobile to save space */}
+        {!isMobile && <div className="relative" ref={unitDropdownRef}>
           <button
             type="button"
             onClick={() => setUnitOpen(!unitOpen)}
@@ -353,7 +355,7 @@ export function TopBar() {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Divider */}
         {!isMobile && <div className="w-px h-5" style={{ background: 'rgba(180,172,160,0.35)' }} />}
@@ -410,32 +412,28 @@ export function TopBar() {
         {/* Divider */}
         {!isMobile && <div className="w-px h-5" style={{ background: 'rgba(180,172,160,0.35)' }} />}
 
-        {/* Export / Save / Load */}
-        {!isMobile && (
-          <>
-            <IconButton
-              icon={'\u2B07'}
-              label={t('ui.export')}
-              onClick={() => setExportDialogOpen(true)}
-              size="sm"
-              tooltip={t('tooltip.export')}
-            />
-            <IconButton
-              icon={'\uD83D\uDCBE'}
-              label={t('ui.save')}
-              onClick={saveProject}
-              size="sm"
-              tooltip={t('tooltip.save')}
-            />
-            <IconButton
-              icon={'\uD83D\uDCC2'}
-              label={t('ui.load')}
-              onClick={loadProjectFile}
-              size="sm"
-              tooltip={t('tooltip.load')}
-            />
-          </>
-        )}
+        {/* Export / Save / Load — always shown (icon-only on mobile via CSS) */}
+        <IconButton
+          icon={'\u2B07'}
+          label={t('ui.export')}
+          onClick={() => setExportDialogOpen(true)}
+          size="sm"
+          tooltip={t('tooltip.export')}
+        />
+        <IconButton
+          icon={'\uD83D\uDCBE'}
+          label={t('ui.save')}
+          onClick={saveProject}
+          size="sm"
+          tooltip={t('tooltip.save')}
+        />
+        <IconButton
+          icon={'\uD83D\uDCC2'}
+          label={t('ui.load')}
+          onClick={loadProjectFile}
+          size="sm"
+          tooltip={t('tooltip.load')}
+        />
 
         {/* Help / Manual button — uses <a> tag to avoid popup blockers */}
         <a
@@ -459,27 +457,29 @@ export function TopBar() {
           {!isMobile && t('ui.help')}
         </a>
 
-        {/* Suggestions button */}
-        <button
-          onClick={() => setSuggestionDialogOpen(true)}
-          title={t('support.suggestions')}
-          className="ep-btn-ghost flex items-center gap-1 cursor-pointer"
-          style={{
-            padding: '3px 8px',
-            fontSize: 11,
-            color: 'var(--ep-text-dim)',
-            borderRadius: 'var(--ep-radius-sm)',
-            background: 'none',
-            border: 'none',
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
-          {!isMobile && t('support.suggestions')}
-        </button>
+        {/* Suggestions button — hidden on mobile */}
+        {!isMobile && (
+          <button
+            onClick={() => setSuggestionDialogOpen(true)}
+            title={t('support.suggestions')}
+            className="ep-btn-ghost flex items-center gap-1 cursor-pointer"
+            style={{
+              padding: '3px 8px',
+              fontSize: 11,
+              color: 'var(--ep-text-dim)',
+              borderRadius: 'var(--ep-radius-sm)',
+              background: 'none',
+              border: 'none',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            {t('support.suggestions')}
+          </button>
+        )}
 
         {/* Ko-fi Support Button — official Ko-fi orange style */}
         <button
@@ -489,11 +489,11 @@ export function TopBar() {
             background: '#f07b22',
             border: 'none',
             cursor: 'pointer',
-            padding: '5px 14px 5px 10px',
+            padding: isMobile ? '4px 8px' : '5px 14px 5px 10px',
             borderRadius: 20,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: isMobile ? 0 : 6,
             transition: 'all 0.2s',
             boxShadow: '0 1px 4px rgba(240,123,34,0.3)',
           }}

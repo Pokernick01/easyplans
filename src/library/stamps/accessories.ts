@@ -314,6 +314,257 @@ export const accessoriesStamps: StampDefinition[] = [
   },
 
   // -----------------------------------------------------------------------
+  // glass-sliding-door  1.8 x 0.1 m
+  // Architectural plan symbol: two overlapping glass panels that slide
+  // -----------------------------------------------------------------------
+  {
+    id: 'glass-sliding-door',
+    name: 'Glass Sliding Door',
+    nameEs: 'Puerta Corrediza de Vidrio',
+    category: 'accessories',
+    width: 1.8,
+    depth: 0.1,
+    thumbnailColor: '#b3d9ff',
+    draw(ctx, w, h) {
+      const lw = 0.005;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
+
+      const frameT = h * 0.15; // frame thickness
+      const panelH = h - frameT * 2;
+      const halfW = w / 2;
+
+      // Outer frame
+      ctx.strokeRect(0, 0, w, h);
+
+      // Top and bottom frame rails
+      ctx.beginPath();
+      ctx.moveTo(0, frameT);
+      ctx.lineTo(w, frameT);
+      ctx.moveTo(0, h - frameT);
+      ctx.lineTo(w, h - frameT);
+      ctx.stroke();
+
+      // Left panel (glass pane) — sits in left half, slightly overlapping center
+      const panelOverlap = w * 0.05;
+      const leftPanelX = lw;
+      const leftPanelW = halfW + panelOverlap;
+      ctx.lineWidth = lw * 1.5;
+      ctx.strokeRect(leftPanelX, frameT, leftPanelW, panelH);
+
+      // Glass hatch lines on left panel (diagonal lines = glass symbol)
+      ctx.lineWidth = lw * 0.5;
+      ctx.beginPath();
+      const spacing = 0.04;
+      for (let x = leftPanelX + spacing; x < leftPanelX + leftPanelW; x += spacing) {
+        const y0 = frameT;
+        const y1 = frameT + panelH;
+        const endX = x - panelH;
+        ctx.moveTo(Math.max(leftPanelX, x), y0 + Math.max(0, leftPanelX - endX));
+        ctx.lineTo(Math.max(leftPanelX, endX), y1);
+      }
+      for (let x = leftPanelX + leftPanelW - spacing; x > leftPanelX + leftPanelW - panelH; x -= spacing) {
+        ctx.moveTo(Math.min(leftPanelX + leftPanelW, x + panelH), frameT);
+        ctx.lineTo(x, frameT + panelH);
+      }
+      ctx.stroke();
+
+      // Right panel (glass pane) — sits in right half, slightly overlapping center
+      ctx.lineWidth = lw * 1.5;
+      const rightPanelX = halfW - panelOverlap;
+      const rightPanelW = halfW + panelOverlap - lw;
+      ctx.strokeRect(rightPanelX, frameT, rightPanelW, panelH);
+
+      // Glass hatch lines on right panel
+      ctx.lineWidth = lw * 0.5;
+      ctx.beginPath();
+      for (let x = rightPanelX + spacing; x < rightPanelX + rightPanelW; x += spacing) {
+        const y0 = frameT;
+        const y1 = frameT + panelH;
+        const endX = x - panelH;
+        ctx.moveTo(Math.max(rightPanelX, x), y0 + Math.max(0, rightPanelX - endX));
+        ctx.lineTo(Math.max(rightPanelX, endX), y1);
+      }
+      ctx.stroke();
+
+      // Arrows showing slide direction
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = '#000';
+      const arrowY = h / 2;
+      const arrowLen = w * 0.15;
+      const arrowHead = 0.015;
+
+      // Left arrow (left panel slides left)
+      ctx.beginPath();
+      ctx.moveTo(halfW * 0.5, arrowY);
+      ctx.lineTo(halfW * 0.5 - arrowLen, arrowY);
+      ctx.moveTo(halfW * 0.5 - arrowLen, arrowY);
+      ctx.lineTo(halfW * 0.5 - arrowLen + arrowHead, arrowY - arrowHead);
+      ctx.moveTo(halfW * 0.5 - arrowLen, arrowY);
+      ctx.lineTo(halfW * 0.5 - arrowLen + arrowHead, arrowY + arrowHead);
+      ctx.stroke();
+
+      // Right arrow (right panel slides right)
+      ctx.beginPath();
+      ctx.moveTo(halfW + halfW * 0.5, arrowY);
+      ctx.lineTo(halfW + halfW * 0.5 + arrowLen, arrowY);
+      ctx.moveTo(halfW + halfW * 0.5 + arrowLen, arrowY);
+      ctx.lineTo(halfW + halfW * 0.5 + arrowLen - arrowHead, arrowY - arrowHead);
+      ctx.moveTo(halfW + halfW * 0.5 + arrowLen, arrowY);
+      ctx.lineTo(halfW + halfW * 0.5 + arrowLen - arrowHead, arrowY + arrowHead);
+      ctx.stroke();
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // glass-sliding-window  1.2 x 0.08 m
+  // Architectural plan: sliding window with two glass panes
+  // -----------------------------------------------------------------------
+  {
+    id: 'glass-sliding-window',
+    name: 'Glass Sliding Window',
+    nameEs: 'Ventana Corrediza de Vidrio',
+    category: 'accessories',
+    width: 1.2,
+    depth: 0.08,
+    thumbnailColor: '#b3d9ff',
+    draw(ctx, w, h) {
+      const lw = 0.004;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
+
+      const frameT = h * 0.12;
+      const panelH = h - frameT * 2;
+      const halfW = w / 2;
+
+      // Outer frame
+      ctx.strokeRect(0, 0, w, h);
+
+      // Top and bottom frame rails
+      ctx.beginPath();
+      ctx.moveTo(0, frameT);
+      ctx.lineTo(w, frameT);
+      ctx.moveTo(0, h - frameT);
+      ctx.lineTo(w, h - frameT);
+      ctx.stroke();
+
+      // Center divider (mullion)
+      ctx.lineWidth = lw * 2;
+      ctx.beginPath();
+      ctx.moveTo(halfW, 0);
+      ctx.lineTo(halfW, h);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Left glass pane — double line representing glass thickness
+      const glassOffset = panelH * 0.3;
+      ctx.lineWidth = lw * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lw, frameT + glassOffset);
+      ctx.lineTo(halfW - lw, frameT + glassOffset);
+      ctx.moveTo(lw, frameT + panelH - glassOffset);
+      ctx.lineTo(halfW - lw, frameT + panelH - glassOffset);
+      ctx.stroke();
+
+      // Right glass pane
+      ctx.beginPath();
+      ctx.moveTo(halfW + lw, frameT + glassOffset);
+      ctx.lineTo(w - lw, frameT + glassOffset);
+      ctx.moveTo(halfW + lw, frameT + panelH - glassOffset);
+      ctx.lineTo(w - lw, frameT + panelH - glassOffset);
+      ctx.stroke();
+
+      // Arrows showing slide direction
+      ctx.lineWidth = lw;
+      const arrowY = h / 2;
+      const arrowLen = w * 0.1;
+      const arrowHead = 0.01;
+
+      // Left arrow
+      ctx.beginPath();
+      ctx.moveTo(halfW * 0.5, arrowY);
+      ctx.lineTo(halfW * 0.5 - arrowLen, arrowY);
+      ctx.moveTo(halfW * 0.5 - arrowLen, arrowY);
+      ctx.lineTo(halfW * 0.5 - arrowLen + arrowHead, arrowY - arrowHead);
+      ctx.moveTo(halfW * 0.5 - arrowLen, arrowY);
+      ctx.lineTo(halfW * 0.5 - arrowLen + arrowHead, arrowY + arrowHead);
+      ctx.stroke();
+
+      // Right arrow
+      ctx.beginPath();
+      ctx.moveTo(halfW + halfW * 0.5, arrowY);
+      ctx.lineTo(halfW + halfW * 0.5 + arrowLen, arrowY);
+      ctx.moveTo(halfW + halfW * 0.5 + arrowLen, arrowY);
+      ctx.lineTo(halfW + halfW * 0.5 + arrowLen - arrowHead, arrowY - arrowHead);
+      ctx.moveTo(halfW + halfW * 0.5 + arrowLen, arrowY);
+      ctx.lineTo(halfW + halfW * 0.5 + arrowLen - arrowHead, arrowY + arrowHead);
+      ctx.stroke();
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // glass-curtain-wall  2.4 x 0.1 m
+  // Large glass wall panel (muro cortina) with multiple panes
+  // -----------------------------------------------------------------------
+  {
+    id: 'glass-curtain-wall',
+    name: 'Glass Curtain Wall',
+    nameEs: 'Muro Cortina de Vidrio',
+    category: 'accessories',
+    width: 2.4,
+    depth: 0.1,
+    thumbnailColor: '#b3d9ff',
+    draw(ctx, w, h) {
+      const lw = 0.005;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
+
+      // Outer frame
+      ctx.strokeRect(0, 0, w, h);
+
+      // Divide into 4 panes
+      const panes = 4;
+      const paneW = w / panes;
+
+      for (let i = 1; i < panes; i++) {
+        // Mullion (vertical divider)
+        ctx.lineWidth = lw * 2;
+        ctx.beginPath();
+        ctx.moveTo(paneW * i, 0);
+        ctx.lineTo(paneW * i, h);
+        ctx.stroke();
+      }
+
+      // Glass symbol: diagonal hatch in each pane
+      ctx.lineWidth = lw * 0.5;
+      const spacing = 0.06;
+      for (let p = 0; p < panes; p++) {
+        const px = paneW * p + lw;
+        const pw = paneW - lw * 2;
+        ctx.beginPath();
+        for (let x = px; x < px + pw + h; x += spacing) {
+          const x0 = Math.max(px, x);
+          const y0 = Math.max(0, x0 - x);
+          const x1 = Math.max(px, x - h);
+          const y1 = Math.min(h, h - (x1 - (x - h)));
+          if (x0 <= px + pw && x1 <= px + pw) {
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+          }
+        }
+        ctx.stroke();
+      }
+
+      // Transom (horizontal bar at mid-height)
+      ctx.lineWidth = lw * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, h / 2);
+      ctx.lineTo(w, h / 2);
+      ctx.stroke();
+    },
+  },
+
+  // -----------------------------------------------------------------------
   // light-dome  0.8 x 0.8 m
   // Rectangular frame with X crosshatch and corner light-ray marks (tragaluz)
   // -----------------------------------------------------------------------

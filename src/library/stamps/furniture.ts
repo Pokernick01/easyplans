@@ -469,7 +469,9 @@ export const furnitureStamps: StampDefinition[] = [
       ctx.lineWidth = lw;
 
       // Body outline
+      ctx.lineWidth = lw * 1.5;
       ctx.strokeRect(0, 0, w, h);
+      ctx.lineWidth = lw;
 
       // Center vertical divider
       ctx.beginPath();
@@ -477,61 +479,19 @@ export const furnitureStamps: StampDefinition[] = [
       ctx.lineTo(w / 2, h);
       ctx.stroke();
 
-      // Door swing arcs (quarter circles showing door opening)
-      // Left door swings open to the left from center
+      // X cross-hatching in each half (Neufert closet convention)
+      ctx.lineWidth = lw * 0.7;
       ctx.beginPath();
-      ctx.arc(w / 2, h, w / 2, Math.PI * 1.5, Math.PI, true);
-      ctx.stroke();
-
-      // Right door swings open to the right from center
-      ctx.beginPath();
-      ctx.arc(w / 2, h, w / 2, Math.PI * 1.5, Math.PI * 2, false);
-      ctx.stroke();
-
-      // 45-degree hatching inside to indicate section (Neufert convention)
-      ctx.lineWidth = lw * 0.5;
-      const spacing = 0.05;
-      ctx.beginPath();
-      for (let x = spacing; x < w; x += spacing) {
-        // Diagonal lines from bottom-left to top-right direction
-        const startX = x;
-        const startY = 0;
-        const endX = x - h;
-        const endY = h;
-
-        // Clip to rectangle bounds
-        let x0 = startX;
-        let y0 = startY;
-        let x1 = endX;
-        let y1 = endY;
-
-        if (x1 < 0) {
-          y1 = startY + startX; // y where line hits x=0
-          x1 = 0;
-        }
-        if (y1 > h) {
-          y1 = h;
-          x1 = startX - h;
-          if (x1 < 0) { x1 = 0; y1 = startX; }
-        }
-
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x1, y1);
-      }
-      // Additional lines starting from top edge
-      for (let y = spacing; y < h; y += spacing) {
-        const startX = w;
-        const startY = y;
-        const endX = w - (h - y);
-        const endY = h;
-
-        let x1 = endX;
-        let y1 = endY;
-        if (x1 < 0) { x1 = 0; y1 = startY + startX; if (y1 > h) continue; }
-
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(x1, y1);
-      }
+      // Left half X
+      ctx.moveTo(0, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.moveTo(0, h);
+      ctx.lineTo(w / 2, 0);
+      // Right half X
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w, h);
+      ctx.moveTo(w / 2, h);
+      ctx.lineTo(w, 0);
       ctx.stroke();
       ctx.lineWidth = lw;
     },
@@ -678,6 +638,194 @@ export const furnitureStamps: StampDefinition[] = [
       ctx.roundRect(shelfInset, shelfInset, w - shelfInset * 2, h - shelfInset * 2, shelfR);
       ctx.stroke();
       ctx.setLineDash([]);
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // closet-sliding  2.0 x 0.6 m  (sliding door closet / ropero corredizo)
+  // -----------------------------------------------------------------------
+  {
+    id: 'closet-sliding',
+    name: 'Sliding Closet',
+    nameEs: 'Closet Corredizo',
+    category: 'furniture',
+    width: 2.0,
+    depth: 0.6,
+    thumbnailColor: '#e0e0e0',
+    draw(ctx, w, h) {
+      const lw = 0.01;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
+
+      // Outer rectangle
+      ctx.lineWidth = lw * 1.5;
+      ctx.strokeRect(0, 0, w, h);
+      ctx.lineWidth = lw;
+
+      // Center divider
+      ctx.beginPath();
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.stroke();
+
+      // X cross-hatching in each half (Neufert closet convention)
+      ctx.lineWidth = lw * 0.7;
+      ctx.beginPath();
+      // Left half X
+      ctx.moveTo(0, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.moveTo(0, h);
+      ctx.lineTo(w / 2, 0);
+      // Right half X
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w, h);
+      ctx.moveTo(w / 2, h);
+      ctx.lineTo(w, 0);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Sliding arrows on front face
+      const arrowY = h - lw * 3;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.15, arrowY);
+      ctx.lineTo(w * 0.35, arrowY);
+      ctx.moveTo(w * 0.32, arrowY - 0.015);
+      ctx.lineTo(w * 0.35, arrowY);
+      ctx.lineTo(w * 0.32, arrowY + 0.015);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(w * 0.85, arrowY);
+      ctx.lineTo(w * 0.65, arrowY);
+      ctx.moveTo(w * 0.68, arrowY - 0.015);
+      ctx.lineTo(w * 0.65, arrowY);
+      ctx.lineTo(w * 0.68, arrowY + 0.015);
+      ctx.stroke();
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // closet-hinged  1.2 x 0.6 m  (double-door hinged closet)
+  // -----------------------------------------------------------------------
+  {
+    id: 'closet-hinged',
+    name: 'Hinged Closet',
+    nameEs: 'Closet Abatible',
+    category: 'furniture',
+    width: 1.2,
+    depth: 0.6,
+    thumbnailColor: '#e0e0e0',
+    draw(ctx, w, h) {
+      const lw = 0.01;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
+
+      // Outer rectangle
+      ctx.lineWidth = lw * 1.5;
+      ctx.strokeRect(0, 0, w, h);
+      ctx.lineWidth = lw;
+
+      // Center divider
+      ctx.beginPath();
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.stroke();
+
+      // X cross-hatching in each half (Neufert closet convention)
+      ctx.lineWidth = lw * 0.7;
+      ctx.beginPath();
+      // Left half X
+      ctx.moveTo(0, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.moveTo(0, h);
+      ctx.lineTo(w / 2, 0);
+      // Right half X
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w, h);
+      ctx.moveTo(w / 2, h);
+      ctx.lineTo(w, 0);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Door swing arcs (dashed quarter circles)
+      ctx.setLineDash([lw * 2, lw * 2]);
+      ctx.beginPath();
+      ctx.arc(0, h, w / 2, -Math.PI / 2, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(w, h, w / 2, Math.PI, Math.PI * 1.5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // closet-walkin  2.4 x 1.8 m  (walk-in closet / vestidor)
+  // -----------------------------------------------------------------------
+  {
+    id: 'closet-walkin',
+    name: 'Walk-in Closet',
+    nameEs: 'Vestidor',
+    category: 'furniture',
+    width: 2.4,
+    depth: 1.8,
+    thumbnailColor: '#e0e0e0',
+    draw(ctx, w, h) {
+      const lw = 0.01;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
+
+      // Outer rectangle
+      ctx.lineWidth = lw * 1.5;
+      ctx.strokeRect(0, 0, w, h);
+      ctx.lineWidth = lw;
+
+      // Left shelving strip with X cross-hatching
+      const shelfW = w * 0.2;
+      ctx.strokeRect(0, 0, shelfW, h);
+      ctx.lineWidth = lw * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(shelfW, h);
+      ctx.moveTo(0, h);
+      ctx.lineTo(shelfW, 0);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Right hanging strip with X cross-hatching
+      const hangW = w * 0.2;
+      ctx.strokeRect(w - hangW, 0, hangW, h);
+      ctx.lineWidth = lw * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(w - hangW, 0);
+      ctx.lineTo(w, h);
+      ctx.moveTo(w - hangW, h);
+      ctx.lineTo(w, 0);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Top shelf/rack along back wall with X
+      const topShelfH = h * 0.12;
+      ctx.strokeRect(shelfW, 0, w - shelfW - hangW, topShelfH);
+      ctx.lineWidth = lw * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(shelfW, 0);
+      ctx.lineTo(w - hangW, topShelfH);
+      ctx.moveTo(shelfW, topShelfH);
+      ctx.lineTo(w - hangW, 0);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Entry opening at bottom center
+      const cx = w / 2;
+      const openW = w * 0.3;
+      ctx.lineWidth = lw * 3;
+      ctx.strokeStyle = '#f4f1ec';
+      ctx.beginPath();
+      ctx.moveTo(cx - openW / 2, h);
+      ctx.lineTo(cx + openW / 2, h);
+      ctx.stroke();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = lw;
     },
   },
 ];

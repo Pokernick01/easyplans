@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useTranslation } from '@/utils/i18n.ts';
 import type { ToolType } from '@/types/tools.ts';
+import type { DoorStyle, WindowStyle, StairStyle } from '@/types/elements.ts';
 
 // ---------------------------------------------------------------------------
 // SVG Tool Icons — uniform 24×24 line-art style, 1.5px stroke
@@ -209,8 +210,112 @@ const TOOLS: ToolDef[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Style constants for sub-menus
+// ---------------------------------------------------------------------------
+
+const DOOR_STYLES: DoorStyle[] = ['single', 'double', 'sliding', 'pocket', 'folding', 'revolving'];
+const DOOR_STYLE_KEYS: Record<DoorStyle, string> = {
+  single: 'doorStyle.single', double: 'doorStyle.double', sliding: 'doorStyle.sliding',
+  pocket: 'doorStyle.pocket', folding: 'doorStyle.folding', revolving: 'doorStyle.revolving',
+};
+const WINDOW_STYLES: WindowStyle[] = ['single', 'double', 'sliding', 'fixed', 'casement', 'awning'];
+const WINDOW_STYLE_KEYS: Record<WindowStyle, string> = {
+  single: 'windowStyle.single', double: 'windowStyle.double', sliding: 'windowStyle.sliding',
+  fixed: 'windowStyle.fixed', casement: 'windowStyle.casement', awning: 'windowStyle.awning',
+};
+const STAIR_STYLES: StairStyle[] = ['straight', 'l-shaped', 'u-shaped', 'spiral', 'winder', 'curved'];
+const STAIR_STYLE_KEYS: Record<StairStyle, string> = {
+  straight: 'stairStyle.straight', 'l-shaped': 'stairStyle.l-shaped', 'u-shaped': 'stairStyle.u-shaped',
+  spiral: 'stairStyle.spiral', winder: 'stairStyle.winder', curved: 'stairStyle.curved',
+};
+
+// ---------------------------------------------------------------------------
+// StyleSubMenu — popout panel next to tool button
+// ---------------------------------------------------------------------------
+
+function StyleSubMenu({ toolId }: { toolId: ToolType }) {
+  const t = useTranslation();
+  const activeDoorStyle = useUIStore((s) => s.activeDoorStyle);
+  const activeWindowStyle = useUIStore((s) => s.activeWindowStyle);
+  const activeStairStyle = useUIStore((s) => s.activeStairStyle);
+  const setDoorStyle = useUIStore((s) => s.setDoorStyle);
+  const setWindowStyle = useUIStore((s) => s.setWindowStyle);
+  const setStairStyle = useUIStore((s) => s.setStairStyle);
+
+  let items: { key: string; label: string; active: boolean; onClick: () => void }[] = [];
+
+  if (toolId === 'door') {
+    items = DOOR_STYLES.map((s) => ({
+      key: s, label: t(DOOR_STYLE_KEYS[s]), active: activeDoorStyle === s,
+      onClick: () => setDoorStyle(s),
+    }));
+  } else if (toolId === 'window') {
+    items = WINDOW_STYLES.map((s) => ({
+      key: s, label: t(WINDOW_STYLE_KEYS[s]), active: activeWindowStyle === s,
+      onClick: () => setWindowStyle(s),
+    }));
+  } else if (toolId === 'stair') {
+    items = STAIR_STYLES.map((s) => ({
+      key: s, label: t(STAIR_STYLE_KEYS[s]), active: activeStairStyle === s,
+      onClick: () => setStairStyle(s),
+    }));
+  } else {
+    return null;
+  }
+
+  return (
+    <div
+      className="absolute z-50"
+      style={{
+        left: '100%',
+        top: 0,
+        marginLeft: 4,
+      }}
+    >
+      <div
+        className="flex flex-col gap-0.5 py-1.5 px-1"
+        style={{
+          background: '#ece8e1',
+          border: '1px solid #d5cfc6',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+          minWidth: 110,
+        }}
+      >
+        {items.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={item.onClick}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded cursor-pointer transition-colors text-left"
+            style={{
+              background: item.active ? '#ddd7cc' : 'transparent',
+              color: item.active ? '#2d6a4f' : '#4a4540',
+              fontWeight: item.active ? 600 : 400,
+              border: 'none',
+            }}
+          >
+            <span
+              style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: item.active ? '#2d6a4f' : 'transparent',
+                border: item.active ? 'none' : '1px solid #b4aca0',
+                flexShrink: 0,
+              }}
+            />
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ToolButton
 // ---------------------------------------------------------------------------
+
+const TOOLS_WITH_SUBMENU = new Set<ToolType>(['door', 'window', 'stair']);
 
 function ToolButton({ tool, compact }: { tool: ToolDef; compact?: boolean }) {
   const activeTool = useUIStore((s) => s.activeTool);
@@ -219,6 +324,8 @@ function ToolButton({ tool, compact }: { tool: ToolDef; compact?: boolean }) {
   const t = useTranslation();
 
   const isActive = activeTool === tool.id;
+  const hasSubmenu = TOOLS_WITH_SUBMENU.has(tool.id);
+  const showSubmenu = isActive && hasSubmenu && !compact;
   const btnSize = compact ? 36 : 42;
   const label = t(tool.labelKey);
 
@@ -236,7 +343,8 @@ function ToolButton({ tool, compact }: { tool: ToolDef; compact?: boolean }) {
       >
         <span className="leading-none flex items-center justify-center">{tool.icon}</span>
       </button>
-      {hovered && !compact && (
+      {showSubmenu && <StyleSubMenu toolId={tool.id} />}
+      {hovered && !isActive && !compact && (
         <div
           className="ep-tooltip absolute z-50"
           style={{

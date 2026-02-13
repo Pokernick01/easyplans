@@ -195,24 +195,27 @@ export function BottomBar() {
 
   return (
     <div
-      className="flex items-center justify-between px-4 shrink-0 select-none"
+      className="flex items-center justify-between shrink-0 select-none"
       style={{
-        height: 28,
+        height: isMobile ? 26 : 28,
         background: '#ece8e1',
         borderTop: '1px solid rgba(180,172,160,0.35)',
-        fontSize: 11,
+        fontSize: isMobile ? 10 : 11,
         overflow: 'hidden',
+        padding: isMobile ? '0 4px' : '0 16px',
       }}
     >
-      {/* Left: Cursor position */}
-      <div className="flex items-center gap-3" style={{ color: '#8a8480', minWidth: isMobile ? 100 : 160 }}>
-        <span>
-          X: <span style={{ color: '#3a3530' }}>{cx.toFixed(dec)}{uLabel}</span>
-        </span>
-        <span>
-          Y: <span style={{ color: '#3a3530' }}>{cy.toFixed(dec)}{uLabel}</span>
-        </span>
-      </div>
+      {/* Left: Cursor position — hidden on mobile */}
+      {!isMobile && (
+        <div className="flex items-center gap-3" style={{ color: '#8a8480', minWidth: 160 }}>
+          <span>
+            X: <span style={{ color: '#3a3530' }}>{cx.toFixed(dec)}{uLabel}</span>
+          </span>
+          <span>
+            Y: <span style={{ color: '#3a3530' }}>{cy.toFixed(dec)}{uLabel}</span>
+          </span>
+        </div>
+      )}
 
       {/* Floor tabs */}
       <div className="flex items-center gap-1" style={{ marginLeft: 8, marginRight: 8 }}>

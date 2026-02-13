@@ -80,7 +80,7 @@ export function UnitNumberInput({
       >
         {label}
       </label>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 shrink-0">
         <input
           type="number"
           value={localValue}
@@ -93,9 +93,9 @@ export function UnitNumberInput({
           min={displayMin}
           max={displayMax}
           step={stpVal}
-          className="ep-input w-20 px-2 py-1 text-xs text-right rounded"
+          className="ep-input w-[4.5rem] px-2 py-1 text-xs text-right rounded"
         />
-        <span className="text-xs" style={{ color: '#6b6560' }}>
+        <span className="text-xs shrink-0" style={{ color: '#6b6560', minWidth: '1rem' }}>
           {uLabel}
         </span>
       </div>

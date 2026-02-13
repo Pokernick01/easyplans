@@ -548,21 +548,9 @@ input[type="radio"] {
   min-width: 0;
 }
 
-/* Dialog responsive sizing */
-@media (max-width: 480px) {
-  .ep-dialog {
-    margin: 8px;
-    max-width: calc(100vw - 16px) !important;
-  }
-  .ep-view-tab {
-    padding: 3px 6px;
-    font-size: 10px;
-    gap: 2px;
-  }
-  .ep-view-tab svg {
-    display: none;
-  }
-}
+/* =========================================================================
+   Responsive — Mobile & Tablet Breakpoints
+   ========================================================================= */
 
 @media (max-width: 767px) {
   .ep-dialog {
@@ -575,5 +563,52 @@ input[type="radio"] {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* Compact view tabs for mobile */
+  .ep-view-tab {
+    padding: 3px 6px;
+    font-size: 10px;
+    gap: 2px;
+  }
+
+  /* Compact zoom controls */
+  .ep-zoom-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+
+  /* Compact toolbar buttons */
+  .ep-tool-btn {
+    padding: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ep-dialog {
+    margin: 8px;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .ep-view-tab {
+    padding: 2px 4px;
+    font-size: 9px;
+    gap: 1px;
+  }
+
+  /* Extra compact buttons on very small screens */
+  .ep-btn-secondary {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Compact view-tabs on medium-small screens */
+@media (max-width: 640px) {
+  .ep-view-tab {
+    padding: 3px 5px;
+    font-size: 10px;
+    gap: 2px;
   }
 }

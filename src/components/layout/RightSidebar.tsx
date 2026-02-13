@@ -1214,7 +1214,7 @@ function PropertiesPanel() {
       {activeTool === 'archline' && <ArchLineStyleSelector />}
       {activeTool === 'door' && <DoorStyleSelector />}
       {activeTool === 'window' && <WindowStyleSelector />}
-      <div className="flex flex-col flex-1 p-3">
+      <div className="flex flex-col flex-1 px-5 py-3">
       {/* Element ID */}
       <div className="text-xs mb-2" style={{ color: '#6b6560' }}>
         ID: <span style={{ color: '#2c2c2c' }}>{selectedElement.id.slice(0, 8)}...</span>

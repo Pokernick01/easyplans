@@ -176,8 +176,8 @@ export const outdoorStamps: StampDefinition[] = [
 
   // -----------------------------------------------------------------------
   // car  4.5 x 1.8 m
-  // Neufert plan-view car: rounded rectangle body, windshield/rear window
-  // lines, wheel arcs at corners
+  // Neufert plan-view car: rounded body, windshield/rear window, wheel
+  // wells, side mirrors, door lines
   // -----------------------------------------------------------------------
   {
     id: 'car',
@@ -188,59 +188,81 @@ export const outdoorStamps: StampDefinition[] = [
     depth: 1.8,
     thumbnailColor: '#e0e0e0',
     draw(ctx, w, h) {
+      const lw = 0.01;
       ctx.strokeStyle = '#000';
-      ctx.lineWidth = 0.01;
+      ctx.lineWidth = lw;
 
-      const bodyR = Math.min(w, h) * 0.1;
+      const bodyR = Math.min(w, h) * 0.12;
 
       // Car body outline - rounded rectangle
+      ctx.lineWidth = lw * 1.5;
       ctx.beginPath();
       ctx.roundRect(0, 0, w, h, bodyR);
       ctx.stroke();
+      ctx.lineWidth = lw;
 
-      // Windshield line (angled line near front-left)
+      // Windshield (angled line near front)
       const wsX = w * 0.22;
-      const pad = h * 0.05;
+      const pad = h * 0.06;
       ctx.beginPath();
-      ctx.moveTo(wsX - w * 0.02, pad);
-      ctx.lineTo(wsX + w * 0.02, h - pad);
+      ctx.moveTo(wsX - w * 0.015, pad);
+      ctx.lineTo(wsX + w * 0.015, h - pad);
       ctx.stroke();
 
-      // Rear window line
+      // Rear window
       const rwX = w * 0.75;
       ctx.beginPath();
-      ctx.moveTo(rwX + w * 0.02, pad);
-      ctx.lineTo(rwX - w * 0.02, h - pad);
+      ctx.moveTo(rwX + w * 0.015, pad);
+      ctx.lineTo(rwX - w * 0.015, h - pad);
       ctx.stroke();
 
-      // Wheel arcs at four corners
-      const wheelR = h * 0.16;
-      const wheelInset = w * 0.17;
+      // Wheel wells — rounded notches at four corners
+      const wheelR = h * 0.15;
+      const wheelInset = w * 0.16;
 
-      // Front-left wheel arc (top-left)
+      ctx.lineWidth = lw * 1.2;
+      // Front-left
       ctx.beginPath();
-      ctx.arc(wheelInset, 0, wheelR, 0.15, Math.PI - 0.15);
+      ctx.arc(wheelInset, 0, wheelR, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      // Front-right
+      ctx.beginPath();
+      ctx.arc(wheelInset, h, wheelR, Math.PI + 0.2, -0.2);
+      ctx.stroke();
+      // Rear-left
+      ctx.beginPath();
+      ctx.arc(w - wheelInset, 0, wheelR, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      // Rear-right
+      ctx.beginPath();
+      ctx.arc(w - wheelInset, h, wheelR, Math.PI + 0.2, -0.2);
+      ctx.stroke();
+      ctx.lineWidth = lw;
+
+      // Door lines (2 vertical lines between wheel wells)
+      const doorX1 = w * 0.42;
+      const doorX2 = w * 0.58;
+      ctx.beginPath();
+      ctx.moveTo(doorX1, pad);
+      ctx.lineTo(doorX1, h - pad);
+      ctx.moveTo(doorX2, pad);
+      ctx.lineTo(doorX2, h - pad);
       ctx.stroke();
 
-      // Front-right wheel arc (bottom-left)
-      ctx.beginPath();
-      ctx.arc(wheelInset, h, wheelR, Math.PI + 0.15, -0.15);
-      ctx.stroke();
+      // Side mirrors — small rectangles projecting from sides
+      const mirrorW = 0.06;
+      const mirrorH = 0.04;
+      const mirrorX = wsX + w * 0.03;
+      ctx.strokeRect(mirrorX, -mirrorH, mirrorW, mirrorH);
+      ctx.strokeRect(mirrorX, h, mirrorW, mirrorH);
 
-      // Rear-left wheel arc (top-right)
+      // Hood/trunk center crease
+      ctx.lineWidth = lw * 0.7;
       ctx.beginPath();
-      ctx.arc(w - wheelInset, 0, wheelR, 0.15, Math.PI - 0.15);
-      ctx.stroke();
-
-      // Rear-right wheel arc (bottom-right)
-      ctx.beginPath();
-      ctx.arc(w - wheelInset, h, wheelR, Math.PI + 0.15, -0.15);
-      ctx.stroke();
-
-      // Center line (body crease)
-      ctx.beginPath();
-      ctx.moveTo(wsX + w * 0.04, h * 0.5);
-      ctx.lineTo(rwX - w * 0.04, h * 0.5);
+      ctx.moveTo(w * 0.05, h * 0.5);
+      ctx.lineTo(wsX - w * 0.02, h * 0.5);
+      ctx.moveTo(rwX + w * 0.02, h * 0.5);
+      ctx.lineTo(w * 0.95, h * 0.5);
       ctx.stroke();
     },
   },

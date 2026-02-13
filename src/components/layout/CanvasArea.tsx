@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent, KeyboardEvent as ReactKeyboardEvent, TouchEvent as ReactTouchEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { CanvasManager } from '@/renderer/canvas-manager.ts';
 import { Camera } from '@/renderer/camera.ts';
 import { RenderLoop } from '@/renderer/render-loop.ts';
@@ -142,6 +142,10 @@ export function CanvasArea() {
   const lastTouchPos = useRef({ x: 0, y: 0 });
   const lastPinchDist = useRef(0);
   const isTouchDrawing = useRef(false);
+  const isTouchPanning = useRef(false);
+  const touchStartTime = useRef(0);
+  const touchStartPos = useRef({ x: 0, y: 0 });
+  const isTouchMaybePan = useRef(false); // select tool: tap vs pan disambiguation
 
   // -----------------------------------------------------------------------
   // Render function
@@ -593,25 +597,54 @@ export function CanvasArea() {
       ctx.lineWidth = 0.015;
 
       if (windowStyle === 'single') {
-        // Single pane: 3 parallel lines
-        for (const offset of [-t * 0.6, 0, t * 0.6]) {
-          ctx.beginPath();
-          ctx.moveTo(-win.width / 2, offset);
-          ctx.lineTo(win.width / 2, offset);
-          ctx.stroke();
-        }
+        // Single pane: 2 parallel frame lines + X cross-hatching (Neufert)
+        ctx.beginPath();
+        ctx.moveTo(-win.width / 2, -t * 0.6);
+        ctx.lineTo(win.width / 2, -t * 0.6);
+        ctx.moveTo(-win.width / 2, t * 0.6);
+        ctx.lineTo(win.width / 2, t * 0.6);
+        ctx.stroke();
+        // X cross-hatching between the frame lines
+        const hw = win.width / 2;
+        const ht = t * 0.6;
+        ctx.lineWidth = 0.01;
+        ctx.beginPath();
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(hw, ht);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(hw, -ht);
+        ctx.stroke();
+        ctx.lineWidth = 0.015;
       } else if (windowStyle === 'double') {
-        // Double pane: 3 lines + center divider
-        for (const offset of [-t * 0.6, 0, t * 0.6]) {
-          ctx.beginPath();
-          ctx.moveTo(-win.width / 2, offset);
-          ctx.lineTo(win.width / 2, offset);
-          ctx.stroke();
-        }
+        // Double pane: 2 frame lines + center divider + X cross per pane (Neufert)
+        ctx.beginPath();
+        ctx.moveTo(-win.width / 2, -t * 0.6);
+        ctx.lineTo(win.width / 2, -t * 0.6);
+        ctx.moveTo(-win.width / 2, t * 0.6);
+        ctx.lineTo(win.width / 2, t * 0.6);
+        ctx.stroke();
+        // Center mullion
         ctx.beginPath();
         ctx.moveTo(0, -t * 0.6);
         ctx.lineTo(0, t * 0.6);
         ctx.stroke();
+        // X cross-hatching in each pane
+        const hw = win.width / 2;
+        const ht = t * 0.6;
+        ctx.lineWidth = 0.01;
+        ctx.beginPath();
+        // Left pane X
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(0, ht);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(0, -ht);
+        // Right pane X
+        ctx.moveTo(0, -ht);
+        ctx.lineTo(hw, ht);
+        ctx.moveTo(0, ht);
+        ctx.lineTo(hw, -ht);
+        ctx.stroke();
+        ctx.lineWidth = 0.015;
       } else if (windowStyle === 'sliding') {
         // Sliding window: overlapping panes with arrow
         ctx.beginPath();
@@ -654,32 +687,54 @@ export function CanvasArea() {
         ctx.lineTo(win.width / 2, -t * 0.6);
         ctx.stroke();
       } else if (windowStyle === 'casement') {
-        // Casement window: frame + triangle showing opening direction
-        for (const offset of [-t * 0.6, 0, t * 0.6]) {
-          ctx.beginPath();
-          ctx.moveTo(-win.width / 2, offset);
-          ctx.lineTo(win.width / 2, offset);
-          ctx.stroke();
-        }
+        // Casement window: frame lines + X cross-hatching + triangle opening indicator
+        const hw = win.width / 2;
+        const ht = t * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(hw, -ht);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(hw, ht);
+        ctx.stroke();
+        // X cross-hatching
+        ctx.lineWidth = 0.01;
+        ctx.beginPath();
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(hw, ht);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(hw, -ht);
+        ctx.stroke();
+        ctx.lineWidth = 0.015;
         // Opening indicator triangle
         ctx.beginPath();
-        ctx.moveTo(-win.width / 2, -t * 0.6);
-        ctx.lineTo(0, -t * 0.6 - t * 0.8);
-        ctx.lineTo(win.width / 2, -t * 0.6);
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(0, -ht - t * 0.8);
+        ctx.lineTo(hw, -ht);
         ctx.stroke();
       } else if (windowStyle === 'awning') {
-        // Awning window: frame + triangle at bottom
-        for (const offset of [-t * 0.6, 0, t * 0.6]) {
-          ctx.beginPath();
-          ctx.moveTo(-win.width / 2, offset);
-          ctx.lineTo(win.width / 2, offset);
-          ctx.stroke();
-        }
+        // Awning window: frame lines + X cross-hatching + triangle at bottom
+        const hw = win.width / 2;
+        const ht = t * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(hw, -ht);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(hw, ht);
+        ctx.stroke();
+        // X cross-hatching
+        ctx.lineWidth = 0.01;
+        ctx.beginPath();
+        ctx.moveTo(-hw, -ht);
+        ctx.lineTo(hw, ht);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(hw, -ht);
+        ctx.stroke();
+        ctx.lineWidth = 0.015;
         // Opening indicator triangle at bottom
         ctx.beginPath();
-        ctx.moveTo(-win.width / 2, t * 0.6);
-        ctx.lineTo(0, t * 0.6 + t * 0.8);
-        ctx.lineTo(win.width / 2, t * 0.6);
+        ctx.moveTo(-hw, ht);
+        ctx.lineTo(0, ht + t * 0.8);
+        ctx.lineTo(hw, ht);
         ctx.stroke();
       }
 
@@ -790,9 +845,11 @@ export function CanvasArea() {
       const treads = stair.treads;
 
       if (style === 'straight') {
-        // Outline
+        // Outline (slightly thicker)
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, 0, w, l);
-        // Tread lines
+        // Tread lines (thinner)
+        ctx.lineWidth = 0.012;
         const treadDepth = l / treads;
         for (let i = 1; i < treads; i++) {
           const y = i * treadDepth;
@@ -801,30 +858,35 @@ export function CanvasArea() {
           ctx.lineTo(w, y);
           ctx.stroke();
         }
-        // Direction arrow
+        // Diagonal break line across middle (Neufert convention)
+        ctx.lineWidth = 0.015;
         ctx.beginPath();
-        ctx.moveTo(w / 2, l * 0.8);
-        ctx.lineTo(w / 2, l * 0.15);
+        ctx.moveTo(0, l * 0.55);
+        ctx.lineTo(w, l * 0.45);
         ctx.stroke();
+        // Direction arrow (full length center line with arrowhead)
+        ctx.lineWidth = 0.012;
         ctx.beginPath();
-        ctx.moveTo(w / 2 - 0.08, l * 0.25);
-        ctx.lineTo(w / 2, l * 0.15);
-        ctx.lineTo(w / 2 + 0.08, l * 0.25);
+        ctx.moveTo(w / 2, l * 0.85);
+        ctx.lineTo(w / 2, l * 0.1);
         ctx.stroke();
-        // "UP" / "DN" label
-        ctx.fillStyle = isSelected ? '#2d6a4f' : '#000000';
-        const fontSize = Math.min(w, l) * 0.12;
-        ctx.font = `${fontSize}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(stair.direction === 'up' ? t('stair.up') : t('stair.down'), w / 2, l * 0.9);
+        // Arrowhead
+        const arrowSize = Math.min(w * 0.1, 0.1);
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - arrowSize, l * 0.1 + arrowSize * 1.2);
+        ctx.lineTo(w / 2, l * 0.1);
+        ctx.lineTo(w / 2 + arrowSize, l * 0.1 + arrowSize * 1.2);
+        ctx.stroke();
+        ctx.lineWidth = 0.02;
       } else if (style === 'l-shaped') {
         const land = stair.landingDepth;
         const halfTreads = Math.floor(treads / 2);
         const run1 = l - land;
         const treadDepth = run1 / halfTreads;
         // First run
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, 0, w, run1);
+        ctx.lineWidth = 0.012;
         for (let i = 1; i < halfTreads; i++) {
           const y = i * treadDepth;
           ctx.beginPath();
@@ -833,12 +895,14 @@ export function CanvasArea() {
           ctx.stroke();
         }
         // Landing
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, run1, w + land, land);
         // Second run (turns right)
         const run2W = land;
         const run2L = w;
         const tread2Depth = run2L / (treads - halfTreads);
         ctx.strokeRect(w, 0, run2W, run2L);
+        ctx.lineWidth = 0.012;
         for (let i = 1; i < treads - halfTreads; i++) {
           const y = run2L - i * tread2Depth;
           ctx.beginPath();
@@ -846,16 +910,18 @@ export function CanvasArea() {
           ctx.lineTo(w + run2W, y);
           ctx.stroke();
         }
-        // Arrow
+        // Direction arrow
         ctx.beginPath();
         ctx.moveTo(w / 2, run1 - 0.05);
-        ctx.lineTo(w / 2, 0.15);
+        ctx.lineTo(w / 2, 0.1);
         ctx.stroke();
+        const arrowSize = Math.min(w * 0.08, 0.08);
         ctx.beginPath();
-        ctx.moveTo(w / 2 - 0.06, 0.25);
-        ctx.lineTo(w / 2, 0.15);
-        ctx.lineTo(w / 2 + 0.06, 0.25);
+        ctx.moveTo(w / 2 - arrowSize, 0.1 + arrowSize * 1.2);
+        ctx.lineTo(w / 2, 0.1);
+        ctx.lineTo(w / 2 + arrowSize, 0.1 + arrowSize * 1.2);
         ctx.stroke();
+        ctx.lineWidth = 0.02;
       } else if (style === 'u-shaped') {
         const land = stair.landingDepth;
         const halfTreads = Math.floor(treads / 2);
@@ -863,7 +929,9 @@ export function CanvasArea() {
         const run1 = l - land;
         const treadDepth = run1 / halfTreads;
         // First run (left half)
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, 0, halfW, run1);
+        ctx.lineWidth = 0.012;
         for (let i = 1; i < halfTreads; i++) {
           const y = i * treadDepth;
           ctx.beginPath();
@@ -872,9 +940,11 @@ export function CanvasArea() {
           ctx.stroke();
         }
         // Landing
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, run1, w, land);
         // Second run (right half, going back)
         ctx.strokeRect(halfW, 0, halfW, run1);
+        ctx.lineWidth = 0.012;
         for (let i = 1; i < treads - halfTreads; i++) {
           const y = run1 - i * treadDepth;
           ctx.beginPath();
@@ -883,24 +953,43 @@ export function CanvasArea() {
           ctx.stroke();
         }
         // Divider
+        ctx.lineWidth = 0.025;
         ctx.beginPath();
         ctx.moveTo(halfW, 0);
         ctx.lineTo(halfW, run1);
         ctx.stroke();
+        // Direction arrow on left run
+        ctx.lineWidth = 0.012;
+        ctx.beginPath();
+        ctx.moveTo(halfW / 2, run1 - 0.05);
+        ctx.lineTo(halfW / 2, 0.1);
+        ctx.stroke();
+        const arrowSize = Math.min(halfW * 0.12, 0.08);
+        ctx.beginPath();
+        ctx.moveTo(halfW / 2 - arrowSize, 0.1 + arrowSize * 1.2);
+        ctx.lineTo(halfW / 2, 0.1);
+        ctx.lineTo(halfW / 2 + arrowSize, 0.1 + arrowSize * 1.2);
+        ctx.stroke();
+        ctx.lineWidth = 0.02;
       } else if (style === 'spiral') {
         const cx = w / 2;
         const cy = l / 2;
         const outerR = Math.min(w, l) / 2;
         const innerR = outerR * 0.2;
         // Outer circle
+        ctx.lineWidth = 0.025;
         ctx.beginPath();
         ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
         ctx.stroke();
-        // Inner circle (column)
+        // Inner circle (column) - filled
+        ctx.fillStyle = isSelected ? '#2d6a4f' : '#000000';
         ctx.beginPath();
         ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
+        ctx.fillStyle = 'transparent';
         // Radial tread lines
+        ctx.lineWidth = 0.012;
         for (let i = 0; i < treads; i++) {
           const a = (Math.PI * 2 * i) / treads;
           ctx.beginPath();
@@ -908,13 +997,16 @@ export function CanvasArea() {
           ctx.lineTo(cx + Math.cos(a) * outerR, cy + Math.sin(a) * outerR);
           ctx.stroke();
         }
+        ctx.lineWidth = 0.02;
       } else if (style === 'winder') {
         // Straight run with pie-shaped winder treads at the turn
         const straightTreads = Math.max(2, treads - 3);
         const straightLen = l * 0.7;
         const treadDepth = straightLen / straightTreads;
         // Straight portion
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, 0, w, straightLen);
+        ctx.lineWidth = 0.012;
         for (let i = 1; i < straightTreads; i++) {
           const y = i * treadDepth;
           ctx.beginPath();
@@ -925,7 +1017,9 @@ export function CanvasArea() {
         // Winder treads (3 pie slices)
         const winderY = straightLen;
         const winderH = l - straightLen;
+        ctx.lineWidth = 0.025;
         ctx.strokeRect(0, winderY, w, winderH);
+        ctx.lineWidth = 0.012;
         for (let i = 1; i <= 2; i++) {
           const frac = i / 3;
           ctx.beginPath();
@@ -933,13 +1027,26 @@ export function CanvasArea() {
           ctx.lineTo(w * frac, winderY + winderH);
           ctx.stroke();
         }
+        // Direction arrow
+        ctx.beginPath();
+        ctx.moveTo(w / 2, straightLen - 0.05);
+        ctx.lineTo(w / 2, 0.1);
+        ctx.stroke();
+        const arrowSize = Math.min(w * 0.1, 0.1);
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - arrowSize, 0.1 + arrowSize * 1.2);
+        ctx.lineTo(w / 2, 0.1);
+        ctx.lineTo(w / 2 + arrowSize, 0.1 + arrowSize * 1.2);
+        ctx.stroke();
+        ctx.lineWidth = 0.02;
       } else if (style === 'curved') {
         // Curved stair: arc with radial treads
         const cx = w;
         const cy = l / 2;
         const outerR = Math.min(w, l / 2);
         const innerR = outerR * 0.4;
-        // Outer arc (half circle from top to bottom on left side)
+        // Outer arc
+        ctx.lineWidth = 0.025;
         ctx.beginPath();
         ctx.arc(cx, cy, outerR, Math.PI / 2, Math.PI * 1.5);
         ctx.stroke();
@@ -948,6 +1055,7 @@ export function CanvasArea() {
         ctx.arc(cx, cy, innerR, Math.PI / 2, Math.PI * 1.5);
         ctx.stroke();
         // Radial tread lines
+        ctx.lineWidth = 0.012;
         for (let i = 0; i <= treads; i++) {
           const a = Math.PI / 2 + (Math.PI * i) / treads;
           ctx.beginPath();
@@ -955,14 +1063,16 @@ export function CanvasArea() {
           ctx.lineTo(cx + Math.cos(a) * outerR, cy + Math.sin(a) * outerR);
           ctx.stroke();
         }
+        ctx.lineWidth = 0.02;
       }
 
       ctx.restore(); // restore from flip + rotate + translate
 
-      // Selection highlight + resize handles (drawn in world space, not flipped)
+      // Selection highlight + resize handles (drawn with rotation to match stair)
       if (isSelected) {
         ctx.save();
         ctx.translate(stairPx + sDx, stairPy + sDy);
+        ctx.rotate((stair.rotation * Math.PI) / 180);
         ctx.strokeStyle = '#2d6a4f';
         ctx.lineWidth = 0.03;
         ctx.setLineDash([0.05, 0.03]);
@@ -1529,14 +1639,17 @@ export function CanvasArea() {
     return cameraRef.current.screenToWorld({ x: sx, y: sy });
   }, []);
 
-  const handleTouchStart = useCallback((e: ReactTouchEvent<HTMLCanvasElement>) => {
+  // Native touch handlers — attached via useEffect with { passive: false }
+  // so preventDefault() works without the passive event listener warning.
+  const nativeTouchStart = useCallback((e: TouchEvent) => {
     e.preventDefault();
     const touches = e.touches;
     touchCount.current = touches.length;
 
     if (touches.length === 2) {
-      // Two-finger: start pan + pinch zoom
       isTouchDrawing.current = false;
+      isTouchPanning.current = false;
+      isTouchMaybePan.current = false;
       const mx = (touches[0].clientX + touches[1].clientX) / 2;
       const my = (touches[0].clientY + touches[1].clientY) / 2;
       lastTouchPos.current = { x: mx, y: my };
@@ -1544,26 +1657,37 @@ export function CanvasArea() {
       const dy = touches[1].clientY - touches[0].clientY;
       lastPinchDist.current = Math.hypot(dx, dy);
     } else if (touches.length === 1) {
-      // One finger: use current tool (like mouse click)
-      isTouchDrawing.current = true;
+      const activeTool = useUIStore.getState().activeTool;
       lastTouchPos.current = { x: touches[0].clientX, y: touches[0].clientY };
-      const worldPos = getTouchWorldPos(touches[0]);
-      useUIStore.getState().setCursorPos(worldPos);
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const screenPos = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
-        toolManager.onMouseDown(worldPos, screenPos, e.nativeEvent as unknown as MouseEvent);
+      touchStartTime.current = Date.now();
+      touchStartPos.current = { x: touches[0].clientX, y: touches[0].clientY };
+
+      if (activeTool === 'select') {
+        // Start in "maybe pan" state — disambiguate tap (select) from drag (pan)
+        isTouchMaybePan.current = true;
+        isTouchPanning.current = false;
+        isTouchDrawing.current = false;
+      } else {
+        isTouchDrawing.current = true;
+        isTouchPanning.current = false;
+        isTouchMaybePan.current = false;
+        const worldPos = getTouchWorldPos(touches[0]);
+        useUIStore.getState().setCursorPos(worldPos);
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const screenPos = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+          toolManager.onMouseDown(worldPos, screenPos, e as unknown as MouseEvent);
+        }
       }
     }
   }, [getTouchWorldPos]);
 
-  const handleTouchMove = useCallback((e: ReactTouchEvent<HTMLCanvasElement>) => {
+  const nativeTouchMove = useCallback((e: TouchEvent) => {
     e.preventDefault();
     const touches = e.touches;
 
     if (touches.length === 2) {
-      // Two-finger: pan + pinch zoom
       const mx = (touches[0].clientX + touches[1].clientX) / 2;
       const my = (touches[0].clientY + touches[1].clientY) / 2;
       const dx = mx - lastTouchPos.current.x;
@@ -1571,7 +1695,6 @@ export function CanvasArea() {
       lastTouchPos.current = { x: mx, y: my };
       useUIStore.getState().panBy(dx, dy);
 
-      // Pinch zoom
       const pinchDx = touches[1].clientX - touches[0].clientX;
       const pinchDy = touches[1].clientY - touches[0].clientY;
       const dist = Math.hypot(pinchDx, pinchDy);
@@ -1582,22 +1705,52 @@ export function CanvasArea() {
       }
       lastPinchDist.current = dist;
       useUIStore.getState().markDirty();
+    } else if (touches.length === 1 && isTouchMaybePan.current) {
+      // Select tool disambiguation: if finger moved > 8px, switch to panning
+      const movedX = touches[0].clientX - touchStartPos.current.x;
+      const movedY = touches[0].clientY - touchStartPos.current.y;
+      const movedDist = Math.sqrt(movedX * movedX + movedY * movedY);
+      if (movedDist > 8) {
+        isTouchMaybePan.current = false;
+        isTouchPanning.current = true;
+        lastTouchPos.current = { x: touches[0].clientX, y: touches[0].clientY };
+      }
+    } else if (touches.length === 1 && isTouchPanning.current) {
+      const dx = touches[0].clientX - lastTouchPos.current.x;
+      const dy = touches[0].clientY - lastTouchPos.current.y;
+      lastTouchPos.current = { x: touches[0].clientX, y: touches[0].clientY };
+      useUIStore.getState().panBy(dx, dy);
+      useUIStore.getState().markDirty();
     } else if (touches.length === 1 && isTouchDrawing.current) {
-      // One finger: move with current tool
       const worldPos = getTouchWorldPos(touches[0]);
       useUIStore.getState().setCursorPos(worldPos);
       const canvas = canvasRef.current;
       if (canvas) {
         const rect = canvas.getBoundingClientRect();
         const screenPos = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
-        toolManager.onMouseMove(worldPos, screenPos, e.nativeEvent as unknown as MouseEvent);
+        toolManager.onMouseMove(worldPos, screenPos, e as unknown as MouseEvent);
       }
       useUIStore.getState().markDirty();
     }
   }, [getTouchWorldPos]);
 
-  const handleTouchEnd = useCallback((e: ReactTouchEvent<HTMLCanvasElement>) => {
+  const nativeTouchEnd = useCallback((e: TouchEvent) => {
     e.preventDefault();
+
+    // Select tool: if we were in "maybe pan" state and finger didn't move much,
+    // treat this as a tap — forward mouseDown + mouseUp to the select tool
+    if (isTouchMaybePan.current && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const worldPos = getTouchWorldPos(touch);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const screenPos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+        toolManager.onMouseDown(worldPos, screenPos, e as unknown as MouseEvent);
+        toolManager.onMouseUp(worldPos, screenPos, e as unknown as MouseEvent);
+      }
+    }
+
     if (isTouchDrawing.current && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       const worldPos = getTouchWorldPos(touch);
@@ -1605,13 +1758,32 @@ export function CanvasArea() {
       if (canvas) {
         const rect = canvas.getBoundingClientRect();
         const screenPos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-        toolManager.onMouseUp(worldPos, screenPos, e.nativeEvent as unknown as MouseEvent);
+        toolManager.onMouseUp(worldPos, screenPos, e as unknown as MouseEvent);
       }
     }
     isTouchDrawing.current = false;
+    isTouchPanning.current = false;
+    isTouchMaybePan.current = false;
     touchCount.current = e.touches.length;
     lastPinchDist.current = 0;
   }, [getTouchWorldPos]);
+
+  // Attach native touch listeners with { passive: false } to allow preventDefault
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const opts: AddEventListenerOptions = { passive: false };
+    canvas.addEventListener('touchstart', nativeTouchStart, opts);
+    canvas.addEventListener('touchmove', nativeTouchMove, opts);
+    canvas.addEventListener('touchend', nativeTouchEnd, opts);
+    canvas.addEventListener('touchcancel', nativeTouchEnd, opts);
+    return () => {
+      canvas.removeEventListener('touchstart', nativeTouchStart);
+      canvas.removeEventListener('touchmove', nativeTouchMove);
+      canvas.removeEventListener('touchend', nativeTouchEnd);
+      canvas.removeEventListener('touchcancel', nativeTouchEnd);
+    };
+  }, [nativeTouchStart, nativeTouchMove, nativeTouchEnd]);
 
   // -----------------------------------------------------------------------
   // Keyboard event handlers
@@ -1961,10 +2133,6 @@ export function CanvasArea() {
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
       />
 
       {/* Vertical scrollbar (right edge) */}
