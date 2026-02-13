@@ -102,11 +102,13 @@ export class SelectTool implements BaseTool {
     this.currentWorld = { ...worldPos };
     this.dragDelta = { x: 0, y: 0 };
 
-    // First, check if clicking on a resize handle of a selected stair
-    // Only trigger resize if clicking near the edges — interior clicks start drag
+    // First, check if clicking on a resize handle of a selected stair.
+    // If clicking inside the stair body, always prefer drag over resize.
+    // Resize only triggers when clicking directly on the small handle squares.
     if (ui.selectedIds.length === 1) {
+      const insideBody = this.isInsideStairBounds(worldPos, ui.selectedIds[0]);
       const handleHit = this.hitTestResizeHandles(worldPos, ui.selectedIds[0]);
-      if (handleHit && !this.isInsideStairBody(worldPos, ui.selectedIds[0])) {
+      if (handleHit && !insideBody) {
         this.phase = 'RESIZING';
         this.resizeHandle = handleHit.handle;
         this.resizeElementId = ui.selectedIds[0];
@@ -424,9 +426,8 @@ export class SelectTool implements BaseTool {
     ];
   }
 
-  /** Check if worldPos is inside the stair body (interior, away from edges).
-   *  Used to prefer drag over resize when clicking in the center. */
-  private isInsideStairBody(worldPos: Point, elementId: string): boolean {
+  /** Check if worldPos is inside the stair bounding box. */
+  private isInsideStairBounds(worldPos: Point, elementId: string): boolean {
     const project = useProjectStore.getState();
     const floorIndex = project.project.activeFloorIndex;
     const floor = project.project.floors[floorIndex];
@@ -436,13 +437,11 @@ export class SelectTool implements BaseTool {
     const sp = el.position as { x?: number; y?: number; point?: Point };
     const px = sp.x ?? sp.point?.x ?? 0;
     const py = sp.y ?? sp.point?.y ?? 0;
-    // Inset margin — clicks within this margin from edges are "handle zone"
-    const margin = HANDLE_SIZE + 0.05;
     return (
-      worldPos.x > px + margin &&
-      worldPos.x < px + el.width - margin &&
-      worldPos.y > py + margin &&
-      worldPos.y < py + el.length - margin
+      worldPos.x >= px &&
+      worldPos.x <= px + el.width &&
+      worldPos.y >= py &&
+      worldPos.y <= py + el.length
     );
   }
 
@@ -459,8 +458,10 @@ export class SelectTool implements BaseTool {
     if (!el || el.type !== 'stair') return null;
 
     const handles = this.getStairHandles(el);
+    // Use a tighter hit radius that matches the visual handle size (0.08 * 2 = 0.16m)
+    const handleHitRadius = HANDLE_SIZE + 0.04; // ~0.16m — matches visual square
     for (const h of handles) {
-      if (distance(worldPos, { x: h.x, y: h.y }) < HANDLE_SIZE + HIT_THRESHOLD) {
+      if (distance(worldPos, { x: h.x, y: h.y }) < handleHitRadius) {
         return { handle: h.handle };
       }
     }
