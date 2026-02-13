@@ -1362,10 +1362,27 @@ export function CanvasArea() {
       ctx.restore();
     }
 
-    // ----- Snap indicator -----
-    if (viewMode === 'plan' && uiState.snapEnabled && uiState.toolState !== 'idle') {
+    // ----- Wall endpoint dots (always visible in plan view for drawing tools) -----
+    const drawingTools = new Set(['wall', 'door', 'window', 'dimension', 'archline', 'room']);
+    if (viewMode === 'plan' && drawingTools.has(uiState.activeTool)) {
+      ctx.save();
+      const dotR = 0.04;
+      ctx.fillStyle = 'rgba(45,106,79,0.35)';
+      for (const w of walls) {
+        ctx.beginPath();
+        ctx.arc(w.start.x, w.start.y, dotR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(w.end.x, w.end.y, dotR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ----- Snap indicator + precision crosshair -----
+    if (viewMode === 'plan' && uiState.snapEnabled && drawingTools.has(uiState.activeTool)) {
       const cursorWP = uiState.cursorWorldPos;
-      // Gather wall endpoints as snap targets
+      // Gather snap targets from all relevant elements
       const snapTargets: { x: number; y: number }[] = [];
       for (const w of walls) {
         snapTargets.push(w.start, w.end);
@@ -1403,34 +1420,46 @@ export function CanvasArea() {
         }
       }
 
-      if (snapType) {
-        ctx.save();
-        if (snapType === 'endpoint') {
-          const s = 0.06;
-          ctx.fillStyle = 'rgba(184,92,56,0.9)';
-          ctx.beginPath();
-          ctx.moveTo(snapPt.x, snapPt.y - s);
-          ctx.lineTo(snapPt.x + s, snapPt.y);
-          ctx.lineTo(snapPt.x, snapPt.y + s);
-          ctx.lineTo(snapPt.x - s, snapPt.y);
-          ctx.closePath();
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(184,92,56,0.5)';
-          ctx.lineWidth = 0.005;
-          ctx.beginPath();
-          ctx.moveTo(snapPt.x - s * 2, snapPt.y);
-          ctx.lineTo(snapPt.x + s * 2, snapPt.y);
-          ctx.moveTo(snapPt.x, snapPt.y - s * 2);
-          ctx.lineTo(snapPt.x, snapPt.y + s * 2);
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = 'rgba(79,195,247,0.7)';
-          ctx.beginPath();
-          ctx.arc(snapPt.x, snapPt.y, 0.04, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
+      ctx.save();
+      if (snapType === 'endpoint') {
+        // Diamond + crosshair at snap point
+        const s = 0.06;
+        ctx.fillStyle = 'rgba(184,92,56,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(snapPt.x, snapPt.y - s);
+        ctx.lineTo(snapPt.x + s, snapPt.y);
+        ctx.lineTo(snapPt.x, snapPt.y + s);
+        ctx.lineTo(snapPt.x - s, snapPt.y);
+        ctx.closePath();
+        ctx.fill();
+        // Crosshair lines
+        ctx.strokeStyle = 'rgba(184,92,56,0.5)';
+        ctx.lineWidth = 0.005;
+        ctx.beginPath();
+        ctx.moveTo(snapPt.x - s * 2.5, snapPt.y);
+        ctx.lineTo(snapPt.x + s * 2.5, snapPt.y);
+        ctx.moveTo(snapPt.x, snapPt.y - s * 2.5);
+        ctx.lineTo(snapPt.x, snapPt.y + s * 2.5);
+        ctx.stroke();
+      } else if (snapType === 'grid') {
+        // Circle at grid snap
+        ctx.fillStyle = 'rgba(79,195,247,0.7)';
+        ctx.beginPath();
+        ctx.arc(snapPt.x, snapPt.y, 0.04, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // No snap — show a small precision crosshair at cursor position
+        const s = 0.05;
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 0.005;
+        ctx.beginPath();
+        ctx.moveTo(cursorWP.x - s, cursorWP.y);
+        ctx.lineTo(cursorWP.x + s, cursorWP.y);
+        ctx.moveTo(cursorWP.x, cursorWP.y - s);
+        ctx.lineTo(cursorWP.x, cursorWP.y + s);
+        ctx.stroke();
       }
+      ctx.restore();
     }
 
     // ----- Scale bar (screen space, bottom-left) -----
