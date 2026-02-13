@@ -1541,6 +1541,9 @@ export function CanvasArea() {
   // -----------------------------------------------------------------------
 
   const handleMouseDown = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {
+    // Ensure canvas has focus for keyboard shortcuts (copy/paste/delete/etc.)
+    canvasRef.current?.focus();
+
     // Middle button or right-click = pan
     if (e.button === 1 || e.button === 2) {
       e.preventDefault();
@@ -1818,6 +1821,22 @@ export function CanvasArea() {
         isPanning.current = false;
       }
     }
+  }, []);
+
+  // Global keyboard listener so copy/paste/delete work even when canvas lacks focus
+  useEffect(() => {
+    const onGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea/contenteditable
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+      // Only intercept shortcuts that the canvas handles
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'z' || e.key === 'y')) {
+        // Focus the canvas so the React onKeyDown fires
+        canvasRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', onGlobalKeyDown, true);
   }, []);
 
   const handleKeyDown = useCallback((e: ReactKeyboardEvent) => {
