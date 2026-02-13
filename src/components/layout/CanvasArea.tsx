@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent, KeyboardEvent as ReactKeyboardEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { CanvasManager } from '@/renderer/canvas-manager.ts';
 import { Camera } from '@/renderer/camera.ts';
@@ -1494,10 +1494,19 @@ export function CanvasArea() {
 
   const handleWheel = useCallback((e: ReactWheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const uiState = useUIStore.getState();
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = uiState.zoom * factor;
-    useUIStore.getState().setZoom(newZoom);
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl+scroll = zoom (pinch-to-zoom on trackpads also sends ctrl)
+      const uiState = useUIStore.getState();
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = uiState.zoom * factor;
+      useUIStore.getState().setZoom(newZoom);
+    } else {
+      // Plain scroll = pan
+      // deltaY = vertical pan, deltaX or Shift+deltaY = horizontal pan
+      const dx = e.shiftKey ? -e.deltaY : -e.deltaX;
+      const dy = e.shiftKey ? 0 : -e.deltaY;
+      useUIStore.getState().panBy(dx, dy);
+    }
   }, []);
 
   const handleContextMenu = useCallback((e: ReactMouseEvent) => {
@@ -1853,6 +1862,81 @@ export function CanvasArea() {
   const canvasCursor = viewMode === 'isometric' ? 'grab' : (cursorMap[activeTool] ?? 'default');
 
   // -----------------------------------------------------------------------
+  // Scrollbar state — shows visible area when zoomed in
+  // -----------------------------------------------------------------------
+
+  const zoom = useUIStore((s) => s.zoom);
+  const panOffset = useUIStore((s) => s.panOffset);
+
+  // Scrollbar drag refs
+  const isDraggingScrollbarV = useRef(false);
+  const isDraggingScrollbarH = useRef(false);
+  const scrollbarDragStart = useRef({ x: 0, y: 0 });
+  const scrollbarPanStart = useRef({ x: 0, y: 0 });
+  const [scrollbarActive, setScrollbarActive] = useState(false);
+
+  // Compute scrollbar thumb positions.
+  // The "virtual canvas" spans a fixed world area (e.g. -50m to +50m = 100m).
+  // panOffset is in screen pixels; a larger pan moves the world under the viewport.
+  const WORLD_EXTENT = 100; // total world meters the scrollbar represents
+  const containerEl = containerRef.current;
+  const containerW = containerEl?.clientWidth ?? 800;
+  const containerH = containerEl?.clientHeight ?? 600;
+  const ppm = 100 * zoom; // pixels per meter at current zoom
+  const totalPxW = WORLD_EXTENT * ppm; // total pixels the world would occupy
+  const totalPxH = WORLD_EXTENT * ppm;
+
+  // Thumb size = viewport / total (clamped to 10%–100%)
+  const thumbW = Math.max(0.08, Math.min(1, containerW / totalPxW));
+  const thumbH = Math.max(0.08, Math.min(1, containerH / totalPxH));
+
+  // Thumb position: panOffset is how many screen pixels the world center is shifted.
+  // Center of the virtual world is at panOffset = 0, so the viewport sees the center.
+  // panOffset positive = world shifted right/down = we're looking at left/up part of world.
+  const thumbX = 0.5 - (panOffset.x / totalPxW) - thumbW / 2;
+  const thumbY = 0.5 - (panOffset.y / totalPxH) - thumbH / 2;
+
+  const showScrollbars = zoom > 1.05; // only show when meaningfully zoomed in
+
+  const handleScrollbarMouseDown = useCallback((axis: 'h' | 'v', e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (axis === 'h') isDraggingScrollbarH.current = true;
+    else isDraggingScrollbarV.current = true;
+    scrollbarDragStart.current = { x: e.clientX, y: e.clientY };
+    const ui = useUIStore.getState();
+    scrollbarPanStart.current = { x: ui.panOffset.x, y: ui.panOffset.y };
+    setScrollbarActive(true);
+
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - scrollbarDragStart.current.x;
+      const dy = ev.clientY - scrollbarDragStart.current.y;
+      if (isDraggingScrollbarH.current) {
+        // Dragging scrollbar right means viewport moves right = panOffset decreases
+        useUIStore.getState().setPan({
+          x: scrollbarPanStart.current.x - (dx / containerW) * totalPxW,
+          y: scrollbarPanStart.current.y,
+        });
+      }
+      if (isDraggingScrollbarV.current) {
+        useUIStore.getState().setPan({
+          x: scrollbarPanStart.current.x,
+          y: scrollbarPanStart.current.y - (dy / containerH) * totalPxH,
+        });
+      }
+    };
+    const onUp = () => {
+      isDraggingScrollbarH.current = false;
+      isDraggingScrollbarV.current = false;
+      setScrollbarActive(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [thumbW, totalPxW, totalPxH, containerW, containerH]);
+
+  // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
 
@@ -1879,6 +1963,80 @@ export function CanvasArea() {
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
       />
+
+      {/* Vertical scrollbar (right edge) */}
+      {showScrollbars && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 2,
+            top: 0,
+            bottom: 10,
+            width: 8,
+            pointerEvents: 'auto',
+            zIndex: 20,
+          }}
+          onMouseDown={(e) => {
+            // Click on track: jump to position
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickRatio = (e.clientY - rect.top) / rect.height;
+            const newPanY = (0.5 - clickRatio) * totalPxH;
+            useUIStore.getState().setPan({ x: panOffset.x, y: newPanY });
+          }}
+        >
+          <div
+            onMouseDown={(e) => handleScrollbarMouseDown('v', e)}
+            style={{
+              position: 'absolute',
+              top: `${Math.max(0, Math.min(1 - thumbH, thumbY)) * 100}%`,
+              height: `${thumbH * 100}%`,
+              width: '100%',
+              minHeight: 20,
+              background: scrollbarActive ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)',
+              borderRadius: 4,
+              cursor: 'grab',
+              transition: scrollbarActive ? 'none' : 'background 0.15s',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Horizontal scrollbar (bottom edge) */}
+      {showScrollbars && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 2,
+            left: 0,
+            right: 10,
+            height: 8,
+            pointerEvents: 'auto',
+            zIndex: 20,
+          }}
+          onMouseDown={(e) => {
+            // Click on track: jump to position
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickRatio = (e.clientX - rect.left) / rect.width;
+            const newPanX = (0.5 - clickRatio) * totalPxW;
+            useUIStore.getState().setPan({ x: newPanX, y: panOffset.y });
+          }}
+        >
+          <div
+            onMouseDown={(e) => handleScrollbarMouseDown('h', e)}
+            style={{
+              position: 'absolute',
+              left: `${Math.max(0, Math.min(1 - thumbW, thumbX)) * 100}%`,
+              width: `${thumbW * 100}%`,
+              height: '100%',
+              minWidth: 20,
+              background: scrollbarActive ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)',
+              borderRadius: 4,
+              cursor: 'grab',
+              transition: scrollbarActive ? 'none' : 'background 0.15s',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
