@@ -15,13 +15,13 @@ import {
   getDimensions,
   getArchLines,
   getStairs,
+  getShapes,
 } from '@/store/selectors.ts';
 import { stampRegistry } from '@/library/index.ts';
-import { wallToPolygon } from '@/engine/geometry/wall-thickness.ts';
-import { getDoorWorldPosition, getDoorSwingArc } from '@/engine/geometry/door-placement.ts';
+import { roomPatternFns, wallPatternFns } from '@/renderer/layers/pattern-library.ts';
 import type { PaperSize } from '@/types/project.ts';
 import type { Point } from '@/types/geometry.ts';
-import type { Wall, ArchLineStyle } from '@/types/elements.ts';
+import type { Wall, ArchLineStyle, FillPattern, WallFillPattern } from '@/types/elements.ts';
 
 // ---------------------------------------------------------------------------
 // Export format types
@@ -40,40 +40,23 @@ const PAPER_SIZES_PX: Record<PaperSize, { width: number; height: number }> = {
 };
 
 // ---------------------------------------------------------------------------
-// ArchLine dash patterns by style
+// ArchLine dash patterns & colors (world-space, matching CanvasArea exactly)
 // ---------------------------------------------------------------------------
 
-function getArchLineDash(style: ArchLineStyle, px: number): number[] {
+function getArchLineDash(style: ArchLineStyle): { dash: number[]; lineWidth: number; color: string } {
   switch (style) {
     case 'colindancia':
-      return [10 * px, 4 * px, 2 * px, 4 * px]; // dash-dot
+      return { dash: [0.1, 0.05], lineWidth: 0.03, color: '#b05030' };
     case 'limite-lote':
-      return [12 * px, 6 * px]; // dashed
+      return { dash: [0.12, 0.04, 0.02, 0.04, 0.02, 0.04], lineWidth: 0.025, color: '#d04040' };
     case 'eje':
-      return [16 * px, 4 * px, 4 * px, 4 * px]; // center line
+      return { dash: [0.08, 0.03, 0.02, 0.03], lineWidth: 0.008, color: '#40a040' };
     case 'setback':
-      return [6 * px, 6 * px]; // short dashes
+      return { dash: [0.05, 0.05], lineWidth: 0.015, color: '#6080c0' };
     case 'center':
-      return [20 * px, 4 * px, 4 * px, 4 * px]; // long center
+      return { dash: [0.1, 0.03, 0.02, 0.03], lineWidth: 0.008, color: '#40a040' };
     default:
-      return [];
-  }
-}
-
-function getArchLineColor(style: ArchLineStyle): string {
-  switch (style) {
-    case 'colindancia':
-      return '#cc3333';
-    case 'limite-lote':
-      return '#cc6600';
-    case 'eje':
-      return '#3366cc';
-    case 'setback':
-      return '#669933';
-    case 'center':
-      return '#996699';
-    default:
-      return '#666666';
+      return { dash: [0.1, 0.05], lineWidth: 0.02, color: '#888' };
   }
 }
 
@@ -110,6 +93,7 @@ export function ExportDialog() {
     const dimensions = getDimensions(state);
     const archLines = getArchLines(state);
     const stairs = getStairs(state);
+    const shapes = getShapes(state);
 
     // Build a wall lookup map for door/window placement
     const wallMap = new Map<string, Wall>();
@@ -123,7 +107,22 @@ export function ExportDialog() {
     const allPoints: Point[] = [];
 
     for (const wall of walls) {
-      allPoints.push(wall.start, wall.end);
+      // Include wall thickness in bounding box
+      const dx = wall.end.x - wall.start.x;
+      const dy = wall.end.y - wall.start.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) {
+        const nx = -dy / len * (wall.thickness / 2);
+        const ny = dx / len * (wall.thickness / 2);
+        allPoints.push(
+          { x: wall.start.x + nx, y: wall.start.y + ny },
+          { x: wall.start.x - nx, y: wall.start.y - ny },
+          { x: wall.end.x + nx, y: wall.end.y + ny },
+          { x: wall.end.x - nx, y: wall.end.y - ny },
+        );
+      } else {
+        allPoints.push(wall.start, wall.end);
+      }
     }
     for (const room of rooms) {
       for (const pt of room.polygon) {
@@ -131,8 +130,6 @@ export function ExportDialog() {
       }
     }
     for (const f of furniture) {
-      allPoints.push(f.position);
-      // Add corners based on size
       const hw = (f.width * f.scale) / 2;
       const hd = (f.depth * f.scale) / 2;
       allPoints.push(
@@ -141,14 +138,14 @@ export function ExportDialog() {
       );
     }
     for (const s of stairs) {
-      allPoints.push(s.position);
-      allPoints.push({
-        x: s.position.x + s.width,
-        y: s.position.y + s.length,
-      });
+      const sp = s.position as { x?: number; y?: number; point?: Point };
+      const sx = sp.x ?? sp.point?.x ?? 0;
+      const sy = sp.y ?? sp.point?.y ?? 0;
+      allPoints.push({ x: sx, y: sy });
+      allPoints.push({ x: sx + s.width, y: sy + s.length });
     }
-    for (const t of texts) {
-      allPoints.push(t.position);
+    for (const txt of texts) {
+      allPoints.push(txt.position);
     }
     for (const d of dimensions) {
       allPoints.push(d.start, d.end);
@@ -156,9 +153,16 @@ export function ExportDialog() {
     for (const a of archLines) {
       allPoints.push(a.start, a.end);
     }
+    for (const sh of shapes) {
+      const hw = sh.width / 2;
+      const hh = sh.height / 2;
+      allPoints.push(
+        { x: sh.position.x - hw, y: sh.position.y - hh },
+        { x: sh.position.x + hw, y: sh.position.y + hh },
+      );
+    }
 
     if (allPoints.length === 0) {
-      // Nothing to export
       setExportDialogOpen(false);
       return;
     }
@@ -176,7 +180,7 @@ export function ExportDialog() {
     }
 
     // Add 1 meter padding on all sides
-    const PADDING = 1; // meters
+    const PADDING = 1;
     minX -= PADDING;
     minY -= PADDING;
     maxX += PADDING;
@@ -186,7 +190,7 @@ export function ExportDialog() {
     const contentHeight = maxY - minY;
 
     // -----------------------------------------------------------------------
-    // 3. Define the renderFn
+    // 3. Define the renderFn — mirrors CanvasArea plan-view rendering exactly
     // -----------------------------------------------------------------------
     const renderFn = (
       ctx: CanvasRenderingContext2D,
@@ -207,12 +211,18 @@ export function ExportDialog() {
       ctx.scale(fitScale, fitScale);
       ctx.translate(-minX, -minY);
 
-      // Pixel size in world coordinates for consistent line widths
+      // Background (matching CanvasArea plan view color)
+      ctx.fillStyle = '#faf8f4';
+      ctx.fillRect(minX, minY, contentWidth, contentHeight);
+
+      // "Pixel" size in world coordinates (for pattern functions)
       const px = 1 / fitScale;
 
-      // ----- Draw rooms (fills) -----
+      // ----- Rooms (fills + patterns + labels) -----
       for (const room of rooms) {
+        if (!room.visible) continue;
         if (room.polygon.length < 3) continue;
+
         ctx.beginPath();
         ctx.moveTo(room.polygon[0].x, room.polygon[0].y);
         for (let i = 1; i < room.polygon.length; i++) {
@@ -222,122 +232,440 @@ export function ExportDialog() {
         ctx.fillStyle = room.color;
         ctx.fill();
 
+        // Room pattern overlay (matching CanvasArea)
+        const roomPattern = (room.fillPattern || 'solid') as FillPattern;
+        if (roomPattern !== 'solid') {
+          const patFn = roomPatternFns[roomPattern];
+          if (patFn) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(room.polygon[0].x, room.polygon[0].y);
+            for (let i = 1; i < room.polygon.length; i++) {
+              ctx.lineTo(room.polygon[i].x, room.polygon[i].y);
+            }
+            ctx.closePath();
+            ctx.clip();
+            let rMinX = Infinity, rMinY = Infinity, rMaxX = -Infinity, rMaxY = -Infinity;
+            for (const p of room.polygon) {
+              if (p.x < rMinX) rMinX = p.x;
+              if (p.y < rMinY) rMinY = p.y;
+              if (p.x > rMaxX) rMaxX = p.x;
+              if (p.y > rMaxY) rMaxY = p.y;
+            }
+            patFn(ctx, rMinX, rMinY, rMaxX, rMaxY, px);
+            ctx.restore();
+          }
+        }
+
         // Room label
         if (room.label) {
-          // Compute centroid for label placement
-          let cx = 0;
-          let cy = 0;
-          for (const pt of room.polygon) {
-            cx += pt.x;
-            cy += pt.y;
-          }
-          cx /= room.polygon.length;
-          cy /= room.polygon.length;
-
+          const cx = room.polygon.reduce((sum, p) => sum + p.x, 0) / room.polygon.length;
+          const cy = room.polygon.reduce((sum, p) => sum + p.y, 0) / room.polygon.length;
           ctx.save();
-          ctx.font = `${12 * px}px "Segoe UI", Arial, sans-serif`;
-          ctx.fillStyle = '#555555';
+          ctx.fillStyle = '#666';
+          ctx.font = '0.15px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(room.label, cx, cy);
-
-          // Area text below label
-          ctx.font = `${9 * px}px "Segoe UI", Arial, sans-serif`;
-          ctx.fillStyle = '#888888';
-          ctx.fillText(formatAreaInUnit(room.area, du), cx, cy + 16 * px);
+          ctx.fillStyle = '#888';
+          ctx.font = '0.10px sans-serif';
+          ctx.fillText(formatAreaInUnit(room.area, du), cx, cy + 0.2);
           ctx.restore();
         }
       }
 
-      // ----- Draw walls (filled polygons) -----
+      // ----- Walls (fill + pattern + outline) -----
       for (const wall of walls) {
-        const poly = wallToPolygon(wall);
-        if (poly.length < 3) continue;
+        if (!wall.visible) continue;
 
-        ctx.beginPath();
-        ctx.moveTo(poly[0].x, poly[0].y);
-        for (let i = 1; i < poly.length; i++) {
-          ctx.lineTo(poly[i].x, poly[i].y);
-        }
-        ctx.closePath();
+        const dx = wall.end.x - wall.start.x;
+        const dy = wall.end.y - wall.start.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) continue;
+
+        const nx = -dy / len * (wall.thickness / 2);
+        const ny = dx / len * (wall.thickness / 2);
+
+        // Wall fill
         ctx.fillStyle = wall.fillColor;
+        ctx.beginPath();
+        ctx.moveTo(wall.start.x + nx, wall.start.y + ny);
+        ctx.lineTo(wall.end.x + nx, wall.end.y + ny);
+        ctx.lineTo(wall.end.x - nx, wall.end.y - ny);
+        ctx.lineTo(wall.start.x - nx, wall.start.y - ny);
+        ctx.closePath();
         ctx.fill();
 
-        // Cut door gaps
-        const wallDoors = doors.filter((d) => d.wallId === wall.id);
-        for (const door of wallDoors) {
-          cutOpeningExport(ctx, wall, door.position, door.width);
+        // Wall pattern overlay (matching CanvasArea)
+        const wallPat = ((wall as unknown as Record<string, unknown>).fillPattern || 'solid') as WallFillPattern;
+        if (wallPat !== 'solid') {
+          const wPatFn = wallPatternFns[wallPat];
+          if (wPatFn) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(wall.start.x + nx, wall.start.y + ny);
+            ctx.lineTo(wall.end.x + nx, wall.end.y + ny);
+            ctx.lineTo(wall.end.x - nx, wall.end.y - ny);
+            ctx.lineTo(wall.start.x - nx, wall.start.y - ny);
+            ctx.closePath();
+            ctx.clip();
+            const wMinX = Math.min(wall.start.x + nx, wall.end.x + nx, wall.end.x - nx, wall.start.x - nx);
+            const wMinY = Math.min(wall.start.y + ny, wall.end.y + ny, wall.end.y - ny, wall.start.y - ny);
+            const wMaxX = Math.max(wall.start.x + nx, wall.end.x + nx, wall.end.x - nx, wall.start.x - nx);
+            const wMaxY = Math.max(wall.start.y + ny, wall.end.y + ny, wall.end.y - ny, wall.start.y - ny);
+            wPatFn(ctx, wMinX, wMinY, wMaxX, wMaxY, px);
+            ctx.restore();
+          }
         }
 
-        // Cut window gaps and draw glass lines
-        const wallWindows = windows.filter((w) => w.wallId === wall.id);
-        for (const win of wallWindows) {
-          cutOpeningExport(ctx, wall, win.position, win.width);
-          drawGlassExport(ctx, wall, win.position, win.width, px);
-        }
-
-        // Stroke wall outline
-        ctx.beginPath();
-        ctx.moveTo(poly[0].x, poly[0].y);
-        for (let i = 1; i < poly.length; i++) {
-          ctx.lineTo(poly[i].x, poly[i].y);
-        }
-        ctx.closePath();
+        // Wall outline
         ctx.strokeStyle = wall.color;
-        ctx.lineWidth = px;
+        ctx.lineWidth = 0.01;
+        ctx.beginPath();
+        ctx.moveTo(wall.start.x + nx, wall.start.y + ny);
+        ctx.lineTo(wall.end.x + nx, wall.end.y + ny);
+        ctx.lineTo(wall.end.x - nx, wall.end.y - ny);
+        ctx.lineTo(wall.start.x - nx, wall.start.y - ny);
+        ctx.closePath();
         ctx.stroke();
       }
 
-      // ----- Draw door swing arcs -----
+      // ----- Doors (all styles, matching CanvasArea exactly) -----
       for (const door of doors) {
-        const wall = wallMap.get(door.wallId);
-        if (!wall) continue;
+        if (!door.visible) continue;
+        const parentWall = wallMap.get(door.wallId);
+        if (!parentWall) continue;
 
-        const { center, angle } = getDoorWorldPosition(wall, door.position);
-        const arc = getDoorSwingArc(
-          center,
-          angle,
-          door.width,
-          door.swing,
-          door.openAngle,
-        );
+        const dx = parentWall.end.x - parentWall.start.x;
+        const dy = parentWall.end.y - parentWall.start.y;
+        const dpx = parentWall.start.x + dx * door.position;
+        const dpy = parentWall.start.y + dy * door.position;
+        const doorStyle = door.doorStyle || 'single';
 
-        // Door leaf line
         ctx.save();
-        ctx.translate(center.x, center.y);
+        const angle = Math.atan2(dy, dx);
+        ctx.translate(dpx, dpy);
         ctx.rotate(angle);
+
+        // Door gap (erase wall segment)
+        ctx.strokeStyle = '#faf8f4';
+        ctx.lineWidth = parentWall.thickness + 0.02;
         ctx.beginPath();
         ctx.moveTo(-door.width / 2, 0);
         ctx.lineTo(door.width / 2, 0);
-        ctx.strokeStyle = '#555555';
-        ctx.lineWidth = 2 * px;
         ctx.stroke();
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 0.02;
+        let swingDir = door.swing === 'left' ? -1 : 1;
+        if (door.flipSide) swingDir *= -1;
+        const hingeX = (door.hinge === 'end') ? door.width / 2 : -door.width / 2;
+
+        // Wall jamb lines
+        const jambLen = parentWall.thickness / 2;
+        ctx.lineWidth = 0.025;
+        ctx.beginPath();
+        ctx.moveTo(-door.width / 2, -jambLen);
+        ctx.lineTo(-door.width / 2, jambLen);
+        ctx.moveTo(door.width / 2, -jambLen);
+        ctx.lineTo(door.width / 2, jambLen);
+        ctx.stroke();
+
+        ctx.lineWidth = 0.02;
+
+        if (doorStyle === 'single') {
+          const openRad = (door.openAngle * Math.PI) / 180;
+          const closedAngle = (door.hinge === 'start') ? 0 : Math.PI;
+          const flipForHinge = (door.hinge === 'start') ? 1 : -1;
+          const sweepAngle = swingDir * flipForHinge * openRad;
+          const leafAngle = closedAngle + sweepAngle;
+          // Door leaf
+          ctx.lineWidth = 0.03;
+          ctx.beginPath();
+          ctx.moveTo(hingeX, 0);
+          ctx.lineTo(hingeX + Math.cos(leafAngle) * door.width, Math.sin(leafAngle) * door.width);
+          ctx.stroke();
+          // Swing arc
+          ctx.lineWidth = 0.012;
+          ctx.beginPath();
+          const ccw = (swingDir * flipForHinge) < 0;
+          ctx.arc(hingeX, 0, door.width, closedAngle, leafAngle, ccw);
+          ctx.stroke();
+          ctx.lineWidth = 0.02;
+        } else if (doorStyle === 'double') {
+          const halfW = door.width / 2;
+          const openRad = (door.openAngle * Math.PI) / 180;
+          // Left leaf
+          const closedL = Math.PI;
+          const sweepL = swingDir > 0 ? openRad : -openRad;
+          const openL = closedL + sweepL;
+          ctx.lineWidth = 0.03;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(openL) * halfW, Math.sin(openL) * halfW);
+          ctx.stroke();
+          ctx.lineWidth = 0.012;
+          ctx.beginPath();
+          ctx.arc(0, 0, halfW, closedL, openL, swingDir < 0);
+          ctx.stroke();
+          // Right leaf
+          const closedR = 0;
+          const sweepR = swingDir > 0 ? -openRad : openRad;
+          const openR = closedR + sweepR;
+          ctx.lineWidth = 0.03;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(openR) * halfW, Math.sin(openR) * halfW);
+          ctx.stroke();
+          ctx.lineWidth = 0.012;
+          ctx.beginPath();
+          ctx.arc(0, 0, halfW, closedR, openR, swingDir > 0);
+          ctx.stroke();
+          ctx.lineWidth = 0.02;
+        } else if (doorStyle === 'sliding') {
+          const wt = parentWall.thickness / 2;
+          ctx.beginPath();
+          ctx.moveTo(-door.width / 2, wt * 0.3);
+          ctx.lineTo(door.width / 2, wt * 0.3);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-door.width / 2, -wt * 0.3);
+          ctx.lineTo(0, -wt * 0.3);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(door.width * 0.15, wt * 0.3 - 0.03);
+          ctx.lineTo(door.width * 0.3, wt * 0.3);
+          ctx.lineTo(door.width * 0.15, wt * 0.3 + 0.03);
+          ctx.stroke();
+        } else if (doorStyle === 'pocket') {
+          const wt = parentWall.thickness / 2;
+          ctx.setLineDash([0.04, 0.03]);
+          ctx.beginPath();
+          ctx.moveTo(-door.width / 2, 0);
+          ctx.lineTo(0, 0);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(door.width / 2, 0);
+          ctx.stroke();
+          ctx.setLineDash([0.02, 0.02]);
+          ctx.beginPath();
+          ctx.moveTo(-door.width / 2, -wt * 0.5);
+          ctx.lineTo(0, -wt * 0.5);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-door.width / 2, wt * 0.5);
+          ctx.lineTo(0, wt * 0.5);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else if (doorStyle === 'folding') {
+          const segments = 4;
+          const segW = door.width / segments;
+          ctx.beginPath();
+          ctx.moveTo(-door.width / 2, 0);
+          for (let i = 0; i < segments; i++) {
+            const fx = -door.width / 2 + segW * (i + 1);
+            const fy = (i % 2 === 0) ? swingDir * 0.08 : 0;
+            ctx.lineTo(fx, fy);
+          }
+          ctx.stroke();
+        } else if (doorStyle === 'revolving') {
+          const r = door.width / 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.stroke();
+          for (let i = 0; i < 4; i++) {
+            const a = (Math.PI / 2) * i + Math.PI / 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            ctx.stroke();
+          }
+        }
+
         ctx.restore();
-
-        // Swing arc
-        ctx.beginPath();
-        ctx.arc(center.x, center.y, arc.radius, arc.arcStart, arc.arcEnd, false);
-        ctx.strokeStyle = '#aaaaaa';
-        ctx.lineWidth = px;
-        ctx.setLineDash([4 * px, 4 * px]);
-        ctx.stroke();
-        ctx.setLineDash([]);
       }
 
-      // ----- Draw archlines -----
-      for (const archLine of archLines) {
+      // ----- Windows (all styles, matching CanvasArea exactly) -----
+      for (const win of windows) {
+        if (!win.visible) continue;
+        const parentWall = wallMap.get(win.wallId);
+        if (!parentWall) continue;
+
+        const dx = parentWall.end.x - parentWall.start.x;
+        const dy = parentWall.end.y - parentWall.start.y;
+        const wpx = parentWall.start.x + dx * win.position;
+        const wpy = parentWall.start.y + dy * win.position;
+        const windowStyle = win.windowStyle || 'single';
+
+        ctx.save();
+        const angle = Math.atan2(dy, dx);
+        ctx.translate(wpx, wpy);
+        ctx.rotate(angle);
+
+        // Window gap
+        ctx.strokeStyle = '#faf8f4';
+        ctx.lineWidth = parentWall.thickness + 0.02;
         ctx.beginPath();
-        ctx.moveTo(archLine.start.x, archLine.start.y);
-        ctx.lineTo(archLine.end.x, archLine.end.y);
-        ctx.strokeStyle = getArchLineColor(archLine.lineStyle);
-        ctx.lineWidth = archLine.lineWeight * px;
-        ctx.setLineDash(getArchLineDash(archLine.lineStyle, px));
+        ctx.moveTo(-win.width / 2, 0);
+        ctx.lineTo(win.width / 2, 0);
         ctx.stroke();
-        ctx.setLineDash([]);
+
+        const wt = parentWall.thickness / 2;
+        ctx.strokeStyle = '#4a9eda';
+        ctx.lineWidth = 0.015;
+
+        if (windowStyle === 'single') {
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, -wt * 0.6);
+          ctx.lineTo(win.width / 2, -wt * 0.6);
+          ctx.moveTo(-win.width / 2, wt * 0.6);
+          ctx.lineTo(win.width / 2, wt * 0.6);
+          ctx.stroke();
+          const hw = win.width / 2;
+          const ht = wt * 0.6;
+          ctx.lineWidth = 0.01;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(hw, ht);
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(hw, -ht);
+          ctx.stroke();
+          ctx.lineWidth = 0.015;
+        } else if (windowStyle === 'double') {
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, -wt * 0.6);
+          ctx.lineTo(win.width / 2, -wt * 0.6);
+          ctx.moveTo(-win.width / 2, wt * 0.6);
+          ctx.lineTo(win.width / 2, wt * 0.6);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, -wt * 0.6);
+          ctx.lineTo(0, wt * 0.6);
+          ctx.stroke();
+          const hw = win.width / 2;
+          const ht = wt * 0.6;
+          ctx.lineWidth = 0.01;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(0, ht);
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(0, -ht);
+          ctx.moveTo(0, -ht);
+          ctx.lineTo(hw, ht);
+          ctx.moveTo(0, ht);
+          ctx.lineTo(hw, -ht);
+          ctx.stroke();
+          ctx.lineWidth = 0.015;
+        } else if (windowStyle === 'sliding') {
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, -wt * 0.4);
+          ctx.lineTo(win.width * 0.1, -wt * 0.4);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-win.width * 0.1, wt * 0.4);
+          ctx.lineTo(win.width / 2, wt * 0.4);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, -wt * 0.6);
+          ctx.lineTo(win.width / 2, -wt * 0.6);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, wt * 0.6);
+          ctx.lineTo(win.width / 2, wt * 0.6);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(win.width * 0.2, wt * 0.4 - 0.025);
+          ctx.lineTo(win.width * 0.35, wt * 0.4);
+          ctx.lineTo(win.width * 0.2, wt * 0.4 + 0.025);
+          ctx.stroke();
+        } else if (windowStyle === 'fixed') {
+          for (const offset of [-wt * 0.6, wt * 0.6]) {
+            ctx.beginPath();
+            ctx.moveTo(-win.width / 2, offset);
+            ctx.lineTo(win.width / 2, offset);
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, -wt * 0.6);
+          ctx.lineTo(win.width / 2, wt * 0.6);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-win.width / 2, wt * 0.6);
+          ctx.lineTo(win.width / 2, -wt * 0.6);
+          ctx.stroke();
+        } else if (windowStyle === 'casement') {
+          const hw = win.width / 2;
+          const ht = wt * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(hw, -ht);
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(hw, ht);
+          ctx.stroke();
+          ctx.lineWidth = 0.01;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(hw, ht);
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(hw, -ht);
+          ctx.stroke();
+          ctx.lineWidth = 0.015;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(0, -ht - wt * 0.8);
+          ctx.lineTo(hw, -ht);
+          ctx.stroke();
+        } else if (windowStyle === 'awning') {
+          const hw = win.width / 2;
+          const ht = wt * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(hw, -ht);
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(hw, ht);
+          ctx.stroke();
+          ctx.lineWidth = 0.01;
+          ctx.beginPath();
+          ctx.moveTo(-hw, -ht);
+          ctx.lineTo(hw, ht);
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(hw, -ht);
+          ctx.stroke();
+          ctx.lineWidth = 0.015;
+          ctx.beginPath();
+          ctx.moveTo(-hw, ht);
+          ctx.lineTo(0, ht + wt * 0.8);
+          ctx.lineTo(hw, ht);
+          ctx.stroke();
+        }
+
+        ctx.restore();
       }
 
-      // ----- Draw furniture stamps -----
+      // ----- Architectural Lines -----
+      for (const line of archLines) {
+        if (!line.visible) continue;
+        const { dash, lineWidth: defaultLW, color } = getArchLineDash(line.lineStyle);
+        const effectiveLW = line.lineWeight > 0 ? line.lineWeight * 0.01 : defaultLW;
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = effectiveLW;
+        ctx.setLineDash(dash);
+        ctx.lineCap = 'butt';
+        ctx.beginPath();
+        ctx.moveTo(line.start.x, line.start.y);
+        ctx.lineTo(line.end.x, line.end.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      // ----- Furniture stamps -----
       for (const f of furniture) {
+        if (!f.visible) continue;
         const stamp = stampRegistry.get(f.stampId);
         if (!stamp) continue;
 
@@ -345,167 +673,346 @@ export function ExportDialog() {
         ctx.translate(f.position.x, f.position.y);
         ctx.rotate((f.rotation * Math.PI) / 180);
         ctx.scale(f.scale, f.scale);
+        ctx.translate(-f.width / 2, -f.depth / 2);
 
         if (f.color) {
-          // Apply tint by setting fill/stroke before the stamp draws
-          ctx.fillStyle = f.color;
           ctx.strokeStyle = f.color;
+          ctx.fillStyle = f.color;
         }
-
         stamp.draw(ctx, f.width, f.depth);
         ctx.restore();
       }
 
-      // ----- Draw stairs -----
+      // ----- Stairs (all styles, matching CanvasArea exactly) -----
       for (const stair of stairs) {
+        if (!stair.visible) continue;
+
+        const stairPos = stair.position as { x?: number; y?: number; point?: Point };
+        const stairPx = stairPos.x ?? stairPos.point?.x ?? 0;
+        const stairPy = stairPos.y ?? stairPos.point?.y ?? 0;
+
         ctx.save();
-        ctx.translate(stair.position.x, stair.position.y);
+        ctx.translate(stairPx, stairPy);
+        ctx.rotate((stair.rotation * Math.PI) / 180);
 
-        if (stair.rotation) {
-          ctx.translate(stair.width / 2, stair.length / 2);
-          ctx.rotate((stair.rotation * Math.PI) / 180);
-          ctx.translate(-stair.width / 2, -stair.length / 2);
+        if (stair.flipH || stair.flipV) {
+          ctx.translate(stair.flipH ? stair.width : 0, stair.flipV ? stair.length : 0);
+          ctx.scale(stair.flipH ? -1 : 1, stair.flipV ? -1 : 1);
         }
 
-        if (stair.flipH) {
-          ctx.translate(stair.width, 0);
-          ctx.scale(-1, 1);
-        }
-        if (stair.flipV) {
-          ctx.translate(0, stair.length);
-          ctx.scale(1, -1);
-        }
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 0.02;
+        ctx.fillStyle = 'transparent';
 
-        // Outline
-        ctx.strokeStyle = '#666666';
-        ctx.lineWidth = px;
-        ctx.strokeRect(0, 0, stair.width, stair.length);
+        const stStyle = stair.stairStyle || 'straight';
+        const sw = stair.width;
+        const sl = stair.length;
+        const treads = stair.treads;
 
-        // Treads
-        const treadDepth = stair.length / stair.treads;
-        ctx.strokeStyle = '#999999';
-        ctx.lineWidth = 0.5 * px;
-        for (let i = 1; i < stair.treads; i++) {
-          const y = i * treadDepth;
+        if (stStyle === 'straight') {
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, 0, sw, sl);
+          ctx.lineWidth = 0.012;
+          const treadDepth = sl / treads;
+          for (let i = 1; i < treads; i++) {
+            const y = i * treadDepth;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(sw, y);
+            ctx.stroke();
+          }
+          ctx.lineWidth = 0.015;
           ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(stair.width, y);
+          ctx.moveTo(0, sl * 0.55);
+          ctx.lineTo(sw, sl * 0.45);
           ctx.stroke();
+          ctx.lineWidth = 0.012;
+          ctx.beginPath();
+          ctx.moveTo(sw / 2, sl * 0.85);
+          ctx.lineTo(sw / 2, sl * 0.1);
+          ctx.stroke();
+          const arrowSize = Math.min(sw * 0.1, 0.1);
+          ctx.beginPath();
+          ctx.moveTo(sw / 2 - arrowSize, sl * 0.1 + arrowSize * 1.2);
+          ctx.lineTo(sw / 2, sl * 0.1);
+          ctx.lineTo(sw / 2 + arrowSize, sl * 0.1 + arrowSize * 1.2);
+          ctx.stroke();
+        } else if (stStyle === 'l-shaped') {
+          const land = stair.landingDepth;
+          const halfTreads = Math.floor(treads / 2);
+          const run1 = sl - land;
+          const treadDepth = run1 / halfTreads;
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, 0, sw, run1);
+          ctx.lineWidth = 0.012;
+          for (let i = 1; i < halfTreads; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, i * treadDepth);
+            ctx.lineTo(sw, i * treadDepth);
+            ctx.stroke();
+          }
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, run1, sw + land, land);
+          const run2W = land;
+          const run2L = sw;
+          const tread2Depth = run2L / (treads - halfTreads);
+          ctx.strokeRect(sw, 0, run2W, run2L);
+          ctx.lineWidth = 0.012;
+          for (let i = 1; i < treads - halfTreads; i++) {
+            const y = run2L - i * tread2Depth;
+            ctx.beginPath();
+            ctx.moveTo(sw, y);
+            ctx.lineTo(sw + run2W, y);
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.moveTo(sw / 2, run1 - 0.05);
+          ctx.lineTo(sw / 2, 0.1);
+          ctx.stroke();
+          const arrowSize = Math.min(sw * 0.08, 0.08);
+          ctx.beginPath();
+          ctx.moveTo(sw / 2 - arrowSize, 0.1 + arrowSize * 1.2);
+          ctx.lineTo(sw / 2, 0.1);
+          ctx.lineTo(sw / 2 + arrowSize, 0.1 + arrowSize * 1.2);
+          ctx.stroke();
+        } else if (stStyle === 'u-shaped') {
+          const land = stair.landingDepth;
+          const halfTreads = Math.floor(treads / 2);
+          const halfW = sw / 2;
+          const run1 = sl - land;
+          const treadDepth = run1 / halfTreads;
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, 0, halfW, run1);
+          ctx.lineWidth = 0.012;
+          for (let i = 1; i < halfTreads; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, i * treadDepth);
+            ctx.lineTo(halfW, i * treadDepth);
+            ctx.stroke();
+          }
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, run1, sw, land);
+          ctx.strokeRect(halfW, 0, halfW, run1);
+          ctx.lineWidth = 0.012;
+          for (let i = 1; i < treads - halfTreads; i++) {
+            const y = run1 - i * treadDepth;
+            ctx.beginPath();
+            ctx.moveTo(halfW, y);
+            ctx.lineTo(sw, y);
+            ctx.stroke();
+          }
+          ctx.lineWidth = 0.025;
+          ctx.beginPath();
+          ctx.moveTo(halfW, 0);
+          ctx.lineTo(halfW, run1);
+          ctx.stroke();
+          ctx.lineWidth = 0.012;
+          ctx.beginPath();
+          ctx.moveTo(halfW / 2, run1 - 0.05);
+          ctx.lineTo(halfW / 2, 0.1);
+          ctx.stroke();
+          const arrowSize = Math.min(halfW * 0.12, 0.08);
+          ctx.beginPath();
+          ctx.moveTo(halfW / 2 - arrowSize, 0.1 + arrowSize * 1.2);
+          ctx.lineTo(halfW / 2, 0.1);
+          ctx.lineTo(halfW / 2 + arrowSize, 0.1 + arrowSize * 1.2);
+          ctx.stroke();
+        } else if (stStyle === 'spiral') {
+          const cx = sw / 2;
+          const cy = sl / 2;
+          const outerR = Math.min(sw, sl) / 2;
+          const innerR = outerR * 0.2;
+          ctx.lineWidth = 0.025;
+          ctx.beginPath();
+          ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = 'transparent';
+          ctx.lineWidth = 0.012;
+          for (let i = 0; i < treads; i++) {
+            const a = (Math.PI * 2 * i) / treads;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(a) * innerR, cy + Math.sin(a) * innerR);
+            ctx.lineTo(cx + Math.cos(a) * outerR, cy + Math.sin(a) * outerR);
+            ctx.stroke();
+          }
+        } else if (stStyle === 'winder') {
+          const straightTreads = Math.max(2, treads - 3);
+          const straightLen = sl * 0.7;
+          const treadDepth = straightLen / straightTreads;
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, 0, sw, straightLen);
+          ctx.lineWidth = 0.012;
+          for (let i = 1; i < straightTreads; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, i * treadDepth);
+            ctx.lineTo(sw, i * treadDepth);
+            ctx.stroke();
+          }
+          const winderY = straightLen;
+          const winderH = sl - straightLen;
+          ctx.lineWidth = 0.025;
+          ctx.strokeRect(0, winderY, sw, winderH);
+          ctx.lineWidth = 0.012;
+          for (let i = 1; i <= 2; i++) {
+            const frac = i / 3;
+            ctx.beginPath();
+            ctx.moveTo(0, winderY);
+            ctx.lineTo(sw * frac, winderY + winderH);
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.moveTo(sw / 2, straightLen - 0.05);
+          ctx.lineTo(sw / 2, 0.1);
+          ctx.stroke();
+          const arrowSize = Math.min(sw * 0.1, 0.1);
+          ctx.beginPath();
+          ctx.moveTo(sw / 2 - arrowSize, 0.1 + arrowSize * 1.2);
+          ctx.lineTo(sw / 2, 0.1);
+          ctx.lineTo(sw / 2 + arrowSize, 0.1 + arrowSize * 1.2);
+          ctx.stroke();
+        } else if (stStyle === 'curved') {
+          const cx = sw;
+          const cy = sl / 2;
+          const outerR = Math.min(sw, sl / 2);
+          const innerR = outerR * 0.4;
+          ctx.lineWidth = 0.025;
+          ctx.beginPath();
+          ctx.arc(cx, cy, outerR, Math.PI / 2, Math.PI * 1.5);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cx, cy, innerR, Math.PI / 2, Math.PI * 1.5);
+          ctx.stroke();
+          ctx.lineWidth = 0.012;
+          for (let i = 0; i <= treads; i++) {
+            const a = Math.PI / 2 + (Math.PI * i) / treads;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(a) * innerR, cy + Math.sin(a) * innerR);
+            ctx.lineTo(cx + Math.cos(a) * outerR, cy + Math.sin(a) * outerR);
+            ctx.stroke();
+          }
         }
-
-        // Direction arrow
-        const arrowX = stair.width / 2;
-        const arrowY1 = stair.direction === 'up' ? stair.length * 0.8 : stair.length * 0.2;
-        const arrowY2 = stair.direction === 'up' ? stair.length * 0.2 : stair.length * 0.8;
-
-        ctx.strokeStyle = '#333333';
-        ctx.lineWidth = 1.5 * px;
-        ctx.beginPath();
-        ctx.moveTo(arrowX, arrowY1);
-        ctx.lineTo(arrowX, arrowY2);
-        ctx.stroke();
-
-        // Arrowhead
-        const headSize = 4 * px;
-        const headDir = stair.direction === 'up' ? -1 : 1;
-        ctx.beginPath();
-        ctx.moveTo(arrowX, arrowY2);
-        ctx.lineTo(arrowX - headSize, arrowY2 + headSize * headDir);
-        ctx.lineTo(arrowX + headSize, arrowY2 + headSize * headDir);
-        ctx.closePath();
-        ctx.fillStyle = '#333333';
-        ctx.fill();
 
         ctx.restore();
       }
 
-      // ----- Draw text labels -----
-      for (const t of texts) {
+      // ----- Shapes (rectangle, circle, triangle) -----
+      for (const shape of shapes) {
+        if (!shape.visible) continue;
+
         ctx.save();
-        ctx.translate(t.position.x, t.position.y);
-        if (t.rotation) {
-          ctx.rotate((t.rotation * Math.PI) / 180);
+        ctx.translate(shape.position.x, shape.position.y);
+        ctx.rotate((shape.rotation * Math.PI) / 180);
+
+        const hw = shape.width / 2;
+        const hh = shape.height / 2;
+
+        ctx.beginPath();
+        if (shape.shapeKind === 'rectangle') {
+          ctx.rect(-hw, -hh, shape.width, shape.height);
+        } else if (shape.shapeKind === 'circle') {
+          ctx.ellipse(0, 0, hw, hh, 0, 0, Math.PI * 2);
+        } else if (shape.shapeKind === 'triangle') {
+          ctx.moveTo(0, -hh);
+          ctx.lineTo(hw, hh);
+          ctx.lineTo(-hw, hh);
+          ctx.closePath();
         }
-        ctx.font = `${t.fontSize * px}px ${t.fontFamily}`;
-        ctx.fillStyle = t.color;
+
+        if (shape.filled) {
+          ctx.fillStyle = shape.fillColor;
+          ctx.fill();
+        }
+        ctx.strokeStyle = shape.strokeColor;
+        ctx.lineWidth = shape.strokeWidth;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // ----- Text Labels -----
+      for (const txt of texts) {
+        if (!txt.visible) continue;
+
+        ctx.save();
+        ctx.translate(txt.position.x, txt.position.y);
+        if (txt.rotation) {
+          ctx.rotate((txt.rotation * Math.PI) / 180);
+        }
+        ctx.fillStyle = txt.color;
+        ctx.font = `${txt.fontSize * 0.01}px ${txt.fontFamily}`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(t.text, 0, 0);
+        ctx.fillText(txt.text, 0, 0);
         ctx.restore();
       }
 
-      // ----- Draw dimensions -----
+      // ----- Dimensions -----
       for (const dim of dimensions) {
-        const dx = dim.end.x - dim.start.x;
-        const dy = dim.end.y - dim.start.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        if (length === 0) continue;
+        if (!dim.visible) continue;
 
-        // Unit vectors
-        const ux = dx / length;
-        const uy = dy / length;
-        // Perpendicular (for offset)
-        const nx = -uy;
-        const ny = ux;
+        const ddx = dim.end.x - dim.start.x;
+        const ddy = dim.end.y - dim.start.y;
+        const length = Math.sqrt(ddx * ddx + ddy * ddy);
+        if (length < 0.001) continue;
 
-        // Offset points
-        const s = {
-          x: dim.start.x + nx * dim.offset,
-          y: dim.start.y + ny * dim.offset,
-        };
-        const e = {
-          x: dim.end.x + nx * dim.offset,
-          y: dim.end.y + ny * dim.offset,
-        };
+        const dnx = -ddy / length;
+        const dny = ddx / length;
+        const off = dim.offset;
+
+        const sx = dim.start.x + dnx * off;
+        const sy = dim.start.y + dny * off;
+        const ex = dim.end.x + dnx * off;
+        const ey = dim.end.y + dny * off;
+
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 0.01;
 
         // Extension lines
-        ctx.strokeStyle = '#666666';
-        ctx.lineWidth = 0.5 * px;
-
         ctx.beginPath();
         ctx.moveTo(dim.start.x, dim.start.y);
-        ctx.lineTo(s.x, s.y);
-        ctx.stroke();
-
-        ctx.beginPath();
+        ctx.lineTo(sx, sy);
         ctx.moveTo(dim.end.x, dim.end.y);
-        ctx.lineTo(e.x, e.y);
+        ctx.lineTo(ex, ey);
         ctx.stroke();
 
         // Dimension line
         ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(e.x, e.y);
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ex, ey);
         ctx.stroke();
 
-        // Tick marks at ends
-        const tickLen = 3 * px;
-        for (const pt of [s, e]) {
-          ctx.beginPath();
-          ctx.moveTo(pt.x - nx * tickLen, pt.y - ny * tickLen);
-          ctx.lineTo(pt.x + nx * tickLen, pt.y + ny * tickLen);
-          ctx.stroke();
-        }
+        // Tick marks
+        const tickLen = 0.05;
+        ctx.lineWidth = 0.015;
+        ctx.beginPath();
+        ctx.moveTo(sx - dnx * tickLen, sy - dny * tickLen);
+        ctx.lineTo(sx + dnx * tickLen, sy + dny * tickLen);
+        ctx.moveTo(ex - dnx * tickLen, ey - dny * tickLen);
+        ctx.lineTo(ex + dnx * tickLen, ey + dny * tickLen);
+        ctx.stroke();
 
-        // Label (distance in meters)
-        const midX = (s.x + e.x) / 2;
-        const midY = (s.y + e.y) / 2;
-
+        // Label
+        const mx = (sx + ex) / 2;
+        const my = (sy + ey) / 2;
         ctx.save();
-        ctx.translate(midX, midY);
-        const textAngle = Math.atan2(dy, dx);
-        // Flip text if upside-down
-        const adjustedAngle =
-          textAngle > Math.PI / 2 || textAngle < -Math.PI / 2
-            ? textAngle + Math.PI
-            : textAngle;
-        ctx.rotate(adjustedAngle);
-
-        ctx.font = `${9 * px}px "Segoe UI", Arial, sans-serif`;
-        ctx.fillStyle = '#333333';
+        ctx.translate(mx, my);
+        const textAngle = Math.atan2(ddy, ddx);
+        const normalizedAngle = ((textAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const flipText = normalizedAngle > Math.PI / 2 && normalizedAngle < Math.PI * 1.5;
+        ctx.rotate(flipText ? textAngle + Math.PI : textAngle);
+        // Scale to screen pixels for readable text
+        ctx.scale(1 / fitScale, 1 / fitScale);
+        const screenFontSize = Math.max(11, Math.min(14, fitScale * 0.12));
+        ctx.fillStyle = '#2c2c2c';
+        ctx.font = `600 ${screenFontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(formatInUnit(length, du), 0, -2 * px);
+        ctx.fillText(formatInUnit(length, du), 0, -3);
         ctx.restore();
       }
 
@@ -717,94 +1224,4 @@ export function ExportDialog() {
       </div>
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Helpers for the export renderFn (cut openings + glass lines)
-// ---------------------------------------------------------------------------
-
-/**
- * Draw a white-filled rectangle over a wall section to erase the fill
- * where a door or window sits. Uses white (#ffffff) as the background
- * since exports always use a white base.
- */
-function cutOpeningExport(
-  ctx: CanvasRenderingContext2D,
-  wall: Wall,
-  position: number,
-  openingWidth: number,
-): void {
-  const dx = wall.end.x - wall.start.x;
-  const dy = wall.end.y - wall.start.y;
-  const wallLen = Math.sqrt(dx * dx + dy * dy);
-  if (wallLen === 0) return;
-
-  const ux = dx / wallLen;
-  const uy = dy / wallLen;
-  const nx = -uy;
-  const ny = ux;
-
-  const cx = wall.start.x + dx * position;
-  const cy = wall.start.y + dy * position;
-
-  const halfW = openingWidth / 2;
-  const halfT = wall.thickness / 2 + 0.005;
-
-  const x0 = cx - ux * halfW - nx * halfT;
-  const y0 = cy - uy * halfW - ny * halfT;
-  const x1 = cx + ux * halfW - nx * halfT;
-  const y1 = cy + uy * halfW - ny * halfT;
-  const x2 = cx + ux * halfW + nx * halfT;
-  const y2 = cy + uy * halfW + ny * halfT;
-  const x3 = cx - ux * halfW + nx * halfT;
-  const y3 = cy - uy * halfW + ny * halfT;
-
-  ctx.beginPath();
-  ctx.moveTo(x0, y0);
-  ctx.lineTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x3, y3);
-  ctx.closePath();
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-}
-
-/**
- * Draw two parallel glass pane lines across a wall opening.
- */
-function drawGlassExport(
-  ctx: CanvasRenderingContext2D,
-  wall: Wall,
-  position: number,
-  openingWidth: number,
-  px: number,
-): void {
-  const dx = wall.end.x - wall.start.x;
-  const dy = wall.end.y - wall.start.y;
-  const wallLen = Math.sqrt(dx * dx + dy * dy);
-  if (wallLen === 0) return;
-
-  const ux = dx / wallLen;
-  const uy = dy / wallLen;
-  const nx = -uy;
-  const ny = ux;
-
-  const cx = wall.start.x + dx * position;
-  const cy = wall.start.y + dy * position;
-
-  const halfW = openingWidth / 2;
-  const glassOffset = wall.thickness * 0.15;
-
-  ctx.strokeStyle = '#88ccee';
-  ctx.lineWidth = px;
-
-  for (const sign of [-1, 1] as const) {
-    const ox = nx * glassOffset * sign;
-    const oy = ny * glassOffset * sign;
-
-    ctx.beginPath();
-    ctx.moveTo(cx - ux * halfW + ox, cy - uy * halfW + oy);
-    ctx.lineTo(cx + ux * halfW + ox, cy + uy * halfW + oy);
-    ctx.stroke();
-  }
 }
