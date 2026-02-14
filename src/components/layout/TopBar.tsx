@@ -106,7 +106,7 @@ export function TopBar() {
   const setDisplayUnit = useProjectStore((s) => s.setDisplayUnit);
 
   const t = useTranslation();
-  const { saveProject, saveProjectAs, loadProject: loadProjectFile } = useProjectFile();
+  const { saveProject, loadProject: loadProjectFile } = useProjectFile();
 
   const [scaleOpen, setScaleOpen] = useState(false);
   const [customScaleInput, setCustomScaleInput] = useState('');
@@ -427,15 +427,6 @@ export function TopBar() {
           size="sm"
           tooltip={t('tooltip.save')}
         />
-        {!isMobile && (
-          <IconButton
-            icon={'\uD83D\uDCCB'}
-            label={t('ui.saveAsBtn')}
-            onClick={saveProjectAs}
-            size="sm"
-            tooltip={t('tooltip.saveAs')}
-          />
-        )}
         <IconButton
           icon={'\uD83D\uDCC2'}
           label={t('ui.load')}

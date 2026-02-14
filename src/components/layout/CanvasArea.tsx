@@ -2238,44 +2238,70 @@ export function CanvasArea() {
       if (parsed.length === 0) return;
       const store = useProjectStore.getState();
       const newIds: string[] = [];
-      for (const el of parsed) {
-        const { id: _id, type, ...rest } = el as AnyElement & Record<string, unknown>;
+      const OFFSET = 0.5;
+      // ID remap: old id -> new id (for walls so doors/windows/rooms keep references)
+      const idMap = new Map<string, string>();
+      // Sort: walls first, then doors/windows/rooms (they reference walls), then rest
+      const order: Record<string, number> = { wall: 0, door: 1, window: 1, room: 2 };
+      const sorted = [...parsed].sort((a, b) => {
+        const ta = (a as Record<string, unknown>).type as string;
+        const tb = (b as Record<string, unknown>).type as string;
+        return (order[ta] ?? 3) - (order[tb] ?? 3);
+      });
+      for (const el of sorted) {
+        const { id: oldId, type, ...rest } = el as AnyElement & Record<string, unknown>;
         switch (type) {
           case 'wall': {
             const w = rest as Record<string, unknown>;
             const start = w.start as { x: number; y: number };
             const end = w.end as { x: number; y: number };
-            w.start = { x: start.x + 0.5, y: start.y + 0.5 };
-            w.end = { x: end.x + 0.5, y: end.y + 0.5 };
-            newIds.push(store.addWall(w as Omit<import('@/types/elements.ts').Wall, 'id' | 'type'>));
+            w.start = { x: start.x + OFFSET, y: start.y + OFFSET };
+            w.end = { x: end.x + OFFSET, y: end.y + OFFSET };
+            const newId = store.addWall(w as Omit<import('@/types/elements.ts').Wall, 'id' | 'type'>);
+            idMap.set(oldId, newId);
+            newIds.push(newId);
             break;
           }
           case 'door': {
-            newIds.push(store.addDoor(rest as Omit<import('@/types/elements.ts').Door, 'id' | 'type'>));
+            const d = rest as Record<string, unknown>;
+            // Remap wallId to new wall if it was copied together
+            if (d.wallId && idMap.has(d.wallId as string)) {
+              d.wallId = idMap.get(d.wallId as string);
+            }
+            newIds.push(store.addDoor(d as Omit<import('@/types/elements.ts').Door, 'id' | 'type'>));
             break;
           }
           case 'window': {
-            newIds.push(store.addWindow(rest as Omit<import('@/types/elements.ts').Window, 'id' | 'type'>));
+            const w = rest as Record<string, unknown>;
+            // Remap wallId to new wall if it was copied together
+            if (w.wallId && idMap.has(w.wallId as string)) {
+              w.wallId = idMap.get(w.wallId as string);
+            }
+            newIds.push(store.addWindow(w as Omit<import('@/types/elements.ts').Window, 'id' | 'type'>));
             break;
           }
           case 'room': {
             const r = rest as Record<string, unknown>;
             const polygon = r.polygon as { x: number; y: number }[];
-            r.polygon = polygon.map((p) => ({ x: p.x + 0.5, y: p.y + 0.5 }));
+            r.polygon = polygon.map((p) => ({ x: p.x + OFFSET, y: p.y + OFFSET }));
+            // Remap wallIds to new walls if they were copied together
+            if (Array.isArray(r.wallIds)) {
+              r.wallIds = (r.wallIds as string[]).map((wid) => idMap.get(wid) ?? wid);
+            }
             newIds.push(store.addRoom(r as Omit<import('@/types/elements.ts').Room, 'id' | 'type'>));
             break;
           }
           case 'furniture': {
             const f = rest as Record<string, unknown>;
             const pos = f.position as { x: number; y: number };
-            f.position = { x: pos.x + 0.5, y: pos.y + 0.5 };
+            f.position = { x: pos.x + OFFSET, y: pos.y + OFFSET };
             newIds.push(store.addFurniture(f as Omit<import('@/types/elements.ts').FurnitureItem, 'id' | 'type'>));
             break;
           }
           case 'text': {
             const t = rest as Record<string, unknown>;
             const tPos = t.position as { x: number; y: number };
-            t.position = { x: tPos.x + 0.5, y: tPos.y + 0.5 };
+            t.position = { x: tPos.x + OFFSET, y: tPos.y + OFFSET };
             newIds.push(store.addText(t as Omit<import('@/types/elements.ts').TextLabel, 'id' | 'type'>));
             break;
           }
@@ -2283,8 +2309,8 @@ export function CanvasArea() {
             const d = rest as Record<string, unknown>;
             const dStart = d.start as { x: number; y: number };
             const dEnd = d.end as { x: number; y: number };
-            d.start = { x: dStart.x + 0.5, y: dStart.y + 0.5 };
-            d.end = { x: dEnd.x + 0.5, y: dEnd.y + 0.5 };
+            d.start = { x: dStart.x + OFFSET, y: dStart.y + OFFSET };
+            d.end = { x: dEnd.x + OFFSET, y: dEnd.y + OFFSET };
             newIds.push(store.addDimension(d as Omit<import('@/types/elements.ts').DimensionLine, 'id' | 'type'>));
             break;
           }
@@ -2292,22 +2318,22 @@ export function CanvasArea() {
             const a = rest as Record<string, unknown>;
             const aStart = a.start as { x: number; y: number };
             const aEnd = a.end as { x: number; y: number };
-            a.start = { x: aStart.x + 0.5, y: aStart.y + 0.5 };
-            a.end = { x: aEnd.x + 0.5, y: aEnd.y + 0.5 };
+            a.start = { x: aStart.x + OFFSET, y: aStart.y + OFFSET };
+            a.end = { x: aEnd.x + OFFSET, y: aEnd.y + OFFSET };
             newIds.push(store.addArchLine(a as Omit<import('@/types/elements.ts').ArchLine, 'id' | 'type'>));
             break;
           }
           case 'stair': {
             const s = rest as Record<string, unknown>;
             const sPos = s.position as { x: number; y: number };
-            s.position = { x: sPos.x + 0.5, y: sPos.y + 0.5 };
+            s.position = { x: sPos.x + OFFSET, y: sPos.y + OFFSET };
             newIds.push(store.addStair(s as Omit<import('@/types/elements.ts').Stair, 'id' | 'type'>));
             break;
           }
           case 'shape': {
             const sh = rest as Record<string, unknown>;
             const shPos = sh.position as { x: number; y: number };
-            sh.position = { x: shPos.x + 0.5, y: shPos.y + 0.5 };
+            sh.position = { x: shPos.x + OFFSET, y: shPos.y + OFFSET };
             newIds.push(store.addShape(sh as Omit<import('@/types/elements.ts').Shape, 'id' | 'type'>));
             break;
           }

@@ -208,29 +208,6 @@ export function useProjectFile() {
     legacySave(json, defaultName);
   }, [writeToHandle, pickSaveFile, legacySave]);
 
-  const saveProjectAs = useCallback(async (): Promise<void> => {
-    // Clear handle to force picker
-    currentFileHandle = null;
-
-    const json = store.getState().getProjectJSON();
-    const project = store.getState().project;
-    const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
-
-    // Try native file picker
-    if (hasFileSystemAccess()) {
-      const handle = await pickSaveFile(defaultName);
-      if (handle) {
-        currentFileHandle = handle;
-        await writeToHandle(handle, json);
-        return;
-      }
-      return; // User cancelled
-    }
-
-    // Legacy fallback
-    legacySave(json, defaultName);
-  }, [writeToHandle, pickSaveFile, legacySave]);
-
   // -----------------------------------------------------------------------
   // Auto-save to localStorage
   // -----------------------------------------------------------------------
@@ -265,5 +242,5 @@ export function useProjectFile() {
     }
   }, []);
 
-  return { loadProject, saveProject, saveProjectAs, autoSave, autoLoad };
+  return { loadProject, saveProject, autoSave, autoLoad };
 }
