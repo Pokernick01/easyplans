@@ -273,8 +273,20 @@ export function renderFacade(
   }
 
   // --- Silhouette elements (Neufert-style architectural elevations) ---
-  const silhouettes = facades.filter((e) => e.type === 'silhouette');
+  const silhouettes = facades
+    .filter((e): e is FacadeElement & { type: 'silhouette' } => e.type === 'silhouette')
+    .sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0));
+  const placedSilhouettes: Array<{ center: number; width: number; height: number }> = [];
+
   for (const sil of silhouettes) {
+    const center = sil.x + sil.width / 2;
+    const overlapsPlaced = placedSilhouettes.some((p) =>
+      Math.abs(p.center - center) < Math.min(p.width, sil.width) * 0.32
+      && Math.abs(p.height - sil.height) < 0.35,
+    );
+    if (overlapsPlaced) continue;
+    placedSilhouettes.push({ center, width: sil.width, height: sil.height });
+
     const sx = toScreenX(sil.x);
     const sy = toScreenY(sil.y + sil.height);
     const sw = sil.width * effectivePPM;
@@ -291,7 +303,7 @@ export function renderFacade(
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.translate(sx, sy);
     ctx.scale(sw / sil.width, sh / sil.height);
-    drawNeufertElevation(ctx, stampId, sil.width, sil.height, '#444');
+    drawNeufertElevation(ctx, stampId, sil.width, sil.height, sil.color || '#444');
     ctx.restore();
   }
 }

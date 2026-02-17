@@ -46,10 +46,10 @@ export function renderDerivedScene(
       scene.cutCoordinate,
       DIR_LABELS[scene.direction],
       scene.cutAxis,
+      scene.cutLine,
     );
     return;
   }
 
   renderIsometric(ctx, canvasWidth, canvasHeight, scene.faces);
 }
-

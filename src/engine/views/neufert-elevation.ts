@@ -1455,6 +1455,54 @@ export function drawCurtainElevation(
 }
 
 // ---------------------------------------------------------------------------
+// DOOR PANEL (front elevation)
+// ---------------------------------------------------------------------------
+export function drawDoorPanelElevation(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+) {
+  setLineStyle(ctx, w * 0.02);
+  ctx.strokeRect(0, 0, w, h);
+
+  const inset = Math.min(w, h) * 0.1;
+  setLineStyle(ctx, w * 0.012);
+  ctx.strokeRect(inset, inset, w - inset * 2, h - inset * 2);
+
+  // Handle
+  const handleX = w * 0.78;
+  const handleY = h * 0.55;
+  setLineStyle(ctx, w * 0.01);
+  ctx.beginPath();
+  ctx.arc(handleX, handleY, w * 0.035, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+// ---------------------------------------------------------------------------
+// WINDOW PANEL (front elevation)
+// ---------------------------------------------------------------------------
+export function drawWindowPanelElevation(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+) {
+  setLineStyle(ctx, w * 0.02);
+  ctx.strokeRect(0, 0, w, h);
+
+  const inset = Math.min(w, h) * 0.08;
+  setLineStyle(ctx, w * 0.01);
+  ctx.strokeRect(inset, inset, w - inset * 2, h - inset * 2);
+
+  // Mullions
+  ctx.beginPath();
+  ctx.moveTo(w / 2, inset);
+  ctx.lineTo(w / 2, h - inset);
+  ctx.moveTo(inset, h / 2);
+  ctx.lineTo(w - inset, h / 2);
+  ctx.stroke();
+}
+
+// ---------------------------------------------------------------------------
 // GENERIC FURNITURE (simple box with label-ready outline)
 // ---------------------------------------------------------------------------
 export function drawGenericFurnitureElevation(
@@ -1508,6 +1556,8 @@ export type ElevationType =
   | 'rug'
   | 'painting'
   | 'curtain'
+  | 'door-panel'
+  | 'window-panel'
   | 'generic';
 
 export function classifyStamp(stampId: string): ElevationType {
@@ -1549,7 +1599,11 @@ export function classifyStamp(stampId: string): ElevationType {
   if (id.includes('bed')) return 'bed';
   if (id.includes('table') || id.includes('desk') || id.includes('coffee')) return 'table';
   if (id.includes('chair') || id.includes('bench')) return 'chair';
-  if (id.includes('wardrobe') || id.includes('bookshelf') || id.includes('tv-stand')) return 'wardrobe';
+  if (id.includes('wardrobe') || id.includes('bookshelf') || id.includes('tv-stand') || id.includes('closet')) return 'wardrobe';
+
+  // Architectural glass/accessory stamps
+  if (id.includes('glass-sliding-door') || id === 'door') return 'door-panel';
+  if (id.includes('glass-sliding-window') || id.includes('glass-curtain-wall') || id === 'window') return 'window-panel';
 
   // Decoration
   if (id.includes('potted-plant') || id.includes('vase')) return 'potted-plant';
@@ -1596,6 +1650,8 @@ export function elevationHeight(type: ElevationType): number {
     case 'rug': return 0.02;
     case 'painting': return 0.6;
     case 'curtain': return 2.4;
+    case 'door-panel': return 2.1;
+    case 'window-panel': return 1.2;
     case 'generic': return 0.6;
   }
 }
@@ -1632,6 +1688,8 @@ export function elevationWidth(type: ElevationType): number {
     case 'rug': return 1.5;
     case 'painting': return 0.8;
     case 'curtain': return 1.5;
+    case 'door-panel': return 0.9;
+    case 'window-panel': return 1.2;
     case 'generic': return 0.6;
   }
 }
@@ -1669,6 +1727,8 @@ const drawFns: Record<
   rug: drawRugElevation,
   painting: drawPaintingElevation,
   curtain: drawCurtainElevation,
+  'door-panel': drawDoorPanelElevation,
+  'window-panel': drawWindowPanelElevation,
   generic: drawGenericFurnitureElevation,
 };
 

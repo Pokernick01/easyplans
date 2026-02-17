@@ -1,5 +1,6 @@
 import type { SectionElement } from '@/engine/views/cross-section';
 import type { FurnitureItem } from '@/types/elements';
+import type { Line } from '@/types/geometry';
 import { drawNeufertElevation, classifyStamp, elevationHeight, elevationWidth } from '@/engine/views/neufert-elevation';
 
 // ---------------------------------------------------------------------------
@@ -121,6 +122,7 @@ function drawDimensionVertical(
  * @param cutCoordinate  Cut coordinate (X or Y depending on cut axis).
  * @param directionLabel Optional direction label for the title (e.g. "Norte").
  * @param cutAxis        Axis used for section proximity filtering.
+ * @param cutLine        Original plan-space cut line for consistent furniture projection.
  */
 export function renderCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -132,6 +134,7 @@ export function renderCrossSection(
   cutCoordinate?: number,
   directionLabel?: string,
   cutAxis: 'x' | 'y' = 'y',
+  cutLine?: Line,
 ): void {
   // --- 1. Clear canvas ---
   ctx.save();
@@ -387,16 +390,69 @@ export function renderCrossSection(
 
   // --- 11. Furniture Neufert elevation silhouettes ---
   if (furniture && furniture.length > 0 && cutCoordinate !== undefined) {
-    const cutTolerance = 2.0; // meters -- items within 2m of cut line are shown
+    const cutDirX = cutLine ? cutLine.end.x - cutLine.start.x : 0;
+    const cutDirY = cutLine ? cutLine.end.y - cutLine.start.y : 0;
+    const cutLen = Math.hypot(cutDirX, cutDirY);
+
+    const projectAlongCut = (item: FurnitureItem): number => {
+      if (!cutLine || cutLen < 1e-6) {
+        return cutAxis === 'y' ? item.position.x : item.position.y;
+      }
+      const relX = item.position.x - cutLine.start.x;
+      const relY = item.position.y - cutLine.start.y;
+      return (relX * cutDirX + relY * cutDirY) / cutLen;
+    };
+
+    const candidates: Array<{
+      item: FurnitureItem;
+      alongCoord: number;
+      elW: number;
+      elH: number;
+      distanceToCut: number;
+    }> = [];
+
     for (const item of furniture) {
       if (!item.visible) continue;
+
       const nearCoord = cutAxis === 'y' ? item.position.y : item.position.x;
-      if (Math.abs(nearCoord - cutCoordinate) > cutTolerance) continue;
+
+      // Keep only furniture that intersects or is very close to the cut plane.
+      const scaledW = Math.max(0.05, item.width * item.scale);
+      const scaledD = Math.max(0.05, item.depth * item.scale);
+      const rotRad = ((item.rotation ?? 0) * Math.PI) / 180;
+      const absCos = Math.abs(Math.cos(rotRad));
+      const absSin = Math.abs(Math.sin(rotRad));
+      const halfExtentNear = cutAxis === 'y'
+        ? (scaledW * absSin + scaledD * absCos) / 2
+        : (scaledW * absCos + scaledD * absSin) / 2;
+      const nearTolerance = halfExtentNear + 0.04;
+      const distanceToCut = Math.abs(nearCoord - cutCoordinate);
+      if (distanceToCut > nearTolerance) continue;
 
       const type = classifyStamp(item.stampId);
       const elW = elevationWidth(type);
       const elH = elevationHeight(type);
-      const alongCoord = cutAxis === 'y' ? item.position.x : item.position.y;
+      const alongCoord = projectAlongCut(item);
+      candidates.push({
+        item,
+        alongCoord,
+        elW,
+        elH,
+        distanceToCut,
+      });
+    }
+
+    candidates.sort((a, b) => a.distanceToCut - b.distanceToCut);
+    const placedSilhouettes: Array<{ center: number; width: number; height: number }> = [];
+    for (const candidate of candidates) {
+      const { item, alongCoord, elW, elH } = candidate;
+      const center = alongCoord;
+      const overlapsPlaced = placedSilhouettes.some((p) =>
+        Math.abs(p.center - center) < Math.min(p.width, elW) * 0.32
+        && Math.abs(p.height - elH) < 0.35,
+      );
+      if (overlapsPlaced) continue;
+      placedSilhouettes.push({ center, width: elW, height: elH });
 
       // Convert to the cut-line distance coordinate system
       const sx = toScreenX(alongCoord - elW / 2);
@@ -408,7 +464,7 @@ export function renderCrossSection(
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.translate(sx, sy);
       ctx.scale(sw / elW, sh / elH);
-      drawNeufertElevation(ctx, item.stampId, elW, elH, '#555');
+      drawNeufertElevation(ctx, item.stampId, elW, elH, item.color ?? '#555');
       ctx.restore();
     }
   }

@@ -14,7 +14,6 @@ export function AppShell() {
   const exportDialogOpen = useUIStore((s) => s.exportDialogOpen);
   const supportDialogOpen = useUIStore((s) => s.supportDialogOpen);
   const suggestionDialogOpen = useUIStore((s) => s.suggestionDialogOpen);
-  const isMobile = useUIStore((s) => s.isMobile);
   const setIsMobile = useUIStore((s) => s.setIsMobile);
 
   // Auto-load saved project from localStorage on mount
@@ -55,22 +54,21 @@ export function AppShell() {
   // Listen for viewport size changes
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)');
-    const handler = (e: MediaQueryListEvent) => {
-      setIsMobile(e.matches);
-      if (e.matches) {
-        // Auto-collapse sidebars on mobile
-        const state = useUIStore.getState();
-        if (state.rightSidebarOpen) state.toggleRightSidebar();
-        if (state.leftSidebarOpen) state.toggleLeftSidebar();
-      }
+    const applyLayoutForViewport = (mobile: boolean) => {
+      setIsMobile(mobile);
+      if (!mobile) return;
+      // Ensure canvas is visible on first mobile load.
+      useUIStore.setState({
+        rightSidebarOpen: false,
+        leftSidebarOpen: false,
+      });
     };
+
+    applyLayoutForViewport(mq.matches);
+    const handler = (e: MediaQueryListEvent) => applyLayoutForViewport(e.matches);
     mq.addEventListener('change', handler);
-    // Initial check
-    if (mq.matches !== isMobile) {
-      setIsMobile(mq.matches);
-    }
     return () => mq.removeEventListener('change', handler);
-  }, [setIsMobile, isMobile]);
+  }, [setIsMobile]);
 
   return (
     <div className="w-full h-full flex flex-col" style={{ background: '#f4f1ec' }}>

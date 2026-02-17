@@ -24,6 +24,11 @@ export interface FacadeElement {
   silhouetteType?: 'person' | 'tree' | 'car' | 'furniture';
   /** Original stampId for Neufert elevation draws. */
   stampId?: string;
+  /**
+   * Relative depth from the facade plane (meters). `0` means the item is on
+   * or in front of the facade plane; higher values are further behind.
+   */
+  depth?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +72,21 @@ function wallNormal(wall: Wall): { x: number; y: number } {
 // ---------------------------------------------------------------------------
 
 const FACING_THRESHOLD = 0.3; // dot-product threshold: cos(~73 deg)
+const FRONT_WALL_DEPTH_TOLERANCE = 0.35; // meters
+const FACADE_INTERIOR_DEPTH_PADDING = 0.25; // meters behind facade plane
+const FACADE_EXTERIOR_DEPTH_BAND = 3.5; // meters in front of facade plane
+const FACADE_FURNITURE_EPSILON = 0.12; // rotated-footprint slack
+
+function halfExtentAlongAxis(item: FurnitureItem, axis: 'x' | 'y'): number {
+  const scaledW = Math.max(0.05, item.width * item.scale);
+  const scaledD = Math.max(0.05, item.depth * item.scale);
+  const rotRad = ((item.rotation ?? 0) * Math.PI) / 180;
+  const absCos = Math.abs(Math.cos(rotRad));
+  const absSin = Math.abs(Math.sin(rotRad));
+  return axis === 'x'
+    ? (scaledW * absCos + scaledD * absSin) / 2
+    : (scaledW * absSin + scaledD * absCos) / 2;
+}
 
 // ---------------------------------------------------------------------------
 // Main generator
@@ -93,6 +113,33 @@ export function generateFacade(
 ): FacadeElement[] {
   const elements: FacadeElement[] = [];
   const cfg = getDirectionConfig(direction);
+  const candidateWalls = walls.filter((wall) => {
+    const normal = wallNormal(wall);
+    const normalComponent = cfg.normalAxis === 'x' ? normal.x : normal.y;
+    return Math.abs(normalComponent) >= FACING_THRESHOLD;
+  });
+
+  const wallDepth = (wall: Wall): number => {
+    const midX = (wall.start.x + wall.end.x) / 2;
+    const midY = (wall.start.y + wall.end.y) / 2;
+    return cfg.normalAxis === 'x' ? midX : midY;
+  };
+
+  let frontDepth: number | null = null;
+  if (candidateWalls.length > 0) {
+    const depths = candidateWalls.map(wallDepth);
+    if (direction === 'north' || direction === 'east') {
+      frontDepth = Math.max(...depths);
+    } else {
+      frontDepth = Math.min(...depths);
+    }
+  }
+
+  const facadeWalls = candidateWalls.length === 0 || frontDepth === null
+    ? candidateWalls
+    : candidateWalls.filter((wall) => Math.abs(wallDepth(wall) - frontDepth!) <= FRONT_WALL_DEPTH_TOLERANCE);
+
+  const wallsToRender = facadeWalls.length > 0 ? facadeWalls : candidateWalls;
 
   // Build lookup maps
   const doorsByWall = new Map<string, Door[]>();
@@ -112,15 +159,7 @@ export function generateFacade(
   let minX = Infinity;
   let maxX = -Infinity;
 
-  for (const wall of walls) {
-    // Check if this wall faces the viewer
-    const normal = wallNormal(wall);
-    const normalComponent = cfg.normalAxis === 'x' ? normal.x : normal.y;
-
-    // Use absolute facing test so facade visibility does not depend on
-    // wall draw direction (start/end winding).
-    if (Math.abs(normalComponent) < FACING_THRESHOLD) continue;
-
+  for (const wall of wallsToRender) {
     // Project wall endpoints onto the horizontal facade axis
     const startH = cfg.horizAxis === 'x' ? wall.start.x : wall.start.y;
     const endH = cfg.horizAxis === 'x' ? wall.end.x : wall.end.y;
@@ -191,6 +230,29 @@ export function generateFacade(
   // --- Furniture / people / trees / cars silhouettes ---
   if (furniture && furniture.length > 0) {
     for (const item of furniture) {
+      if (!item.visible) continue;
+
+      const normalCoord = cfg.normalAxis === 'x' ? item.position.x : item.position.y;
+      let depthFromFacade = 0;
+      if (frontDepth !== null) {
+        const halfExtentNormal = halfExtentAlongAxis(item, cfg.normalAxis);
+        const paddedHalfExtent = halfExtentNormal + FACADE_FURNITURE_EPSILON;
+
+        // Positive distance means object is in front of the facade.
+        // Negative distance means object is behind the facade (inside).
+        const signedFrontDistance = (direction === 'north' || direction === 'east')
+          ? normalCoord - frontDepth
+          : frontDepth - normalCoord;
+
+        const maxInteriorDistance = paddedHalfExtent + FACADE_INTERIOR_DEPTH_PADDING;
+        const maxExteriorDistance = paddedHalfExtent + FACADE_EXTERIOR_DEPTH_BAND;
+        if (signedFrontDistance < -maxInteriorDistance || signedFrontDistance > maxExteriorDistance) {
+          continue;
+        }
+
+        depthFromFacade = signedFrontDistance >= 0 ? 0 : -signedFrontDistance;
+      }
+
       // Project furniture position onto the facade horizontal axis
       const posH = cfg.horizAxis === 'x' ? item.position.x : item.position.y;
       const projX = posH * cfg.horizSign;
@@ -212,10 +274,11 @@ export function generateFacade(
         y: 0,
         width: silWidth,
         height: silHeight,
-        color: '#555555',
+        color: item.color ?? '#555555',
         filled: true,
         silhouetteType: silType,
         stampId: item.stampId,
+        depth: depthFromFacade,
       });
     }
   }

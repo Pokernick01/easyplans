@@ -117,6 +117,8 @@ function clampZoom(z: number): number {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 }
 
+const INITIAL_IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
+
 // ---------------------------------------------------------------------------
 // Store (not tracked by undo/redo)
 // ---------------------------------------------------------------------------
@@ -143,9 +145,9 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
   exportDialogOpen: false,
   supportDialogOpen: false,
   suggestionDialogOpen: false,
-  rightSidebarOpen: true,
-  leftSidebarOpen: true,
-  isMobile: typeof window !== 'undefined' && window.innerWidth < 768,
+  rightSidebarOpen: !INITIAL_IS_MOBILE,
+  leftSidebarOpen: !INITIAL_IS_MOBILE,
+  isMobile: INITIAL_IS_MOBILE,
   activeArchLineStyle: 'colindancia',
   activeDoorStyle: 'single',
   activeWindowStyle: 'single',

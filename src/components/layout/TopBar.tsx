@@ -460,6 +460,15 @@ export function TopBar() {
           />
         </div>
 
+        <button
+          type="button"
+          onClick={() => setSupportDialogOpen(true)}
+          className="ep-support-btn"
+          title={t('support.apoyame')}
+        >
+          {isMobile ? '\u2665' : t('support.apoyame')}
+        </button>
+
         <div className="relative" ref={moreMenuRef}>
           <button
             type="button"

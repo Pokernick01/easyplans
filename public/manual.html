@@ -374,7 +374,7 @@
 
     <div lang="en">
       <h3>Top Bar</h3>
-      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan, Section, Facade, 3D), scale selector, grid/snap/dimension toggles, undo/redo, new project, clear canvas, export, save/load buttons, help button, and the support button.</p>
+      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan, Section, Facade, 3D), scale selector, grid/snap/dimension toggles, undo/redo, new project, clear canvas, export, save/load buttons, help button, and a prominent <strong>Apoyame / Support me</strong> button.</p>
 
       <h3>Left Sidebar</h3>
       <p>Tool palette with all drawing tools. Click a tool or use its keyboard shortcut to activate it. The active tool is highlighted in green.</p>
@@ -398,7 +398,7 @@
 
     <div lang="es">
       <h3>Barra Superior</h3>
-      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta, Corte, Fachada, 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, nuevo proyecto, limpiar lienzo, exportar, guardar/cargar, bot&oacute;n de ayuda y bot&oacute;n de apoyo.</p>
+      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta, Corte, Fachada, 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, nuevo proyecto, limpiar lienzo, exportar, guardar/cargar, bot&oacute;n de ayuda y un bot&oacute;n <strong>Ap&oacute;yame / Support me</strong> m&aacute;s visible.</p>
 
       <h3>Barra Lateral Izquierda</h3>
       <p>Paleta de herramientas con todas las herramientas de dibujo. Haz clic en una herramienta o usa su atajo de teclado para activarla. La herramienta activa se resalta en verde.</p>
@@ -1058,9 +1058,11 @@
 
       <h3>Section View (Corte)</h3>
       <p>Vertical cross-section through the building. Shows wall heights, floor slabs, door/window heights, stairs with visible treads, and Neufert-style furniture silhouettes. Includes dimension annotations and hatching patterns.</p>
+      <p>Section silhouettes are filtered by real cut-plane intersection and overlap is automatically reduced, so furniture/stamps are easier to read.</p>
 
       <h3>Facade View (Fachada)</h3>
       <p>Building elevation from a selectable direction (North, South, East, West). Shows the exterior appearance with wall materials, door and window openings, and architectural detail.</p>
+      <p>Facade silhouettes use front-plane depth filtering and overlap cleanup, so rear/interior clutter is reduced and stamp readability is improved.</p>
 
       <h3>Isometric View (3D)</h3>
       <p>Pseudo-3D axonometric projection showing the building in three dimensions. Walls display their full height, doors and windows show their openings. Rotation angle can be adjusted.</p>
@@ -1072,9 +1074,11 @@
 
       <h3>Vista de Corte</h3>
       <p>Secci&oacute;n transversal vertical del edificio. Muestra alturas de muros, losas de piso, alturas de puertas/ventanas, escaleras con pelda&ntilde;os visibles y siluetas de muebles estilo Neufert. Incluye anotaciones de cotas y patrones de achurado.</p>
+      <p>Las siluetas en corte ahora se filtran por intersecci&oacute;n real con el plano de corte y se reduce autom&aacute;ticamente la superposici&oacute;n para mejorar la lectura.</p>
 
       <h3>Vista de Fachada</h3>
       <p>Elevaci&oacute;n del edificio desde una direcci&oacute;n seleccionable (Norte, Sur, Este, Oeste). Muestra la apariencia exterior con materiales de muro, aberturas de puertas y ventanas, y detalle arquitect&oacute;nico.</p>
+      <p>Las siluetas en fachada usan filtrado por profundidad del plano frontal y limpieza de superposiciones para reducir ruido interior y mejorar la diferenciaci&oacute;n de sellos.</p>
 
       <h3>Vista Isom&eacute;trica (3D)</h3>
       <p>Proyecci&oacute;n axonom&eacute;trica pseudo-3D mostrando el edificio en tres dimensiones. Los muros muestran su altura completa, las puertas y ventanas muestran sus aberturas. El &aacute;ngulo de rotaci&oacute;n se puede ajustar.</p>
@@ -1222,6 +1226,7 @@
         <tr><td>2 finger drag</td><td>Pan the canvas</td></tr>
         <tr><td>2 finger pinch</td><td>Zoom in / out</td></tr>
       </table>
+      <div class="tip"><strong>Mobile:</strong> Sidebars auto-collapse on small screens at load time so the canvas remains visible.</div>
     </div>
 
     <div lang="es">
@@ -1252,6 +1257,7 @@
         <tr><td>Arrastrar 2 dedos</td><td>Desplazar el lienzo</td></tr>
         <tr><td>Pellizcar 2 dedos</td><td>Acercar / alejar zoom</td></tr>
       </table>
+      <div class="tip"><strong>M&oacute;vil:</strong> En pantallas peque&ntilde;as, las barras laterales se cierran autom&aacute;ticamente al cargar para mantener visible el lienzo.</div>
     </div>
 
     <!-- 17. Properties -->
