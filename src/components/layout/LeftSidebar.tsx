@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useTranslation } from '@/utils/i18n.ts';
 import type { ToolType } from '@/types/tools.ts';

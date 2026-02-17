@@ -6,7 +6,6 @@ import { drawNeufertElevation } from '@/engine/views/neufert-elevation';
 // ---------------------------------------------------------------------------
 
 const TITLE_FONT = 'bold 14px "Segoe UI", Arial, sans-serif';
-const LABEL_FONT = '11px "Segoe UI", Arial, sans-serif';
 const MARGIN = 60; // px margin around the drawing area
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import { IconButton } from '@/components/shared/IconButton.tsx';
 import { useTranslation } from '@/utils/i18n.ts';
 import { useProjectFile } from '@/hooks/useProjectFile.ts';
 import type { ViewMode } from '@/types/project.ts';
-import { DISPLAY_UNITS, UNIT_LABELS, type DisplayUnit } from '@/utils/units.ts';
+import { DISPLAY_UNITS, UNIT_LABELS } from '@/utils/units.ts';
 
 // ---------------------------------------------------------------------------
 // View mode icons (SVG)
@@ -106,7 +106,12 @@ export function TopBar() {
   const setDisplayUnit = useProjectStore((s) => s.setDisplayUnit);
 
   const t = useTranslation();
-  const { saveProject, loadProject: loadProjectFile } = useProjectFile();
+  const {
+    saveProject,
+    loadProject: loadProjectFile,
+    createNewProjectWithPrompt,
+    clearCanvasWithConfirm,
+  } = useProjectFile();
 
   const [scaleOpen, setScaleOpen] = useState(false);
   const [customScaleInput, setCustomScaleInput] = useState('');
@@ -114,6 +119,8 @@ export function TopBar() {
   const scaleDropdownRef = useRef<HTMLDivElement>(null);
   const [unitOpen, setUnitOpen] = useState(false);
   const unitDropdownRef = useRef<HTMLDivElement>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Close scale dropdown when clicking outside
   useEffect(() => {
@@ -139,6 +146,17 @@ export function TopBar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [unitOpen]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e: Event) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [moreOpen]);
 
   const handleUndo = () => {
     const { undo } = useProjectStore.temporal.getState();
@@ -232,137 +250,132 @@ export function TopBar() {
       </div>
 
       {/* Right: controls */}
-      <div className="flex items-center shrink-0" style={{ gap: isMobile ? 1 : 6 }}>
-        {/* Scale selector — hidden on mobile to save space */}
-        {!isMobile && <div className="relative" ref={scaleDropdownRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setScaleOpen(!scaleOpen);
-              setShowCustom(false);
-            }}
-            className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
-            style={{ background: 'rgba(0,0,0,0.04)' }}
-          >
-            {scale}
-          </button>
-          {scaleOpen && (
-            <div
-              className="ep-dropdown absolute top-full right-0 mt-1 z-50"
-              style={{ maxHeight: 320, overflowY: 'auto', minWidth: 100 }}
-            >
-              {SCALES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    setScale(s);
-                    setScaleOpen(false);
-                  }}
-                  className={`ep-dropdown-item ${s === scale ? 'selected' : ''}`}
+      <div className="flex items-center shrink-0" style={{ gap: isMobile ? 4 : 8 }}>
+        {!isMobile && (
+          <div className="ep-toolbar-group">
+            <div className="relative" ref={scaleDropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setScaleOpen(!scaleOpen);
+                  setShowCustom(false);
+                }}
+                className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
+                style={{ background: 'rgba(0,0,0,0.04)' }}
+              >
+                {scale}
+              </button>
+              {scaleOpen && (
+                <div
+                  className="ep-dropdown absolute top-full right-0 mt-1 z-50"
+                  style={{ maxHeight: 320, overflowY: 'auto', minWidth: 100 }}
                 >
-                  {s}
-                </button>
-              ))}
-              {/* Custom scale option */}
-              <div style={{ borderTop: '1px solid var(--ep-border)' }}>
-                {showCustom ? (
-                  <div className="flex items-center gap-1 p-1.5">
-                    <span className="text-xs" style={{ color: 'var(--ep-text-dim)' }}>1:</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10000}
-                      value={customScaleInput}
-                      onChange={(e) => setCustomScaleInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const num = parseInt(customScaleInput, 10);
-                          if (num > 0 && num <= 10000) {
-                            setScale(`1:${num}`);
-                            setScaleOpen(false);
-                            setShowCustom(false);
-                            setCustomScaleInput('');
-                          }
-                        }
-                        if (e.key === 'Escape') {
-                          setShowCustom(false);
-                        }
-                      }}
-                      autoFocus
-                      className="ep-input w-16 px-1 py-0.5 text-xs"
-                      placeholder="ej. 75"
-                    />
+                  {SCALES.map((s) => (
                     <button
+                      key={s}
                       type="button"
                       onClick={() => {
-                        const num = parseInt(customScaleInput, 10);
-                        if (num > 0 && num <= 10000) {
-                          setScale(`1:${num}`);
-                          setScaleOpen(false);
-                          setShowCustom(false);
-                          setCustomScaleInput('');
-                        }
+                        setScale(s);
+                        setScaleOpen(false);
                       }}
-                      className="ep-btn-primary px-1.5 py-0.5 text-xs cursor-pointer"
+                      className={`ep-dropdown-item ${s === scale ? 'selected' : ''}`}
                     >
-                      OK
+                      {s}
                     </button>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--ep-border)' }}>
+                    {showCustom ? (
+                      <div className="flex items-center gap-1 p-1.5">
+                        <span className="text-xs" style={{ color: 'var(--ep-text-dim)' }}>1:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10000}
+                          value={customScaleInput}
+                          onChange={(e) => setCustomScaleInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const num = parseInt(customScaleInput, 10);
+                              if (num > 0 && num <= 10000) {
+                                setScale(`1:${num}`);
+                                setScaleOpen(false);
+                                setShowCustom(false);
+                                setCustomScaleInput('');
+                              }
+                            }
+                            if (e.key === 'Escape') {
+                              setShowCustom(false);
+                            }
+                          }}
+                          autoFocus
+                          className="ep-input w-16 px-1 py-0.5 text-xs"
+                          placeholder="ej. 75"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const num = parseInt(customScaleInput, 10);
+                            if (num > 0 && num <= 10000) {
+                              setScale(`1:${num}`);
+                              setScaleOpen(false);
+                              setShowCustom(false);
+                              setCustomScaleInput('');
+                            }
+                          }}
+                          className="ep-btn-primary px-1.5 py-0.5 text-xs cursor-pointer"
+                        >
+                          OK
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowCustom(true)}
+                        className="ep-dropdown-item"
+                        style={{ color: 'var(--ep-text-dim)' }}
+                      >
+                        {t('ui.custom')}
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowCustom(true)}
-                    className="ep-dropdown-item"
-                    style={{ color: 'var(--ep-text-dim)' }}
-                  >
-                    {t('ui.custom')}
-                  </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>}
 
-        {/* Unit selector — hidden on mobile to save space */}
-        {!isMobile && <div className="relative" ref={unitDropdownRef}>
-          <button
-            type="button"
-            onClick={() => setUnitOpen(!unitOpen)}
-            className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
-            style={{ background: 'rgba(0,0,0,0.04)' }}
-            title={t('tooltip.units')}
-          >
-            {UNIT_LABELS[displayUnit || 'm']}
-          </button>
-          {unitOpen && (
-            <div
-              className="ep-dropdown absolute top-full right-0 mt-1 z-50"
-              style={{ maxHeight: 280, overflowY: 'auto', minWidth: 150 }}
-            >
-              {DISPLAY_UNITS.map((u) => (
-                <button
-                  key={u}
-                  type="button"
-                  onClick={() => {
-                    setDisplayUnit(u);
-                    setUnitOpen(false);
-                  }}
-                  className={`ep-dropdown-item ${u === (displayUnit || 'm') ? 'selected' : ''}`}
+            <div className="relative" ref={unitDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setUnitOpen(!unitOpen)}
+                className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
+                style={{ background: 'rgba(0,0,0,0.04)' }}
+                title={t('tooltip.units')}
+              >
+                {UNIT_LABELS[displayUnit || 'm']}
+              </button>
+              {unitOpen && (
+                <div
+                  className="ep-dropdown absolute top-full right-0 mt-1 z-50"
+                  style={{ maxHeight: 280, overflowY: 'auto', minWidth: 150 }}
                 >
-                  {t(`unit.${u}`)}
-                </button>
-              ))}
+                  {DISPLAY_UNITS.map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => {
+                        setDisplayUnit(u);
+                        setUnitOpen(false);
+                      }}
+                      className={`ep-dropdown-item ${u === (displayUnit || 'm') ? 'selected' : ''}`}
+                    >
+                      {t(`unit.${u}`)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>}
 
-        {/* Divider */}
-        {!isMobile && <div className="w-px h-5" style={{ background: 'rgba(180,172,160,0.35)' }} />}
+            <div className="ep-toolbar-divider" />
 
-        {/* Toggle buttons */}
-        {!isMobile && (
-          <>
             <IconButton
               icon={'\u229E'}
               label={t('ui.grid')}
@@ -387,148 +400,112 @@ export function TopBar() {
               size="sm"
               tooltip={t('tooltip.dimensions')}
             />
-
-            {/* Divider */}
-            <div className="w-px h-5" style={{ background: 'rgba(180,172,160,0.35)' }} />
-          </>
+          </div>
         )}
 
-        {/* Undo/Redo */}
-        <IconButton
-          icon={'\u21A9'}
-          label={t('ui.undo')}
-          onClick={handleUndo}
-          size="sm"
-          tooltip={t('tooltip.undo')}
-        />
-        <IconButton
-          icon={'\u21AA'}
-          label={t('ui.redo')}
-          onClick={handleRedo}
-          size="sm"
-          tooltip={t('tooltip.redo')}
-        />
+        <div className="ep-toolbar-group">
+          <IconButton
+            icon={'\u21A9'}
+            label={t('ui.undo')}
+            onClick={handleUndo}
+            size="sm"
+            tooltip={t('tooltip.undo')}
+          />
+          <IconButton
+            icon={'\u21AA'}
+            label={t('ui.redo')}
+            onClick={handleRedo}
+            size="sm"
+            tooltip={t('tooltip.redo')}
+          />
+        </div>
 
-        {/* Divider */}
-        {!isMobile && <div className="w-px h-5" style={{ background: 'rgba(180,172,160,0.35)' }} />}
-
-        {/* Export / Save / Load — always shown (icon-only on mobile via CSS) */}
-        <IconButton
-          icon={'\u2B07'}
-          label={t('ui.export')}
-          onClick={() => setExportDialogOpen(true)}
-          size="sm"
-          tooltip={t('tooltip.export')}
-        />
-        <IconButton
-          icon={'\uD83D\uDCBE'}
-          label={t('ui.save')}
-          onClick={saveProject}
-          size="sm"
-          tooltip={t('tooltip.save')}
-        />
-        <IconButton
-          icon={'\uD83D\uDCC2'}
-          label={t('ui.load')}
-          onClick={loadProjectFile}
-          size="sm"
-          tooltip={t('tooltip.load')}
-        />
-
-        {/* Help / Manual button — uses <a> tag to avoid popup blockers */}
-        <a
-          href={`/manual.html?lang=${language}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={t('tooltip.help')}
-          className="ep-btn-ghost flex items-center gap-1 cursor-pointer"
-          style={{
-            padding: '3px 8px',
-            fontSize: 11,
-            textDecoration: 'none',
-            color: 'var(--ep-text-dim)',
-            borderRadius: 'var(--ep-radius-sm)',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-          </svg>
-          {!isMobile && t('ui.help')}
-        </a>
-
-        {/* Suggestions button — hidden on mobile */}
-        {!isMobile && (
-          <button
-            onClick={() => setSuggestionDialogOpen(true)}
-            title={t('support.suggestions')}
-            className="ep-btn-ghost flex items-center gap-1 cursor-pointer"
-            style={{
-              padding: '3px 8px',
-              fontSize: 11,
-              color: 'var(--ep-text-dim)',
-              borderRadius: 'var(--ep-radius-sm)',
-              background: 'none',
-              border: 'none',
-              fontFamily: "'DM Sans', system-ui, sans-serif",
+        <div className="ep-toolbar-group">
+          <IconButton
+            icon={'+'}
+            label={t('ui.newProject')}
+            onClick={() => {
+              void createNewProjectWithPrompt();
             }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-            {t('support.suggestions')}
-          </button>
-        )}
+            size="sm"
+            tooltip={t('tooltip.newProject')}
+          />
+          <IconButton
+            icon={'\u232B'}
+            label={t('ui.clearCanvas')}
+            onClick={clearCanvasWithConfirm}
+            size="sm"
+            tooltip={t('tooltip.clearCanvas')}
+          />
+          <IconButton
+            icon={'\u2B07'}
+            label={t('ui.export')}
+            onClick={() => setExportDialogOpen(true)}
+            size="sm"
+            tooltip={t('tooltip.export')}
+          />
+          <IconButton
+            icon={'\uD83D\uDCBE'}
+            label={t('ui.save')}
+            onClick={saveProject}
+            size="sm"
+            tooltip={t('tooltip.save')}
+          />
+          <IconButton
+            icon={'\uD83D\uDCC2'}
+            label={t('ui.load')}
+            onClick={loadProjectFile}
+            size="sm"
+            tooltip={t('tooltip.load')}
+          />
+        </div>
 
-        {/* Ko-fi Support Button — official Ko-fi orange style */}
-        <button
-          onClick={() => setSupportDialogOpen(true)}
-          title={t('tooltip.support')}
-          style={{
-            background: '#f07b22',
-            border: 'none',
-            cursor: 'pointer',
-            padding: isMobile ? '4px 8px' : '5px 14px 5px 10px',
-            borderRadius: 20,
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? 0 : 6,
-            transition: 'all 0.2s',
-            boxShadow: '0 1px 4px rgba(240,123,34,0.3)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#e06d15';
-            e.currentTarget.style.boxShadow = '0 2px 10px rgba(240,123,34,0.45)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f07b22';
-            e.currentTarget.style.boxShadow = '0 1px 4px rgba(240,123,34,0.3)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-        >
-          {/* Ko-fi coffee cup with heart */}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Cup body */}
-            <path d="M6 13.5C6 16.5 8 18 10 18H14C16 18 18 16.5 18 13.5V8H6V13.5Z" fill="#ffffff"/>
-            {/* Cup handle */}
-            <path d="M18 9H19.5C20.88 9 22 10.12 22 11.5C22 12.88 20.88 14 19.5 14H18" stroke="#ffffff" strokeWidth="1.5" fill="none"/>
-            {/* Heart inside cup */}
-            <path d="M12 10.5C12 10.5 10 9 9.5 10C9 11 10.5 12.5 12 14C13.5 12.5 15 11 14.5 10C14 9 12 10.5 12 10.5Z" fill="#f07b22"/>
-          </svg>
-          {!isMobile && (
-            <span style={{
-              color: '#ffffff',
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              lineHeight: 1,
-            }}>
-              {t('support.apoyame')}
-            </span>
+        <div className="relative" ref={moreMenuRef}>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            className="ep-btn-secondary cursor-pointer"
+            style={{ padding: '4px 10px', fontSize: 11 }}
+            title={t('ui.more')}
+          >
+            {isMobile ? '\u22EF' : t('ui.more')}
+          </button>
+          {moreOpen && (
+            <div className="ep-dropdown absolute top-full right-0 mt-1 z-50" style={{ minWidth: 180 }}>
+              <a
+                href={`/manual.html?lang=${language}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ep-dropdown-item"
+                style={{ textDecoration: 'none', display: 'block' }}
+                onClick={() => setMoreOpen(false)}
+              >
+                {t('ui.help')}
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setSuggestionDialogOpen(true);
+                  setMoreOpen(false);
+                }}
+                className="ep-dropdown-item"
+              >
+                {t('support.suggestions')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSupportDialogOpen(true);
+                  setMoreOpen(false);
+                }}
+                className="ep-dropdown-item"
+                style={{ color: '#b85c38', fontWeight: 600 }}
+              >
+                {t('support.apoyame')}
+              </button>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

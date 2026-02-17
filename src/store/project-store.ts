@@ -58,6 +58,7 @@ interface ProjectActions {
   loadProject: (data: Project) => void;
   getProjectJSON: () => string;
   newProject: (name?: string) => void;
+  clearCanvas: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -596,6 +597,18 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
 
       newProject: (name) => {
         set({ project: createDefaultProject(name) });
+      },
+
+      clearCanvas: () => {
+        set((state) => ({
+          project: touch({
+            ...state.project,
+            floors: state.project.floors.map((floor) => ({
+              ...floor,
+              elements: {},
+            })),
+          }),
+        }));
       },
     }),
     {

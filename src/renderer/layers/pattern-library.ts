@@ -14,8 +14,6 @@ import type { FillPattern, WallFillPattern } from '@/types/elements';
 const LINE_W  = 'rgba(255,255,255,0.08)';
 const LINE_W2 = 'rgba(255,255,255,0.06)';
 const LINE_W3 = 'rgba(255,255,255,0.05)';
-const LINE_D  = 'rgba(0,0,0,0.08)';
-const LINE_D2 = 'rgba(0,0,0,0.06)';
 const LINE_D3 = 'rgba(0,0,0,0.04)';
 
 // Safety limit for iteration counts to prevent DoS from huge rooms/walls

@@ -421,6 +421,31 @@ input[type="radio"] {
   transform: scale(0.94);
 }
 
+/* --- Toolbar groups / sections --- */
+.ep-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: var(--ep-radius-md);
+  border: 1px solid var(--ep-border-light);
+  background: rgba(255,255,255,0.35);
+}
+
+.ep-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(180,172,160,0.35);
+}
+
+.ep-inline-menu {
+  background: var(--ep-bg-card);
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-md);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.10);
+  overflow: hidden;
+}
+
 /* =========================================================================
    Dropdown / Menu
    ========================================================================= */

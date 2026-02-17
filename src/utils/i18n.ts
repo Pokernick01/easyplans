@@ -79,10 +79,14 @@ const dict: Record<string, { en: string; es: string }> = {
   'ui.undo': { en: 'Undo', es: 'Deshacer' },
   'ui.redo': { en: 'Redo', es: 'Rehacer' },
   'ui.export': { en: 'Export', es: 'Exportar' },
+  'ui.newProject': { en: 'New Project', es: 'Nuevo proyecto' },
+  'ui.clearCanvas': { en: 'Clear Canvas', es: 'Limpiar lienzo' },
   'ui.save': { en: 'Save', es: 'Guardar' },
   'ui.saveAs': { en: 'Save as:', es: 'Guardar como:' },
   'ui.load': { en: 'Load', es: 'Cargar' },
   'ui.custom': { en: 'Custom...', es: 'Personalizado...' },
+  'ui.more': { en: 'More', es: 'Más' },
+  'ui.floorActions': { en: 'Floor actions', es: 'Acciones de piso' },
 
   // -- TopBar tooltips --
   'tooltip.grid': { en: 'Grid (G)', es: 'Cuadr\u00edcula (G)' },
@@ -91,8 +95,24 @@ const dict: Record<string, { en: string; es: string }> = {
   'tooltip.undo': { en: 'Undo (Ctrl+Z)', es: 'Deshacer (Ctrl+Z)' },
   'tooltip.redo': { en: 'Redo (Ctrl+Y)', es: 'Rehacer (Ctrl+Y)' },
   'tooltip.export': { en: 'Export', es: 'Exportar' },
+  'tooltip.newProject': { en: 'New Project (Ctrl+N)', es: 'Nuevo proyecto (Ctrl+N)' },
+  'tooltip.clearCanvas': { en: 'Clear all elements', es: 'Eliminar todos los elementos' },
   'tooltip.save': { en: 'Save Project', es: 'Guardar Proyecto' },
   'tooltip.load': { en: 'Load Project', es: 'Cargar Proyecto' },
+
+  // -- Confirmations --
+  'confirm.newProject.saveBefore': {
+    en: 'Save the current project before creating a new one?',
+    es: '¿Guardar el proyecto actual antes de crear uno nuevo?',
+  },
+  'confirm.newProject.discardChanges': {
+    en: 'Create a new project without saving?',
+    es: '¿Crear un proyecto nuevo sin guardar?',
+  },
+  'confirm.clearCanvas': {
+    en: 'Are you sure you want to clear the canvas? This removes all elements on all floors.',
+    es: '¿Seguro que deseas limpiar el lienzo? Esto elimina todos los elementos de todos los pisos.',
+  },
 
   // -- BottomBar --
   'ui.addFloor': { en: 'Add floor', es: 'Agregar piso' },
@@ -288,6 +308,12 @@ const dict: Record<string, { en: string; es: string }> = {
     es: 'Exporta un PNG transparente sin fondo, bordes ni cuadro de título.',
   },
   'dialog.cancel': { en: 'Cancel', es: 'Cancelar' },
+  'dialog.preview': { en: 'Preview', es: 'Vista previa' },
+  'dialog.previewHint': {
+    en: 'Preview reflects current view and selected export options.',
+    es: 'La vista previa refleja la vista actual y las opciones seleccionadas.',
+  },
+  'dialog.includeDimensions': { en: 'Include dimensions', es: 'Incluir cotas' },
 
   // -- Library categories --
   'category.furniture': { en: 'Furniture', es: 'Muebles' },

@@ -37,25 +37,20 @@ type FacadeDirection = 'north' | 'south' | 'east' | 'west';
  * for extracting the horizontal coordinate of a wall in the facade.
  *
  * Convention:
- *  - north: viewer looks from +Y toward -Y. Walls whose normal points toward +Y face the viewer.
- *           Horizontal axis = X.
- *  - south: viewer looks from -Y toward +Y. Normal toward -Y faces viewer.
- *           Horizontal axis = X (mirrored).
- *  - east:  viewer looks from +X toward -X. Normal toward +X faces viewer.
- *           Horizontal axis = Y.
- *  - west:  viewer looks from -X toward +X. Normal toward -X faces viewer.
- *           Horizontal axis = Y (mirrored).
+ *  - north/south facades project along the X axis.
+ *  - east/west facades project along the Y axis.
+ *  - south/east are mirrored for consistent viewer-facing orientation.
  */
 function getDirectionConfig(direction: FacadeDirection) {
   switch (direction) {
     case 'north':
-      return { normalAxis: 'y' as const, normalSign: 1, horizAxis: 'x' as const, horizSign: 1 };
+      return { normalAxis: 'y' as const, horizAxis: 'x' as const, horizSign: 1 };
     case 'south':
-      return { normalAxis: 'y' as const, normalSign: -1, horizAxis: 'x' as const, horizSign: -1 };
+      return { normalAxis: 'y' as const, horizAxis: 'x' as const, horizSign: -1 };
     case 'east':
-      return { normalAxis: 'x' as const, normalSign: 1, horizAxis: 'y' as const, horizSign: -1 };
+      return { normalAxis: 'x' as const, horizAxis: 'y' as const, horizSign: -1 };
     case 'west':
-      return { normalAxis: 'x' as const, normalSign: -1, horizAxis: 'y' as const, horizSign: 1 };
+      return { normalAxis: 'x' as const, horizAxis: 'y' as const, horizSign: 1 };
   }
 }
 
@@ -122,7 +117,9 @@ export function generateFacade(
     const normal = wallNormal(wall);
     const normalComponent = cfg.normalAxis === 'x' ? normal.x : normal.y;
 
-    if (normalComponent * cfg.normalSign < FACING_THRESHOLD) continue;
+    // Use absolute facing test so facade visibility does not depend on
+    // wall draw direction (start/end winding).
+    if (Math.abs(normalComponent) < FACING_THRESHOLD) continue;
 
     // Project wall endpoints onto the horizontal facade axis
     const startH = cfg.horizAxis === 'x' ? wall.start.x : wall.start.y;
@@ -151,17 +148,20 @@ export function generateFacade(
 
     // --- Door openings ---
     const wallLen = distance(wall.start, wall.end);
+    if (wallLen <= 0) continue;
+    const projectedScale = facadeWidth / wallLen;
     const wallDoors = doorsByWall.get(wall.id) ?? [];
     for (const door of wallDoors) {
       const halfDoorParam = (door.width / wallLen) / 2;
       const doorStartParam = door.position - halfDoorParam;
       const doorXStart = facadeX + doorStartParam * facadeWidth;
+      const projectedDoorWidth = door.width * projectedScale;
 
       elements.push({
         type: 'door-opening',
         x: doorXStart,
         y: 0,
-        width: door.width,
+        width: projectedDoorWidth,
         height: door.height,
         color: '#ffffff',
         filled: false,
@@ -174,12 +174,13 @@ export function generateFacade(
       const halfWinParam = (win.width / wallLen) / 2;
       const winStartParam = win.position - halfWinParam;
       const winXStart = facadeX + winStartParam * facadeWidth;
+      const projectedWindowWidth = win.width * projectedScale;
 
       elements.push({
         type: 'window-opening',
         x: winXStart,
         y: win.sillHeight,
-        width: win.width,
+        width: projectedWindowWidth,
         height: win.height,
         color: '#87CEEB',
         filled: false,

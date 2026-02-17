@@ -45,7 +45,7 @@ const TOOL_KEYS: Record<string, ToolType> = {
  * to the UI store and project store accordingly.
  */
 export function useKeyboardShortcuts(): void {
-  const { saveProject, loadProject } = useProjectFile();
+  const { saveProject, loadProject, createNewProjectWithPrompt } = useProjectFile();
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
@@ -95,7 +95,7 @@ export function useKeyboardShortcuts(): void {
       // ----- Ctrl+N: New project -----
       if (ctrl && key === 'n') {
         event.preventDefault();
-        useProjectStore.getState().newProject();
+        void createNewProjectWithPrompt();
         return;
       }
 
@@ -176,5 +176,5 @@ export function useKeyboardShortcuts(): void {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [saveProject, loadProject]);
+  }, [saveProject, loadProject, createNewProjectWithPrompt]);
 }

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useProjectStore } from '@/store/project-store';
+import { useUIStore } from '@/store/ui-store';
 import { t } from '@/utils/i18n';
 import type { Project } from '@/types/project';
 
@@ -48,6 +49,11 @@ function isValidProject(data: unknown): data is Project {
   );
 }
 
+/** Return true if the project contains at least one drawn element. */
+function hasProjectContent(project: Project): boolean {
+  return project.floors.some((floor) => Object.keys(floor.elements).length > 0);
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -60,8 +66,6 @@ function isValidProject(data: unknown): data is Project {
  * - autoLoad: restore a project from localStorage (returns null if none)
  */
 export function useProjectFile() {
-  const store = useProjectStore;
-
   // -----------------------------------------------------------------------
   // Load project from file picker
   // -----------------------------------------------------------------------
@@ -85,7 +89,7 @@ export function useProjectFile() {
           return;
         }
         currentFileHandle = handle; // Store handle so Save can write to the same file
-        store.getState().loadProject(data);
+        useProjectStore.getState().loadProject(data);
         return;
       } catch (err) {
         // User cancelled or API error — fall through to legacy
@@ -116,7 +120,7 @@ export function useProjectFile() {
           }
 
           currentFileHandle = null; // Legacy load has no handle
-          store.getState().loadProject(data);
+          useProjectStore.getState().loadProject(data);
         } catch (err) {
           console.error('Failed to parse project file:', err);
         }
@@ -161,9 +165,9 @@ export function useProjectFile() {
   }, []);
 
   /** Legacy save: prompt + download */
-  const legacySave = useCallback((json: string, defaultName: string): void => {
+  const legacySave = useCallback((json: string, defaultName: string): boolean => {
     const userInput = window.prompt(t('ui.saveAs'), defaultName);
-    if (userInput === null) return;
+    if (userInput === null) return false;
     const safeName = userInput.trim().replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || defaultName;
 
     const blob = new Blob([json], { type: 'application/json' });
@@ -175,18 +179,19 @@ export function useProjectFile() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    return true;
   }, []);
 
-  const saveProject = useCallback(async (): Promise<void> => {
-    const json = store.getState().getProjectJSON();
-    const project = store.getState().project;
+  const saveProject = useCallback(async (): Promise<boolean> => {
+    const json = useProjectStore.getState().getProjectJSON();
+    const project = useProjectStore.getState().project;
     const defaultName = project.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '_').slice(0, 200) || 'project';
 
     // 1. If we have a file handle, write directly (no dialog)
     if (currentFileHandle) {
       try {
         await writeToHandle(currentFileHandle, json);
-        return;
+        return true;
       } catch (err) {
         console.warn('Failed to write to existing handle, falling back to picker:', err);
         currentFileHandle = null;
@@ -197,16 +202,54 @@ export function useProjectFile() {
     if (hasFileSystemAccess()) {
       const handle = await pickSaveFile(defaultName);
       if (handle) {
-        currentFileHandle = handle;
-        await writeToHandle(handle, json);
-        return;
+        try {
+          currentFileHandle = handle;
+          await writeToHandle(handle, json);
+          return true;
+        } catch (err) {
+          console.warn('Failed to save to selected file handle:', err);
+          currentFileHandle = null;
+          return false;
+        }
       }
-      return; // User cancelled
+      return false; // User cancelled
     }
 
     // 3. Legacy fallback
-    legacySave(json, defaultName);
+    return legacySave(json, defaultName);
   }, [writeToHandle, pickSaveFile, legacySave]);
+
+  const createNewProjectWithPrompt = useCallback(async (): Promise<void> => {
+    const project = useProjectStore.getState().project;
+    if (hasProjectContent(project)) {
+      const wantsToSave = window.confirm(t('confirm.newProject.saveBefore'));
+      if (wantsToSave) {
+        const saved = await saveProject();
+        if (!saved) return;
+      } else {
+        const discard = window.confirm(t('confirm.newProject.discardChanges'));
+        if (!discard) return;
+      }
+    }
+
+    useProjectStore.getState().newProject();
+    const ui = useUIStore.getState();
+    ui.clearSelection();
+    ui.markDirty();
+  }, [saveProject]);
+
+  const clearCanvasWithConfirm = useCallback((): void => {
+    const project = useProjectStore.getState().project;
+    if (!hasProjectContent(project)) return;
+
+    const confirmed = window.confirm(t('confirm.clearCanvas'));
+    if (!confirmed) return;
+
+    useProjectStore.getState().clearCanvas();
+    const ui = useUIStore.getState();
+    ui.clearSelection();
+    ui.markDirty();
+  }, []);
 
   // -----------------------------------------------------------------------
   // Auto-save to localStorage
@@ -214,7 +257,7 @@ export function useProjectFile() {
 
   const autoSave = useCallback((): void => {
     try {
-      const json = store.getState().getProjectJSON();
+      const json = useProjectStore.getState().getProjectJSON();
       localStorage.setItem(LOCAL_STORAGE_KEY, json);
     } catch (err) {
       console.error('Auto-save failed:', err);
@@ -242,5 +285,12 @@ export function useProjectFile() {
     }
   }, []);
 
-  return { loadProject, saveProject, autoSave, autoLoad };
+  return {
+    loadProject,
+    saveProject,
+    autoSave,
+    autoLoad,
+    createNewProjectWithPrompt,
+    clearCanvasWithConfirm,
+  };
 }

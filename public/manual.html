@@ -374,7 +374,7 @@
 
     <div lang="en">
       <h3>Top Bar</h3>
-      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan, Section, Facade, 3D), scale selector, grid/snap/dimension toggles, undo/redo, export, save/load buttons, help button, and the support button.</p>
+      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan, Section, Facade, 3D), scale selector, grid/snap/dimension toggles, undo/redo, new project, clear canvas, export, save/load buttons, help button, and the support button.</p>
 
       <h3>Left Sidebar</h3>
       <p>Tool palette with all drawing tools. Click a tool or use its keyboard shortcut to activate it. The active tool is highlighted in green.</p>
@@ -398,7 +398,7 @@
 
     <div lang="es">
       <h3>Barra Superior</h3>
-      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta, Corte, Fachada, 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, exportar, guardar/cargar, bot&oacute;n de ayuda y bot&oacute;n de apoyo.</p>
+      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta, Corte, Fachada, 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, nuevo proyecto, limpiar lienzo, exportar, guardar/cargar, bot&oacute;n de ayuda y bot&oacute;n de apoyo.</p>
 
       <h3>Barra Lateral Izquierda</h3>
       <p>Paleta de herramientas con todas las herramientas de dibujo. Haz clic en una herramienta o usa su atajo de teclado para activarla. La herramienta activa se resalta en verde.</p>
@@ -524,7 +524,7 @@
     <h3 lang="es">Operaciones de Archivo</h3>
     <table lang="en">
       <tr><th>Shortcut</th><th>Action</th></tr>
-      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">N</span></td><td>New project</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">N</span></td><td>New project (prompts to save first)</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">S</span></td><td>Save project (.easyplan)</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">O</span></td><td>Load project</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">Z</span></td><td>Undo</td></tr>
@@ -533,7 +533,7 @@
     </table>
     <table lang="es">
       <tr><th>Atajo</th><th>Acci&oacute;n</th></tr>
-      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">N</span></td><td>Nuevo proyecto</td></tr>
+      <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">N</span></td><td>Nuevo proyecto (pide guardar antes)</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">S</span></td><td>Guardar proyecto (.easyplan)</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">O</span></td><td>Cargar proyecto</td></tr>
       <tr><td><span class="kbd">Ctrl</span>+<span class="kbd">Z</span></td><td>Deshacer</td></tr>
@@ -1133,6 +1133,12 @@
       <h3>Load Project</h3>
       <p>Press <span class="kbd">Ctrl</span>+<span class="kbd">O</span> or click the load button. Select a <code>.easyplan</code> or <code>.json</code> file to restore a project.</p>
 
+      <h3>New Project</h3>
+      <p>Click the <strong>New Project</strong> button (or press <span class="kbd">Ctrl</span>+<span class="kbd">N</span>) to start a blank canvas. If your current project has content, EasyPlans asks whether to save first. You can save, continue without saving, or cancel.</p>
+
+      <h3>Clear Canvas</h3>
+      <p>Use the <strong>Clear Canvas</strong> button to remove all elements from all floors in the current project. A confirmation dialog appears before anything is deleted.</p>
+
       <h3>Auto-Save</h3>
       <p>EasyPlans automatically saves your work to browser local storage. If you close the tab accidentally, your project will be restored when you reopen the app.</p>
 
@@ -1157,6 +1163,12 @@
 
       <h3>Cargar Proyecto</h3>
       <p>Presiona <span class="kbd">Ctrl</span>+<span class="kbd">O</span> o haz clic en el bot&oacute;n de cargar. Selecciona un archivo <code>.easyplan</code> o <code>.json</code> para restaurar un proyecto.</p>
+
+      <h3>Nuevo Proyecto</h3>
+      <p>Haz clic en el bot&oacute;n <strong>Nuevo proyecto</strong> (o presiona <span class="kbd">Ctrl</span>+<span class="kbd">N</span>) para iniciar un lienzo en blanco. Si el proyecto actual tiene contenido, EasyPlans pregunta si deseas guardar primero. Puedes guardar, continuar sin guardar o cancelar.</p>
+
+      <h3>Limpiar Lienzo</h3>
+      <p>Usa el bot&oacute;n <strong>Limpiar lienzo</strong> para eliminar todos los elementos de todos los pisos del proyecto actual. Antes de borrar, aparece una confirmaci&oacute;n.</p>
 
       <h3>Autoguardado</h3>
       <p>EasyPlans guarda autom&aacute;ticamente tu trabajo en el almacenamiento local del navegador. Si cierras la pesta&ntilde;a accidentalmente, tu proyecto se restaurar&aacute; cuando reabras la aplicaci&oacute;n.</p>
@@ -1198,6 +1210,8 @@
         <tr><td>Grid</td><td>Top bar button</td><td>Major grid: 1.0 m, Minor grid: 0.1 m spacing</td></tr>
         <tr><td>Snap</td><td>Top bar button</td><td>Snaps to grid, wall endpoints, and angle constraints (0/45/90 degrees)</td></tr>
         <tr><td>Dimensions</td><td>Top bar button</td><td>Show/hide dimension annotations on canvas</td></tr>
+        <tr><td>New Project</td><td>Top bar button / Ctrl+N</td><td>Prompts to save current work before opening a blank project</td></tr>
+        <tr><td>Clear Canvas</td><td>Top bar button</td><td>Asks for confirmation, then removes all elements on all floors</td></tr>
       </table>
 
       <h3>Mobile / Touch Controls</h3>
@@ -1226,6 +1240,8 @@
         <tr><td>Cuadr&iacute;cula</td><td>Bot&oacute;n barra superior</td><td>Cuadr&iacute;cula mayor: 1.0 m, menor: 0.1 m de espaciado</td></tr>
         <tr><td>Ajuste</td><td>Bot&oacute;n barra superior</td><td>Se ajusta a cuadr&iacute;cula, puntos de muro y restricciones de &aacute;ngulo (0/45/90 grados)</td></tr>
         <tr><td>Cotas</td><td>Bot&oacute;n barra superior</td><td>Mostrar/ocultar anotaciones de cotas en el lienzo</td></tr>
+        <tr><td>Nuevo proyecto</td><td>Bot&oacute;n barra superior / Ctrl+N</td><td>Pregunta si deseas guardar antes de abrir un proyecto en blanco</td></tr>
+        <tr><td>Limpiar lienzo</td><td>Bot&oacute;n barra superior</td><td>Pide confirmaci&oacute;n y luego elimina todos los elementos de todos los pisos</td></tr>
       </table>
 
       <h3>Controles M&oacute;viles / T&aacute;ctiles</h3>

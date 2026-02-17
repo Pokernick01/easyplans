@@ -7,7 +7,6 @@ import { drawNeufertElevation, classifyStamp, elevationHeight, elevationWidth } 
 // ---------------------------------------------------------------------------
 
 const TITLE_FONT = 'bold 14px "Segoe UI", Arial, sans-serif';
-const LABEL_FONT = '11px "Segoe UI", Arial, sans-serif';
 const DIM_FONT = '10px "Segoe UI", Arial, sans-serif';
 const MARGIN = 60; // px margin around the drawing area
 
@@ -119,8 +118,9 @@ function drawDimensionVertical(
  * @param sections       Array of SectionElement objects to render.
  * @param pixelsPerMeter Scale factor (pixels per meter).
  * @param furniture      Optional furniture items for Neufert silhouettes.
- * @param cutY           Y coordinate of the cut line (for proximity filtering).
+ * @param cutCoordinate  Cut coordinate (X or Y depending on cut axis).
  * @param directionLabel Optional direction label for the title (e.g. "Norte").
+ * @param cutAxis        Axis used for section proximity filtering.
  */
 export function renderCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -129,8 +129,9 @@ export function renderCrossSection(
   sections: SectionElement[],
   pixelsPerMeter: number,
   furniture?: FurnitureItem[],
-  cutY?: number,
+  cutCoordinate?: number,
   directionLabel?: string,
+  cutAxis: 'x' | 'y' = 'y',
 ): void {
   // --- 1. Clear canvas ---
   ctx.save();
@@ -385,21 +386,20 @@ export function renderCrossSection(
   }
 
   // --- 11. Furniture Neufert elevation silhouettes ---
-  if (furniture && furniture.length > 0 && cutY !== undefined) {
+  if (furniture && furniture.length > 0 && cutCoordinate !== undefined) {
     const cutTolerance = 2.0; // meters -- items within 2m of cut line are shown
     for (const item of furniture) {
       if (!item.visible) continue;
-      const itemY = item.position.y;
-      if (Math.abs(itemY - cutY) > cutTolerance) continue;
+      const nearCoord = cutAxis === 'y' ? item.position.y : item.position.x;
+      if (Math.abs(nearCoord - cutCoordinate) > cutTolerance) continue;
 
       const type = classifyStamp(item.stampId);
       const elW = elevationWidth(type);
       const elH = elevationHeight(type);
-      const itemX = item.position.x;
+      const alongCoord = cutAxis === 'y' ? item.position.x : item.position.y;
 
       // Convert to the cut-line distance coordinate system
-      // (itemX is used directly since the cut line is horizontal)
-      const sx = toScreenX(itemX - elW / 2);
+      const sx = toScreenX(alongCoord - elW / 2);
       const sy = toScreenY(elH);
       const sw = elW * effectivePPM;
       const sh = elH * effectivePPM;

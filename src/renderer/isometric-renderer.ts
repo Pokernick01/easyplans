@@ -139,15 +139,18 @@ export function renderIsometric(
   const bounds = computeBounds(faces);
   const worldWidth = bounds.maxX - bounds.minX;
   const worldHeight = bounds.maxY - bounds.minY;
+  const safeWorldWidth = Math.max(worldWidth, 1e-6);
+  const safeWorldHeight = Math.max(worldHeight, 1e-6);
 
   // Scale to fit the canvas with some margin
   const margin = 80;
   const drawableWidth = canvasWidth - margin * 2;
   const drawableHeight = canvasHeight - margin * 2;
   const scale = Math.min(
-    drawableWidth / worldWidth,
-    drawableHeight / worldHeight,
+    drawableWidth / safeWorldWidth,
+    drawableHeight / safeWorldHeight,
   );
+  if (!Number.isFinite(scale) || scale <= 0) return;
 
   const worldCenterX = (bounds.minX + bounds.maxX) / 2;
   const worldCenterY = (bounds.minY + bounds.maxY) / 2;

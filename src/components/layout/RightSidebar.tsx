@@ -1422,6 +1422,8 @@ function PropertiesPanel() {
       {activeTool === 'archline' && <ArchLineStyleSelector />}
       {activeTool === 'door' && <DoorStyleSelector />}
       {activeTool === 'window' && <WindowStyleSelector />}
+      {activeTool === 'stair' && <StairStyleSelector />}
+      {activeTool === 'shape' && <ShapeKindSelector />}
       <div className="flex flex-col flex-1 px-5 py-3">
       {/* Element ID */}
       <div className="text-xs mb-2" style={{ color: '#6b6560' }}>

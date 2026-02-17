@@ -5,7 +5,7 @@ import { useProjectStore } from '@/store/project-store';
 import { useUIStore } from '@/store/ui-store';
 import { t } from '@/utils/i18n';
 import { detectRooms } from '@/engine/geometry/room-detection';
-import { pointInPolygon, polygonArea, polygonCentroid } from '@/engine/math/polygon';
+import { pointInPolygon, polygonArea } from '@/engine/math/polygon';
 import { MIN_ROOM_AREA } from '@/utils/constants';
 
 // ---------------------------------------------------------------------------

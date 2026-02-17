@@ -6,8 +6,6 @@ import { useUIStore } from '@/store/ui-store';
 import { findBestSnap } from '@/engine/math/snap';
 import { distance } from '@/engine/math/vector';
 import {
-  DEFAULT_WALL_THICKNESS,
-  DEFAULT_WALL_HEIGHT,
   SNAP_THRESHOLD,
   MIN_WALL_LENGTH,
 } from '@/utils/constants';

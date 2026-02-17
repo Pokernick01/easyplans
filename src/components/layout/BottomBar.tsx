@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useProjectStore } from '@/store/project-store.ts';
 import { getActiveElements } from '@/store/selectors.ts';
@@ -18,6 +18,7 @@ function FloorTab({
   onDelete,
   onDuplicate,
   onRename,
+  actionsTitle,
   deleteTitle,
   duplicateTitle,
   renameTitle,
@@ -29,6 +30,7 @@ function FloorTab({
   onDelete: () => void;
   onDuplicate: () => void;
   onRename: (newName: string) => void;
+  actionsTitle: string;
   deleteTitle: string;
   duplicateTitle: string;
   renameTitle: string;
@@ -36,6 +38,8 @@ function FloorTab({
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const startRename = () => {
     setEditValue(name);
@@ -50,8 +54,20 @@ function FloorTab({
     }
   };
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [menuOpen]);
+
   return (
     <div
+      ref={rootRef}
       className="flex items-center relative cursor-pointer"
       style={{
         background: isActive ? 'rgba(45,106,79,0.08)' : hovered ? 'rgba(0,0,0,0.03)' : 'transparent',
@@ -107,61 +123,77 @@ function FloorTab({
           {name}
         </button>
       )}
-      {hovered && !editing && (
-        <>
-          {/* Duplicate button */}
+      {!editing && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((v) => !v);
+          }}
+          title={actionsTitle}
+          className="ep-btn-ghost cursor-pointer"
+          style={{
+            width: 18,
+            height: 18,
+            marginLeft: 4,
+            borderRadius: 4,
+            fontSize: 12,
+            lineHeight: '18px',
+            color: menuOpen ? '#2d6a4f' : '#8a8480',
+            background: menuOpen ? 'rgba(45,106,79,0.10)' : 'transparent',
+          }}
+        >
+          {'\u22EF'}
+        </button>
+      )}
+      {menuOpen && !editing && (
+        <div
+          className="ep-inline-menu absolute z-40"
+          style={{
+            top: '100%',
+            right: 0,
+            marginTop: 4,
+            minWidth: 128,
+          }}
+        >
           <button
             type="button"
+            className="ep-dropdown-item"
             onClick={(e) => {
               e.stopPropagation();
+              setMenuOpen(false);
+              startRename();
+            }}
+          >
+            {renameTitle}
+          </button>
+          <button
+            type="button"
+            className="ep-dropdown-item"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
               onDuplicate();
             }}
-            title={duplicateTitle}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#2d6a4f',
-              fontSize: 9,
-              padding: '0 2px',
-              marginLeft: 3,
-              cursor: 'pointer',
-              lineHeight: '16px',
-              opacity: 0.6,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
           >
-            ⧉
+            {duplicateTitle}
           </button>
-          {/* Delete button (only if more than 1 floor) */}
           {canDelete && (
             <button
               type="button"
+              className="ep-dropdown-item"
+              style={{ color: '#b85c38', fontWeight: 600 }}
               onClick={(e) => {
                 e.stopPropagation();
+                setMenuOpen(false);
                 onDelete();
               }}
-              title={deleteTitle}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#c0392b',
-                fontSize: 10,
-                padding: '0 2px',
-                cursor: 'pointer',
-                lineHeight: '16px',
-                opacity: 0.7,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; }}
             >
-              ×
+              {deleteTitle}
             </button>
           )}
-        </>
+        </div>
       )}
-      {/* Spacer to keep consistent width when hover buttons are hidden */}
-      {!hovered && !editing && <span style={{ width: canDelete ? 26 : 13, display: 'inline-block' }} />}
     </div>
   );
 }
@@ -236,6 +268,7 @@ export function BottomBar() {
               }}
               onDuplicate={() => useProjectStore.getState().duplicateFloor(index)}
               onRename={(newName) => useProjectStore.getState().renameFloor(index, newName)}
+              actionsTitle={t('ui.floorActions')}
               deleteTitle={t('ui.removeFloor')}
               duplicateTitle={t('ui.duplicateFloor')}
               renameTitle={t('ui.renameFloor')}
