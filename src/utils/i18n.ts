@@ -87,6 +87,11 @@ const dict: Record<string, { en: string; es: string }> = {
   'ui.custom': { en: 'Custom...', es: 'Personalizado...' },
   'ui.more': { en: 'More', es: 'Más' },
   'ui.floorActions': { en: 'Floor actions', es: 'Acciones de piso' },
+  'ui.north': { en: 'North', es: 'Norte' },
+  'ui.northAngle': { en: 'North Angle', es: 'Angulo norte' },
+  'ui.rotateLeft15': { en: 'Rotate -15°', es: 'Rotar -15°' },
+  'ui.rotateRight15': { en: 'Rotate +15°', es: 'Rotar +15°' },
+  'ui.resetNorth': { en: 'Reset North', es: 'Restablecer norte' },
   'ui.front': { en: 'Front', es: 'Frente' },
   'ui.frontDirection': { en: 'Front Direction', es: 'Direccion de frente' },
 

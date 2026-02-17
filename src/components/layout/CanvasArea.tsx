@@ -203,6 +203,7 @@ export function CanvasArea() {
           camera.getPixelsPerMeter(),
           furniture,
           projectState.project.frontDirection ?? 'north',
+          projectState.project.northAngle ?? 0,
         );
         // Title + preset buttons
         ctx.save();
@@ -634,6 +635,7 @@ export function CanvasArea() {
         width,
         height,
         projectState.project.frontDirection ?? 'north',
+        projectState.project.northAngle ?? 0,
       );
       ctx.restore();
       camera.applyTransform(ctx);

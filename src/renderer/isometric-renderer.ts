@@ -217,6 +217,7 @@ export function renderIsometric(
   canvasHeight: number,
   faces: IsoFace[],
   frontDirection: FacadeDirection,
+  northAngle: number,
 ): void {
   // --- 1. Clear canvas with soft drafting gradient background ---
   ctx.save();
@@ -309,5 +310,5 @@ export function renderIsometric(
   ctx.restore();
 
   // Orientation compass (north + project front).
-  drawIsometricOrientationOverlay(ctx, canvasWidth, frontDirection);
+  drawIsometricOrientationOverlay(ctx, canvasWidth, frontDirection, northAngle);
 }

@@ -76,6 +76,8 @@ export interface Project {
   scale: ScaleRatio;
   /** Target paper size for PDF export. */
   paperSize: PaperSize;
+  /** Rotation angle for true North in degrees (0 = up, 90 = right). */
+  northAngle: number;
   /** Cardinal direction that represents the building's front. */
   frontDirection: FacadeDirection;
   /** Ordered list of floors in this project. */

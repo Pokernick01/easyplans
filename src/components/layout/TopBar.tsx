@@ -42,6 +42,7 @@ const VIEW_MODES: { mode: ViewMode; labelKey: string; icon: ReactNode }[] = [
 ];
 
 const DIR_OPTIONS: FacadeDirection[] = ['north', 'east', 'south', 'west'];
+const NORTH_PRESETS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 const SCALES: string[] = [
   '1:10',
@@ -81,8 +82,11 @@ export function TopBar() {
   const setScale = useProjectStore((s) => s.setScale);
   const displayUnit = useProjectStore((s) => s.project.displayUnit);
   const setDisplayUnit = useProjectStore((s) => s.setDisplayUnit);
+  const northAngle = useProjectStore((s) => s.project.northAngle ?? 0);
+  const setNorthAngle = useProjectStore((s) => s.setNorthAngle);
   const frontDirection = useProjectStore((s) => s.project.frontDirection || 'north');
   const setFrontDirection = useProjectStore((s) => s.setFrontDirection);
+  const northAngleDisplay = Math.round(((northAngle % 360) + 360) % 360);
 
   const t = useTranslation();
   const {
@@ -98,6 +102,8 @@ export function TopBar() {
   const scaleDropdownRef = useRef<HTMLDivElement>(null);
   const [unitOpen, setUnitOpen] = useState(false);
   const unitDropdownRef = useRef<HTMLDivElement>(null);
+  const [northOpen, setNorthOpen] = useState(false);
+  const northDropdownRef = useRef<HTMLDivElement>(null);
   const [frontOpen, setFrontOpen] = useState(false);
   const frontDropdownRef = useRef<HTMLDivElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -127,6 +133,17 @@ export function TopBar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [unitOpen]);
+
+  useEffect(() => {
+    if (!northOpen) return;
+    const handler = (e: Event) => {
+      if (northDropdownRef.current && !northDropdownRef.current.contains(e.target as Node)) {
+        setNorthOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [northOpen]);
 
   useEffect(() => {
     if (!frontOpen) return;
@@ -366,6 +383,60 @@ export function TopBar() {
               )}
             </div>
 
+            <div className="relative" ref={northDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setNorthOpen(!northOpen)}
+                className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
+                style={{ background: 'rgba(0,0,0,0.04)' }}
+                title={t('ui.northAngle')}
+              >
+                {`${t('ui.north')}: ${northAngleDisplay}°`}
+              </button>
+              {northOpen && (
+                <div
+                  className="ep-dropdown absolute top-full right-0 mt-1 z-50"
+                  style={{ minWidth: 160 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setNorthAngle(northAngle - 15)}
+                    className="ep-dropdown-item"
+                  >
+                    {t('ui.rotateLeft15')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNorthAngle(northAngle + 15)}
+                    className="ep-dropdown-item"
+                  >
+                    {t('ui.rotateRight15')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNorthAngle(0)}
+                    className={`ep-dropdown-item ${northAngleDisplay === 0 ? 'selected' : ''}`}
+                  >
+                    {t('ui.resetNorth')}
+                  </button>
+                  <div style={{ borderTop: '1px solid var(--ep-border)' }} />
+                  {NORTH_PRESETS.map((angle) => (
+                    <button
+                      key={`north-${angle}`}
+                      type="button"
+                      onClick={() => {
+                        setNorthAngle(angle);
+                        setNorthOpen(false);
+                      }}
+                      className={`ep-dropdown-item ${northAngleDisplay === angle ? 'selected' : ''}`}
+                    >
+                      {`${t('ui.north')}: ${angle}°`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="relative" ref={frontDropdownRef}>
               <button
                 type="button"
@@ -536,6 +607,53 @@ export function TopBar() {
               >
                 {t('support.apoyame')}
               </button>
+              <div style={{ borderTop: '1px solid var(--ep-border)' }} />
+              <div className="ep-dropdown-item" style={{ color: '#6b6560', fontSize: 11 }}>
+                {t('ui.northAngle')}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNorthAngle(northAngle - 15);
+                  setMoreOpen(false);
+                }}
+                className="ep-dropdown-item"
+              >
+                {t('ui.rotateLeft15')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNorthAngle(northAngle + 15);
+                  setMoreOpen(false);
+                }}
+                className="ep-dropdown-item"
+              >
+                {t('ui.rotateRight15')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNorthAngle(0);
+                  setMoreOpen(false);
+                }}
+                className={`ep-dropdown-item ${northAngleDisplay === 0 ? 'selected' : ''}`}
+              >
+                {t('ui.resetNorth')}
+              </button>
+              {NORTH_PRESETS.map((angle) => (
+                <button
+                  key={`more-north-${angle}`}
+                  type="button"
+                  onClick={() => {
+                    setNorthAngle(angle);
+                    setMoreOpen(false);
+                  }}
+                  className={`ep-dropdown-item ${northAngleDisplay === angle ? 'selected' : ''}`}
+                >
+                  {`${t('ui.north')}: ${angle}°`}
+                </button>
+              ))}
               <div style={{ borderTop: '1px solid var(--ep-border)' }} />
               <div className="ep-dropdown-item" style={{ color: '#6b6560', fontSize: 11 }}>
                 {t('ui.frontDirection')}

@@ -183,6 +183,7 @@ function buildPlanRenderFn(
       canvasW,
       canvasH,
       state.project.frontDirection ?? 'north',
+      state.project.northAngle ?? 0,
     );
   };
 }
@@ -211,6 +212,7 @@ function buildDerivedRenderFn(
       pixelsPerMeterForZoom(uiState.zoom),
       model.furniture,
       state.project.frontDirection ?? 'north',
+      state.project.northAngle ?? 0,
     );
   };
 }

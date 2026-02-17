@@ -7,12 +7,29 @@ const DIR_SHORT: Record<FacadeDirection, string> = {
   west: 'W',
 };
 
-const DIR_VECTOR: Record<FacadeDirection, { x: number; y: number }> = {
-  north: { x: 0, y: -1 },
-  south: { x: 0, y: 1 },
-  east: { x: 1, y: 0 },
-  west: { x: -1, y: 0 },
+const DIR_DEGREES_FROM_NORTH: Record<FacadeDirection, number> = {
+  north: 0,
+  east: 90,
+  south: 180,
+  west: 270,
 };
+
+function normalizeDegrees(angle: number): number {
+  return ((angle % 360) + 360) % 360;
+}
+
+function pointFromNorthDegrees(
+  cx: number,
+  cy: number,
+  radius: number,
+  angleFromNorthDeg: number,
+): { x: number; y: number } {
+  const rad = (angleFromNorthDeg * Math.PI) / 180;
+  return {
+    x: cx + Math.sin(rad) * radius,
+    y: cy - Math.cos(rad) * radius,
+  };
+}
 
 function drawArrow(
   ctx: CanvasRenderingContext2D,
@@ -54,7 +71,10 @@ function drawCompassCore(
   cy: number,
   radius: number,
   frontDirection: FacadeDirection,
+  northAngle: number,
 ): void {
+  const northDeg = normalizeDegrees(northAngle);
+
   ctx.save();
   ctx.strokeStyle = 'rgba(0,0,0,0.35)';
   ctx.lineWidth = 1;
@@ -63,31 +83,43 @@ function drawCompassCore(
   ctx.stroke();
 
   ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  const nsA = pointFromNorthDegrees(cx, cy, radius, northDeg);
+  const nsB = pointFromNorthDegrees(cx, cy, radius, northDeg + 180);
+  const ewA = pointFromNorthDegrees(cx, cy, radius, northDeg + 90);
+  const ewB = pointFromNorthDegrees(cx, cy, radius, northDeg + 270);
   ctx.beginPath();
-  ctx.moveTo(cx - radius, cy);
-  ctx.lineTo(cx + radius, cy);
-  ctx.moveTo(cx, cy - radius);
-  ctx.lineTo(cx, cy + radius);
+  ctx.moveTo(nsA.x, nsA.y);
+  ctx.lineTo(nsB.x, nsB.y);
+  ctx.moveTo(ewA.x, ewA.y);
+  ctx.lineTo(ewB.x, ewB.y);
   ctx.stroke();
 
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('N', cx, cy - radius - 8);
-  ctx.fillText('S', cx, cy + radius + 8);
-  ctx.fillText('E', cx + radius + 8, cy);
-  ctx.fillText('W', cx - radius - 8, cy);
+  const labelRadius = radius + 10;
+  for (const dir of ['north', 'south', 'east', 'west'] as const) {
+    const p = pointFromNorthDegrees(
+      cx,
+      cy,
+      labelRadius,
+      northDeg + DIR_DEGREES_FROM_NORTH[dir],
+    );
+    ctx.fillText(DIR_SHORT[dir], p.x, p.y);
+  }
 
-  drawArrow(ctx, cx, cy, cx, cy - radius + 2, '#111', 1.8);
+  const northTip = pointFromNorthDegrees(cx, cy, radius - 2, northDeg);
+  drawArrow(ctx, cx, cy, northTip.x, northTip.y, '#111', 1.8);
 
-  const vec = DIR_VECTOR[frontDirection];
+  const frontDeg = northDeg + DIR_DEGREES_FROM_NORTH[frontDirection];
+  const frontTip = pointFromNorthDegrees(cx, cy, radius - 3, frontDeg);
   drawArrow(
     ctx,
     cx,
     cy,
-    cx + vec.x * (radius - 3),
-    cy + vec.y * (radius - 3),
+    frontTip.x,
+    frontTip.y,
     '#b85c38',
     2.2,
   );
@@ -95,6 +127,9 @@ function drawCompassCore(
   ctx.fillStyle = '#b85c38';
   ctx.font = 'bold 10px sans-serif';
   ctx.fillText(`FRONT ${DIR_SHORT[frontDirection]}`, cx, cy + radius + 20);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.font = '9px sans-serif';
+  ctx.fillText(`N ${Math.round(northDeg)}°`, cx, cy + radius + 31);
   ctx.restore();
 }
 
@@ -103,6 +138,7 @@ export function drawPlanOrientationOverlay(
   canvasWidth: number,
   canvasHeight: number,
   frontDirection: FacadeDirection,
+  northAngle: number,
 ): void {
   const panelW = 108;
   const panelH = 98;
@@ -118,7 +154,7 @@ export function drawPlanOrientationOverlay(
   ctx.fill();
   ctx.stroke();
 
-  drawCompassCore(ctx, x + panelW / 2, y + 38, 22, frontDirection);
+  drawCompassCore(ctx, x + panelW / 2, y + 34, 22, frontDirection, northAngle);
 
   // Keep marker visible against very small canvases.
   if (canvasHeight < 160) {
@@ -131,6 +167,7 @@ export function drawIsometricOrientationOverlay(
   ctx: CanvasRenderingContext2D,
   canvasWidth: number,
   frontDirection: FacadeDirection,
+  northAngle: number,
 ): void {
   const panelW = 104;
   const panelH = 92;
@@ -146,7 +183,6 @@ export function drawIsometricOrientationOverlay(
   ctx.fill();
   ctx.stroke();
 
-  drawCompassCore(ctx, x + panelW / 2, y + 36, 21, frontDirection);
+  drawCompassCore(ctx, x + panelW / 2, y + 33, 21, frontDirection, northAngle);
   ctx.restore();
 }
-

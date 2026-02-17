@@ -48,6 +48,7 @@ interface ProjectActions {
 
   // --- Project-level ---
   setScale: (scale: ScaleRatio) => void;
+  setNorthAngle: (angle: number) => void;
   setFrontDirection: (dir: FacadeDirection) => void;
   setDisplayUnit: (unit: DisplayUnit) => void;
   setProjectMeta: (meta: Partial<{ name: string; author: string }>) => void;
@@ -78,6 +79,7 @@ function createDefaultProject(name = 'Untitled Project'): Project {
     displayUnit: 'm' as DisplayUnit,
     scale: '1:100',
     paperSize: 'A4',
+    northAngle: 0,
     frontDirection: 'north',
     floors: [
       {
@@ -434,6 +436,13 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         }));
       },
 
+      setNorthAngle: (angle) => {
+        const normalized = ((angle % 360) + 360) % 360;
+        set((state) => ({
+          project: touch({ ...state.project, northAngle: normalized }),
+        }));
+      },
+
       setFrontDirection: (dir) => {
         set((state) => ({
           project: touch({ ...state.project, frontDirection: dir }),
@@ -595,6 +604,12 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         // Backward-compat: default displayUnit for old projects
         if (!data.displayUnit) {
           (data as Project).displayUnit = 'm';
+        }
+        // Backward-compat: default northAngle for old projects
+        if (typeof data.northAngle !== 'number' || Number.isNaN(data.northAngle)) {
+          (data as Project).northAngle = 0;
+        } else {
+          (data as Project).northAngle = ((data.northAngle % 360) + 360) % 360;
         }
         // Backward-compat: default frontDirection for old projects
         if (!data.frontDirection) {

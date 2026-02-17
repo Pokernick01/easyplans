@@ -23,6 +23,7 @@ export function renderDerivedScene(
   pixelsPerMeter: number,
   furniture: FurnitureItem[],
   frontDirection: FacadeDirection,
+  northAngle: number,
 ): void {
   if (scene.kind === 'facade') {
     renderFacade(
@@ -52,5 +53,5 @@ export function renderDerivedScene(
     return;
   }
 
-  renderIsometric(ctx, canvasWidth, canvasHeight, scene.faces, frontDirection);
+  renderIsometric(ctx, canvasWidth, canvasHeight, scene.faces, frontDirection, northAngle);
 }
