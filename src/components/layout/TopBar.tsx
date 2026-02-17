@@ -4,7 +4,7 @@ import { useUIStore } from '@/store/ui-store.ts';
 import { IconButton } from '@/components/shared/IconButton.tsx';
 import { useTranslation } from '@/utils/i18n.ts';
 import { useProjectFile } from '@/hooks/useProjectFile.ts';
-import type { ViewMode } from '@/types/project.ts';
+import type { FacadeDirection, ViewMode } from '@/types/project.ts';
 import { DISPLAY_UNITS, UNIT_LABELS } from '@/utils/units.ts';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +40,8 @@ const VIEW_MODES: { mode: ViewMode; labelKey: string; icon: ReactNode }[] = [
   { mode: 'plan', labelKey: 'view.plan', icon: <PlanIcon /> },
   { mode: 'isometric', labelKey: 'view.isometric', icon: <Iso3DIcon /> },
 ];
+
+const DIR_OPTIONS: FacadeDirection[] = ['north', 'east', 'south', 'west'];
 
 const SCALES: string[] = [
   '1:10',
@@ -79,6 +81,8 @@ export function TopBar() {
   const setScale = useProjectStore((s) => s.setScale);
   const displayUnit = useProjectStore((s) => s.project.displayUnit);
   const setDisplayUnit = useProjectStore((s) => s.setDisplayUnit);
+  const frontDirection = useProjectStore((s) => s.project.frontDirection || 'north');
+  const setFrontDirection = useProjectStore((s) => s.setFrontDirection);
 
   const t = useTranslation();
   const {
@@ -94,6 +98,8 @@ export function TopBar() {
   const scaleDropdownRef = useRef<HTMLDivElement>(null);
   const [unitOpen, setUnitOpen] = useState(false);
   const unitDropdownRef = useRef<HTMLDivElement>(null);
+  const [frontOpen, setFrontOpen] = useState(false);
+  const frontDropdownRef = useRef<HTMLDivElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +127,17 @@ export function TopBar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [unitOpen]);
+
+  useEffect(() => {
+    if (!frontOpen) return;
+    const handler = (e: Event) => {
+      if (frontDropdownRef.current && !frontDropdownRef.current.contains(e.target as Node)) {
+        setFrontOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [frontOpen]);
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -349,6 +366,38 @@ export function TopBar() {
               )}
             </div>
 
+            <div className="relative" ref={frontDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setFrontOpen(!frontOpen)}
+                className="ep-btn-secondary px-2.5 py-1 text-xs cursor-pointer"
+                style={{ background: 'rgba(0,0,0,0.04)' }}
+                title={t('ui.frontDirection')}
+              >
+                {`${t('ui.front')}: ${t(`dir.${frontDirection}`)}`}
+              </button>
+              {frontOpen && (
+                <div
+                  className="ep-dropdown absolute top-full right-0 mt-1 z-50"
+                  style={{ minWidth: 140 }}
+                >
+                  {DIR_OPTIONS.map((dir) => (
+                    <button
+                      key={dir}
+                      type="button"
+                      onClick={() => {
+                        setFrontDirection(dir);
+                        setFrontOpen(false);
+                      }}
+                      className={`ep-dropdown-item ${dir === frontDirection ? 'selected' : ''}`}
+                    >
+                      {t(`dir.${dir}`)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="ep-toolbar-divider" />
 
             <IconButton
@@ -487,6 +536,23 @@ export function TopBar() {
               >
                 {t('support.apoyame')}
               </button>
+              <div style={{ borderTop: '1px solid var(--ep-border)' }} />
+              <div className="ep-dropdown-item" style={{ color: '#6b6560', fontSize: 11 }}>
+                {t('ui.frontDirection')}
+              </div>
+              {DIR_OPTIONS.map((dir) => (
+                <button
+                  key={`more-front-${dir}`}
+                  type="button"
+                  onClick={() => {
+                    setFrontDirection(dir);
+                    setMoreOpen(false);
+                  }}
+                  className={`ep-dropdown-item ${dir === frontDirection ? 'selected' : ''}`}
+                >
+                  {t(`dir.${dir}`)}
+                </button>
+              ))}
             </div>
           )}
         </div>

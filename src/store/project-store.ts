@@ -3,7 +3,7 @@ import { temporal } from 'zundo';
 import { generateId } from '@/utils/id.ts';
 import { DEFAULT_FLOOR_HEIGHT } from '@/utils/constants.ts';
 import { t } from '@/utils/i18n.ts';
-import type { Project, Floor, ScaleRatio } from '@/types/project.ts';
+import type { Project, Floor, ScaleRatio, FacadeDirection } from '@/types/project.ts';
 import type { DisplayUnit } from '@/utils/units.ts';
 import type {
   Wall,
@@ -48,6 +48,7 @@ interface ProjectActions {
 
   // --- Project-level ---
   setScale: (scale: ScaleRatio) => void;
+  setFrontDirection: (dir: FacadeDirection) => void;
   setDisplayUnit: (unit: DisplayUnit) => void;
   setProjectMeta: (meta: Partial<{ name: string; author: string }>) => void;
   addFloor: () => void;
@@ -77,6 +78,7 @@ function createDefaultProject(name = 'Untitled Project'): Project {
     displayUnit: 'm' as DisplayUnit,
     scale: '1:100',
     paperSize: 'A4',
+    frontDirection: 'north',
     floors: [
       {
         id: generateId(),
@@ -432,6 +434,12 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         }));
       },
 
+      setFrontDirection: (dir) => {
+        set((state) => ({
+          project: touch({ ...state.project, frontDirection: dir }),
+        }));
+      },
+
       setDisplayUnit: (unit) => {
         set((state) => ({
           project: touch({ ...state.project, displayUnit: unit }),
@@ -587,6 +595,10 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         // Backward-compat: default displayUnit for old projects
         if (!data.displayUnit) {
           (data as Project).displayUnit = 'm';
+        }
+        // Backward-compat: default frontDirection for old projects
+        if (!data.frontDirection) {
+          (data as Project).frontDirection = 'north';
         }
         set({ project: data });
       },

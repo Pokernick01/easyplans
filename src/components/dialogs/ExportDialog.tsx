@@ -23,6 +23,7 @@ import { buildPlanModelFromState } from '@/engine/geometry/plan-model.ts';
 import { buildDerivedSceneGeometry, pixelsPerMeterForZoom } from '@/engine/geometry/geometry-engine.ts';
 import { renderDerivedScene } from '@/renderer/view-renderers/scene-renderer.ts';
 import { renderPlanScene } from '@/renderer/view-renderers/plan-renderer.ts';
+import { drawPlanOrientationOverlay } from '@/renderer/view-renderers/orientation-overlay.ts';
 
 // ---------------------------------------------------------------------------
 // Export format types
@@ -176,6 +177,13 @@ function buildPlanRenderFn(
     );
 
     ctx.restore();
+
+    drawPlanOrientationOverlay(
+      ctx,
+      canvasW,
+      canvasH,
+      state.project.frontDirection ?? 'north',
+    );
   };
 }
 
@@ -202,6 +210,7 @@ function buildDerivedRenderFn(
       scene,
       pixelsPerMeterForZoom(uiState.zoom),
       model.furniture,
+      state.project.frontDirection ?? 'north',
     );
   };
 }

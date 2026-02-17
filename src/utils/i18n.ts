@@ -87,6 +87,8 @@ const dict: Record<string, { en: string; es: string }> = {
   'ui.custom': { en: 'Custom...', es: 'Personalizado...' },
   'ui.more': { en: 'More', es: 'Más' },
   'ui.floorActions': { en: 'Floor actions', es: 'Acciones de piso' },
+  'ui.front': { en: 'Front', es: 'Frente' },
+  'ui.frontDirection': { en: 'Front Direction', es: 'Direccion de frente' },
 
   // -- TopBar tooltips --
   'tooltip.grid': { en: 'Grid (G)', es: 'Cuadr\u00edcula (G)' },

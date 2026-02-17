@@ -17,6 +17,7 @@ EasyPlans is a free architectural plan creator for students and general users.
 - On mobile, sidebars now auto-collapse on load so the drawing canvas is visible immediately.
 - The active workflow is now `Plan + 3D` (section/facade tabs removed from UI).
 - 3D rendering now has improved shading, depth readability, and touch/wheel orbit controls.
+- Plan and 3D now display orientation markers (North + Front), and `Front direction` is configurable from the top bar.
 - The top bar includes a more prominent `Apoyame` support button.
 
 ### Development
@@ -50,6 +51,7 @@ npm run build
 - En movil, las barras laterales se cierran automaticamente al abrir para mostrar el lienzo de inmediato.
 - El flujo activo ahora es `Planta + 3D` (las pestanas de corte/fachada se quitaron de la UI).
 - El render 3D ahora tiene mejor sombreado, mejor lectura de profundidad y controles tactiles/rueda para orbitar.
+- Planta y 3D ahora muestran marcadores de orientacion (Norte + Frente), y la `Direccion de frente` se puede configurar en la barra superior.
 - La barra superior incluye un boton `Apoyame` mas visible.
 
 ### Manual

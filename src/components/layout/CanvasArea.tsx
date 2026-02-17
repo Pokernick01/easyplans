@@ -28,6 +28,7 @@ import { buildDerivedSceneGeometry } from '@/engine/geometry/geometry-engine.ts'
 import { renderDerivedScene } from '@/renderer/view-renderers/scene-renderer.ts';
 import { getArchLineDash, renderPlanScene } from '@/renderer/view-renderers/plan-renderer.ts';
 import type { ViewMode } from '@/types/project.ts';
+import { drawPlanOrientationOverlay } from '@/renderer/view-renderers/orientation-overlay.ts';
 
 // ---------------------------------------------------------------------------
 // Grid drawing helper (module-level, no component state needed)
@@ -201,6 +202,7 @@ export function CanvasArea() {
           derivedScene,
           camera.getPixelsPerMeter(),
           furniture,
+          projectState.project.frontDirection ?? 'north',
         );
         // Title + preset buttons
         ctx.save();
@@ -620,6 +622,19 @@ export function CanvasArea() {
       const label = scaleMeters >= 1 ? `${scaleMeters}m` : `${Math.round(scaleMeters * 100)}cm`;
       ctx.fillText(label, barX + barPx / 2, barY - 5);
 
+      ctx.restore();
+      camera.applyTransform(ctx);
+    }
+
+    if (viewMode === 'plan') {
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawPlanOrientationOverlay(
+        ctx,
+        width,
+        height,
+        projectState.project.frontDirection ?? 'north',
+      );
       ctx.restore();
       camera.applyTransform(ctx);
     }

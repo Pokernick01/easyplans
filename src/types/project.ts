@@ -76,6 +76,8 @@ export interface Project {
   scale: ScaleRatio;
   /** Target paper size for PDF export. */
   paperSize: PaperSize;
+  /** Cardinal direction that represents the building's front. */
+  frontDirection: FacadeDirection;
   /** Ordered list of floors in this project. */
   floors: Floor[];
   /** Index into `floors` for the currently active floor. */

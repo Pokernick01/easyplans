@@ -1,5 +1,7 @@
 import type { IsoFace } from '@/engine/views/isometric';
 import type { Point } from '@/types/geometry';
+import type { FacadeDirection } from '@/types/project.ts';
+import { drawIsometricOrientationOverlay } from '@/renderer/view-renderers/orientation-overlay.ts';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -214,6 +216,7 @@ export function renderIsometric(
   canvasWidth: number,
   canvasHeight: number,
   faces: IsoFace[],
+  frontDirection: FacadeDirection,
 ): void {
   // --- 1. Clear canvas with soft drafting gradient background ---
   ctx.save();
@@ -304,4 +307,7 @@ export function renderIsometric(
   }
 
   ctx.restore();
+
+  // Orientation compass (north + project front).
+  drawIsometricOrientationOverlay(ctx, canvasWidth, frontDirection);
 }
