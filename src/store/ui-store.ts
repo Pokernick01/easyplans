@@ -182,7 +182,7 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
     set({ toolState: state }),
 
   setViewMode: (mode) =>
-    set({ viewMode: mode }),
+    set({ viewMode: mode === 'isometric' ? 'isometric' : 'plan' }),
 
   setZoom: (zoom) =>
     set({ zoom: clampZoom(zoom) }),

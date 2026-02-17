@@ -173,99 +173,27 @@ export function CanvasArea() {
     const dimensions = getDimensions(projectState);
     const stairs = getStairs(projectState);
     const shapes = getShapes(projectState);
-    const viewMode = uiState.viewMode as ViewMode;
+    const viewMode = (uiState.viewMode === 'isometric' ? 'isometric' : 'plan') as ViewMode;
 
     // ===================================================================
-    // Non-plan view modes (Section / Facade / Isometric)
+    // 3D view mode
     // ===================================================================
-    if (viewMode !== 'plan') {
-      // Direction labels for UI overlays
-      const DIR_SHORT: Record<string, string> = { north: 'N', south: 'S', east: 'E', west: 'W' };
-      const ALL_DIRS = ['north', 'south', 'east', 'west'] as const;
-
-      /** Draw direction button bar on canvas. Returns button rects for click handling. */
-      function drawDirectionBar(activeDir: string, y: number, showOffset = false, offset = 0) {
-        ctx.save();
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const btnW = 28, btnH = 22, gap = 4;
-        const totalW = ALL_DIRS.length * (btnW + gap) - gap + (showOffset ? 120 : 0);
-        const startX = (width - totalW) / 2;
-
-        for (let i = 0; i < ALL_DIRS.length; i++) {
-          const dir = ALL_DIRS[i];
-          const bx = startX + i * (btnW + gap);
-          const isActive = dir === activeDir;
-
-          ctx.fillStyle = isActive ? 'rgba(45,106,79,0.85)' : 'rgba(0,0,0,0.06)';
-          ctx.beginPath();
-          ctx.roundRect(bx, y, btnW, btnH, 4);
-          ctx.fill();
-          ctx.strokeStyle = isActive ? '#2d6a4f' : 'rgba(0,0,0,0.2)';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          ctx.fillStyle = isActive ? '#fff' : '#555';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(DIR_SHORT[dir], bx + btnW / 2, y + btnH / 2);
-        }
-
-        // Offset controls for section
-        if (showOffset) {
-          const offX = startX + ALL_DIRS.length * (btnW + gap) + 10;
-          // Minus button
-          ctx.fillStyle = 'rgba(0,0,0,0.06)';
-          ctx.beginPath();
-          ctx.roundRect(offX, y, btnH, btnH, 4);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-          ctx.stroke();
-          ctx.fillStyle = '#555';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('◀', offX + btnH / 2, y + btnH / 2);
-
-          // Offset label
-          ctx.fillStyle = '#666';
-          ctx.font = '11px sans-serif';
-          ctx.fillText(`${offset >= 0 ? '+' : ''}${offset.toFixed(1)}m`, offX + btnH + 30, y + btnH / 2);
-
-          // Plus button
-          const plusX = offX + btnH + 60;
-          ctx.fillStyle = 'rgba(0,0,0,0.06)';
-          ctx.beginPath();
-          ctx.roundRect(plusX, y, btnH, btnH, 4);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-          ctx.stroke();
-          ctx.fillStyle = '#555';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.fillText('▶', plusX + btnH / 2, y + btnH / 2);
-        }
-
-        ctx.restore();
-      }
-
-      const sectionDir = uiState.sectionDirection ?? 'south';
-      const sectionOffset = uiState.sectionOffset ?? 0;
-      const facadeDir = uiState.facadeDirection ?? 'south';
+    if (viewMode === 'isometric') {
       const isoRotation = uiState.isoRotation ?? 45;
       const isoElevation = uiState.isoElevation ?? 30;
 
       const planModel = buildPlanModelFromState(projectState);
       const derivedScene = buildDerivedSceneGeometry(planModel, {
-        mode: viewMode,
-        facadeDirection: facadeDir,
-        sectionDirection: sectionDir,
-        sectionOffset,
+        mode: 'isometric',
+        facadeDirection: 'south',
+        sectionDirection: 'south',
+        sectionOffset: 0,
         isoRotation,
         isoElevation,
       });
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (derivedScene.kind !== 'plan') {
+      if (derivedScene.kind === 'isometric') {
         renderDerivedScene(
           ctx,
           width,
@@ -274,17 +202,6 @@ export function CanvasArea() {
           camera.getPixelsPerMeter(),
           furniture,
         );
-      }
-
-      if (derivedScene.kind === 'section') {
-        drawDirectionBar(sectionDir, 34, true, sectionOffset);
-      }
-
-      if (derivedScene.kind === 'facade') {
-        drawDirectionBar(facadeDir, 34);
-      }
-
-      if (derivedScene.kind === 'isometric') {
         // Title + preset buttons
         ctx.save();
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -792,9 +709,9 @@ export function CanvasArea() {
       return;
     }
 
-    // Non-plan view interaction
-    const viewMode = useUIStore.getState().viewMode;
-    if (viewMode !== 'plan' && e.button === 0) {
+    // 3D view interaction
+    const viewMode = useUIStore.getState().viewMode === 'isometric' ? 'isometric' : 'plan';
+    if (viewMode === 'isometric' && e.button === 0) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
@@ -802,83 +719,34 @@ export function CanvasArea() {
       const my = e.clientY - rect.top;
       const cw = rect.width;
 
-      const ALL_DIRS = ['north', 'south', 'east', 'west'] as const;
-      const btnW = 28, btnH = 22, gap = 4;
+      // Check preset buttons
+      const presets = [
+        { label: 'Iso', rot: 45, elev: 30 },
+        { label: 'Top', rot: 0, elev: 85 },
+        { label: 'Front', rot: 0, elev: 5 },
+        { label: 'Side', rot: 90, elev: 5 },
+      ];
+      const pbW = 42, pbH = 20, pbGap = 4;
+      const pbTotalW = presets.length * (pbW + pbGap) - pbGap;
+      const pbStartX = (cw - pbTotalW) / 2;
+      const pbY = 28;
 
-      if (viewMode === 'section' || viewMode === 'facade') {
-        const showOffset = viewMode === 'section';
-        const totalW = ALL_DIRS.length * (btnW + gap) - gap + (showOffset ? 120 : 0);
-        const startX = (cw - totalW) / 2;
-        const barY = 34;
-
-        // Check direction buttons
-        for (let i = 0; i < ALL_DIRS.length; i++) {
-          const bx = startX + i * (btnW + gap);
-          if (mx >= bx && mx <= bx + btnW && my >= barY && my <= barY + btnH) {
-            const ui = useUIStore.getState();
-            if (viewMode === 'section') {
-              ui.setSectionDirection(ALL_DIRS[i]);
-            } else {
-              ui.setFacadeDirection(ALL_DIRS[i]);
-            }
-            ui.markDirty();
-            return;
-          }
-        }
-
-        // Check offset buttons (section only)
-        if (showOffset) {
-          const offX = startX + ALL_DIRS.length * (btnW + gap) + 10;
-          // Minus button
-          if (mx >= offX && mx <= offX + btnH && my >= barY && my <= barY + btnH) {
-            const ui = useUIStore.getState();
-            ui.setSectionOffset(ui.sectionOffset - 0.5);
-            ui.markDirty();
-            return;
-          }
-          // Plus button
-          const plusX = offX + btnH + 60;
-          if (mx >= plusX && mx <= plusX + btnH && my >= barY && my <= barY + btnH) {
-            const ui = useUIStore.getState();
-            ui.setSectionOffset(ui.sectionOffset + 0.5);
-            ui.markDirty();
-            return;
-          }
+      for (let i = 0; i < presets.length; i++) {
+        const bx = pbStartX + i * (pbW + pbGap);
+        if (mx >= bx && mx <= bx + pbW && my >= pbY && my <= pbY + pbH) {
+          const ui = useUIStore.getState();
+          ui.setIsoRotation(presets[i].rot);
+          ui.setIsoElevation(presets[i].elev);
+          ui.markDirty();
+          return;
         }
       }
 
-      if (viewMode === 'isometric') {
-        // Check preset buttons
-        const presets = [
-          { label: 'Iso', rot: 45, elev: 30 },
-          { label: 'Top', rot: 0, elev: 85 },
-          { label: 'Front', rot: 0, elev: 5 },
-          { label: 'Side', rot: 90, elev: 5 },
-        ];
-        const pbW = 42, pbH = 20, pbGap = 4;
-        const pbTotalW = presets.length * (pbW + pbGap) - pbGap;
-        const pbStartX = (cw - pbTotalW) / 2;
-        const pbY = 28;
-
-        for (let i = 0; i < presets.length; i++) {
-          const bx = pbStartX + i * (pbW + pbGap);
-          if (mx >= bx && mx <= bx + pbW && my >= pbY && my <= pbY + pbH) {
-            const ui = useUIStore.getState();
-            ui.setIsoRotation(presets[i].rot);
-            ui.setIsoElevation(presets[i].elev);
-            ui.markDirty();
-            return;
-          }
-        }
-
-        // If not clicking a button, start orbital drag
-        isIsoRotating.current = true;
-        lastIsoRotateX.current = e.clientX;
-        lastIsoRotateY.current = e.clientY;
-        return;
-      }
-
-      return; // Don't pass to tools in section/facade mode
+      // If not clicking a button, start orbital drag
+      isIsoRotating.current = true;
+      lastIsoRotateX.current = e.clientX;
+      lastIsoRotateY.current = e.clientY;
+      return;
     }
 
     const worldPos = getWorldPos(e);
@@ -947,18 +815,33 @@ export function CanvasArea() {
 
   const handleWheel = useCallback((e: ReactWheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    const ui = useUIStore.getState();
+    const viewMode = ui.viewMode === 'isometric' ? 'isometric' : 'plan';
+
+    if (viewMode === 'isometric') {
+      // 3D controls:
+      // - wheel: tilt camera
+      // - shift+wheel: rotate camera
+      if (e.shiftKey) {
+        ui.setIsoRotation(ui.isoRotation + (e.deltaY > 0 ? 4 : -4));
+      } else {
+        ui.setIsoElevation(ui.isoElevation + (e.deltaY > 0 ? 1.5 : -1.5));
+      }
+      ui.markDirty();
+      return;
+    }
+
     if (e.ctrlKey || e.metaKey) {
       // Ctrl+scroll = zoom (pinch-to-zoom on trackpads also sends ctrl)
-      const uiState = useUIStore.getState();
       const factor = e.deltaY > 0 ? 0.9 : 1.1;
-      const newZoom = uiState.zoom * factor;
-      useUIStore.getState().setZoom(newZoom);
+      const newZoom = ui.zoom * factor;
+      ui.setZoom(newZoom);
     } else {
       // Plain scroll = pan
       // deltaY = vertical pan, deltaX or Shift+deltaY = horizontal pan
       const dx = e.shiftKey ? -e.deltaY : -e.deltaX;
       const dy = e.shiftKey ? 0 : -e.deltaY;
-      useUIStore.getState().panBy(dx, dy);
+      ui.panBy(dx, dy);
     }
   }, []);
 
@@ -984,6 +867,7 @@ export function CanvasArea() {
   const nativeTouchStart = useCallback((e: TouchEvent) => {
     e.preventDefault();
     const touches = e.touches;
+    const isIso = useUIStore.getState().viewMode === 'isometric';
     touchCount.current = touches.length;
 
     if (touches.length === 2) {
@@ -1001,6 +885,14 @@ export function CanvasArea() {
       lastTouchPos.current = { x: touches[0].clientX, y: touches[0].clientY };
       touchStartTime.current = Date.now();
       touchStartPos.current = { x: touches[0].clientX, y: touches[0].clientY };
+
+      if (isIso) {
+        // In 3D, one-finger drag orbits the camera.
+        isTouchDrawing.current = false;
+        isTouchMaybePan.current = false;
+        isTouchPanning.current = true;
+        return;
+      }
 
       if (activeTool === 'select') {
         // Start in "maybe pan" state — disambiguate tap (select) from drag (pan)
@@ -1026,6 +918,8 @@ export function CanvasArea() {
   const nativeTouchMove = useCallback((e: TouchEvent) => {
     e.preventDefault();
     const touches = e.touches;
+    const ui = useUIStore.getState();
+    const isIso = ui.viewMode === 'isometric';
 
     if (touches.length === 2) {
       const mx = (touches[0].clientX + touches[1].clientX) / 2;
@@ -1033,18 +927,27 @@ export function CanvasArea() {
       const dx = mx - lastTouchPos.current.x;
       const dy = my - lastTouchPos.current.y;
       lastTouchPos.current = { x: mx, y: my };
-      useUIStore.getState().panBy(dx, dy);
 
       const pinchDx = touches[1].clientX - touches[0].clientX;
       const pinchDy = touches[1].clientY - touches[0].clientY;
       const dist = Math.hypot(pinchDx, pinchDy);
-      if (lastPinchDist.current > 0) {
-        const scale = dist / lastPinchDist.current;
-        const ui = useUIStore.getState();
-        ui.setZoom(ui.zoom * scale);
+
+      if (isIso) {
+        ui.setIsoRotation(ui.isoRotation + dx * 0.25);
+        if (lastPinchDist.current > 0) {
+          const pinchDelta = dist - lastPinchDist.current;
+          ui.setIsoElevation(ui.isoElevation - pinchDelta * 0.08);
+        }
+      } else {
+        ui.panBy(dx, dy);
+        if (lastPinchDist.current > 0) {
+          const scale = dist / lastPinchDist.current;
+          ui.setZoom(ui.zoom * scale);
+        }
       }
+
       lastPinchDist.current = dist;
-      useUIStore.getState().markDirty();
+      ui.markDirty();
     } else if (touches.length === 1 && isTouchMaybePan.current) {
       // Select tool disambiguation: if finger moved > 8px, switch to panning
       const movedX = touches[0].clientX - touchStartPos.current.x;
@@ -1059,27 +962,33 @@ export function CanvasArea() {
       const dx = touches[0].clientX - lastTouchPos.current.x;
       const dy = touches[0].clientY - lastTouchPos.current.y;
       lastTouchPos.current = { x: touches[0].clientX, y: touches[0].clientY };
-      useUIStore.getState().panBy(dx, dy);
-      useUIStore.getState().markDirty();
+      if (isIso) {
+        ui.setIsoRotation(ui.isoRotation + dx * 0.35);
+        ui.setIsoElevation(ui.isoElevation + dy * 0.2);
+      } else {
+        ui.panBy(dx, dy);
+      }
+      ui.markDirty();
     } else if (touches.length === 1 && isTouchDrawing.current) {
       const worldPos = getTouchWorldPos(touches[0]);
-      useUIStore.getState().setCursorPos(worldPos);
+      ui.setCursorPos(worldPos);
       const canvas = canvasRef.current;
       if (canvas) {
         const rect = canvas.getBoundingClientRect();
         const screenPos = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
         toolManager.onMouseMove(worldPos, screenPos, e as unknown as MouseEvent);
       }
-      useUIStore.getState().markDirty();
+      ui.markDirty();
     }
   }, [getTouchWorldPos]);
 
   const nativeTouchEnd = useCallback((e: TouchEvent) => {
     e.preventDefault();
+    const isIso = useUIStore.getState().viewMode === 'isometric';
 
     // Select tool: if we were in "maybe pan" state and finger didn't move much,
     // treat this as a tap — forward mouseDown + mouseUp to the select tool
-    if (isTouchMaybePan.current && e.changedTouches.length > 0) {
+    if (!isIso && isTouchMaybePan.current && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       const worldPos = getTouchWorldPos(touch);
       const canvas = canvasRef.current;
@@ -1091,7 +1000,7 @@ export function CanvasArea() {
       }
     }
 
-    if (isTouchDrawing.current && e.changedTouches.length > 0) {
+    if (!isIso && isTouchDrawing.current && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       const worldPos = getTouchWorldPos(touch);
       const canvas = canvasRef.current;
@@ -1410,6 +1319,7 @@ export function CanvasArea() {
 
   const activeTool = useUIStore((s) => s.activeTool);
   const viewMode = useUIStore((s) => s.viewMode);
+  const effectiveViewMode = viewMode === 'isometric' ? 'isometric' : 'plan';
 
   const cursorMap: Record<string, string> = {
     select: 'default',
@@ -1425,7 +1335,7 @@ export function CanvasArea() {
     stair: 'crosshair',
     shape: 'crosshair',
   };
-  const canvasCursor = viewMode === 'isometric' ? 'grab' : (cursorMap[activeTool] ?? 'default');
+  const canvasCursor = effectiveViewMode === 'isometric' ? 'grab' : (cursorMap[activeTool] ?? 'default');
 
   // -----------------------------------------------------------------------
   // Scrollbar state — shows visible area when zoomed in
@@ -1494,7 +1404,7 @@ export function CanvasArea() {
   const thumbX = 0.5 - (panOffset.x / totalPxW) - thumbW / 2;
   const thumbY = 0.5 - (panOffset.y / totalPxH) - thumbH / 2;
 
-  const showScrollbars = zoom > 1.05; // only show when meaningfully zoomed in
+  const showScrollbars = effectiveViewMode === 'plan' && zoom > 1.05; // only show for 2D plan zoom/pan
 
   const handleScrollbarMouseDown = useCallback((axis: 'h' | 'v', e: React.MouseEvent) => {
     e.preventDefault();

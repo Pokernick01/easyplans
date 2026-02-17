@@ -27,6 +27,29 @@ export interface IsoFace {
     | 'furniture-box';
 }
 
+const FACE_SORT_PRIORITY: Record<IsoFace['type'], number> = {
+  floor: 0,
+  'wall-side': 1,
+  'wall-front': 2,
+  'door-opening': 3,
+  'window-opening': 4,
+  'window-glass': 5,
+  'wall-top': 6,
+  roof: 7,
+  'furniture-box': 8,
+};
+
+function polygonArea2D(points: Point[]): number {
+  if (points.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    sum += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(sum) / 2;
+}
+
 // ---------------------------------------------------------------------------
 // Isometric projection
 // ---------------------------------------------------------------------------
@@ -525,7 +548,13 @@ export function generateIsometricView(
   // Sort faces back-to-front (painter's algorithm)
   // -----------------------------------------------------------------------
 
-  faces.sort((a, b) => a.depth - b.depth);
+  faces.sort((a, b) => {
+    const depthDelta = a.depth - b.depth;
+    if (Math.abs(depthDelta) > 1e-6) return depthDelta;
+    const priorityDelta = FACE_SORT_PRIORITY[a.type] - FACE_SORT_PRIORITY[b.type];
+    if (priorityDelta !== 0) return priorityDelta;
+    return polygonArea2D(a.points) - polygonArea2D(b.points);
+  });
 
   return faces;
 }

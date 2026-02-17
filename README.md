@@ -6,7 +6,6 @@ EasyPlans is a free architectural plan creator for students and general users.
 
 ### What it includes
 - 2D plan editor
-- Facade (elevation) view
 - 3D view
 - Export to image/PDF
 - Multi-floor projects
@@ -16,7 +15,8 @@ EasyPlans is a free architectural plan creator for students and general users.
 - If you choose save, the app runs the normal save flow first.
 - `Clear Canvas` button asks for confirmation before removing all elements from all floors.
 - On mobile, sidebars now auto-collapse on load so the drawing canvas is visible immediately.
-- Section and facade views now filter/declutter stamp silhouettes to reduce overlap noise.
+- The active workflow is now `Plan + 3D` (section/facade tabs removed from UI).
+- 3D rendering now has improved shading, depth readability, and touch/wheel orbit controls.
 - The top bar includes a more prominent `Apoyame` support button.
 
 ### Development
@@ -39,7 +39,6 @@ npm run build
 
 ### Que incluye
 - Editor de plano 2D
-- Vista de fachada (elevacion)
 - Vista 3D
 - Exportacion a imagen/PDF
 - Proyectos con multiples pisos
@@ -49,7 +48,8 @@ npm run build
 - Si eliges guardar, la app ejecuta primero el flujo normal de guardado.
 - El boton `Limpiar lienzo` pide confirmacion antes de eliminar todos los elementos de todos los pisos.
 - En movil, las barras laterales se cierran automaticamente al abrir para mostrar el lienzo de inmediato.
-- Las vistas de corte y fachada ahora filtran/limpian siluetas de sellos para reducir superposiciones.
+- El flujo activo ahora es `Planta + 3D` (las pestanas de corte/fachada se quitaron de la UI).
+- El render 3D ahora tiene mejor sombreado, mejor lectura de profundidad y controles tactiles/rueda para orbitar.
 - La barra superior incluye un boton `Apoyame` mas visible.
 
 ### Manual

@@ -340,7 +340,7 @@
       <p>Key features include:</p>
       <ul>
         <li>Draw walls, doors, windows, rooms, stairs, and furniture</li>
-        <li>Multiple view modes: Plan, Section, Facade, and 3D Isometric</li>
+        <li>Two active view modes: Plan and 3D Isometric</li>
         <li>Export to PNG, transparent PNG, or PDF</li>
         <li>Multi-floor support with independent element sets</li>
         <li>Bilingual interface (English / Spanish)</li>
@@ -355,7 +355,7 @@
       <p>Caracter&iacute;sticas principales:</p>
       <ul>
         <li>Dibuja muros, puertas, ventanas, cuartos, escaleras y muebles</li>
-        <li>M&uacute;ltiples modos de vista: Planta, Corte, Fachada e Isom&eacute;trico 3D</li>
+        <li>Dos modos de vista activos: Planta e Isom&eacute;trico 3D</li>
         <li>Exportar a PNG, PNG transparente o PDF</li>
         <li>Soporte multi-piso con elementos independientes</li>
         <li>Interfaz biling&uuml;e (Ingl&eacute;s / Espa&ntilde;ol)</li>
@@ -374,7 +374,7 @@
 
     <div lang="en">
       <h3>Top Bar</h3>
-      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan, Section, Facade, 3D), scale selector, grid/snap/dimension toggles, undo/redo, new project, clear canvas, export, save/load buttons, help button, and a prominent <strong>Apoyame / Support me</strong> button.</p>
+      <p>Contains the logo, language toggle (EN/ES), view mode tabs (Plan and 3D), scale selector, grid/snap/dimension toggles, undo/redo, new project, clear canvas, export, save/load buttons, help button, and a prominent <strong>Apoyame / Support me</strong> button.</p>
 
       <h3>Left Sidebar</h3>
       <p>Tool palette with all drawing tools. Click a tool or use its keyboard shortcut to activate it. The active tool is highlighted in green.</p>
@@ -398,7 +398,7 @@
 
     <div lang="es">
       <h3>Barra Superior</h3>
-      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta, Corte, Fachada, 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, nuevo proyecto, limpiar lienzo, exportar, guardar/cargar, bot&oacute;n de ayuda y un bot&oacute;n <strong>Ap&oacute;yame / Support me</strong> m&aacute;s visible.</p>
+      <p>Contiene el logo, selector de idioma (EN/ES), pesta&ntilde;as de modo de vista (Planta y 3D), selector de escala, botones de cuadr&iacute;cula/ajuste/cotas, deshacer/rehacer, nuevo proyecto, limpiar lienzo, exportar, guardar/cargar, bot&oacute;n de ayuda y un bot&oacute;n <strong>Ap&oacute;yame / Support me</strong> m&aacute;s visible.</p>
 
       <h3>Barra Lateral Izquierda</h3>
       <p>Paleta de herramientas con todas las herramientas de dibujo. Haz clic en una herramienta o usa su atajo de teclado para activarla. La herramienta activa se resalta en verde.</p>
@@ -1056,32 +1056,20 @@
       <h3>Plan View (Planta)</h3>
       <p>Default orthographic top-down view. Shows all walls, openings, furniture, rooms, dimensions, and annotations. This is where most design work happens.</p>
 
-      <h3>Section View (Corte)</h3>
-      <p>Vertical cross-section through the building. Shows wall heights, floor slabs, door/window heights, stairs with visible treads, and Neufert-style furniture silhouettes. Includes dimension annotations and hatching patterns.</p>
-      <p>Section silhouettes are filtered by real cut-plane intersection and overlap is automatically reduced, so furniture/stamps are easier to read.</p>
-
-      <h3>Facade View (Fachada)</h3>
-      <p>Building elevation from a selectable direction (North, South, East, West). Shows the exterior appearance with wall materials, door and window openings, and architectural detail.</p>
-      <p>Facade silhouettes use front-plane depth filtering and overlap cleanup, so rear/interior clutter is reduced and stamp readability is improved.</p>
-
       <h3>Isometric View (3D)</h3>
-      <p>Pseudo-3D axonometric projection showing the building in three dimensions. Walls display their full height, doors and windows show their openings. Rotation angle can be adjusted.</p>
+      <p>Pseudo-3D axonometric projection showing the building in three dimensions. Walls display their full height, doors and windows show their openings. Rotation and elevation can be adjusted.</p>
+      <p>3D now includes improved shading, cleaner depth layering, and better orbit controls for mouse wheel and touch gestures.</p>
+      <div class="warn"><strong>Note:</strong> Section and Facade tabs are currently disabled in the active UI flow to prioritize stability and quality in Plan + 3D.</div>
     </div>
 
     <div lang="es">
       <h3>Vista de Planta</h3>
       <p>Vista ortogr&aacute;fica superior predeterminada. Muestra todos los muros, aberturas, muebles, cuartos, cotas y anotaciones. Aqu&iacute; es donde ocurre la mayor&iacute;a del trabajo de dise&ntilde;o.</p>
 
-      <h3>Vista de Corte</h3>
-      <p>Secci&oacute;n transversal vertical del edificio. Muestra alturas de muros, losas de piso, alturas de puertas/ventanas, escaleras con pelda&ntilde;os visibles y siluetas de muebles estilo Neufert. Incluye anotaciones de cotas y patrones de achurado.</p>
-      <p>Las siluetas en corte ahora se filtran por intersecci&oacute;n real con el plano de corte y se reduce autom&aacute;ticamente la superposici&oacute;n para mejorar la lectura.</p>
-
-      <h3>Vista de Fachada</h3>
-      <p>Elevaci&oacute;n del edificio desde una direcci&oacute;n seleccionable (Norte, Sur, Este, Oeste). Muestra la apariencia exterior con materiales de muro, aberturas de puertas y ventanas, y detalle arquitect&oacute;nico.</p>
-      <p>Las siluetas en fachada usan filtrado por profundidad del plano frontal y limpieza de superposiciones para reducir ruido interior y mejorar la diferenciaci&oacute;n de sellos.</p>
-
       <h3>Vista Isom&eacute;trica (3D)</h3>
-      <p>Proyecci&oacute;n axonom&eacute;trica pseudo-3D mostrando el edificio en tres dimensiones. Los muros muestran su altura completa, las puertas y ventanas muestran sus aberturas. El &aacute;ngulo de rotaci&oacute;n se puede ajustar.</p>
+      <p>Proyecci&oacute;n axonom&eacute;trica pseudo-3D mostrando el edificio en tres dimensiones. Los muros muestran su altura completa, las puertas y ventanas muestran sus aberturas. Se puede ajustar rotaci&oacute;n y elevaci&oacute;n.</p>
+      <p>El 3D ahora incluye mejor sombreado, mejor orden de profundidad y mejores controles de &oacute;rbita para rueda del mouse y gestos t&aacute;ctiles.</p>
+      <div class="warn"><strong>Nota:</strong> Las pesta&ntilde;as de Corte y Fachada est&aacute;n deshabilitadas en el flujo activo para priorizar estabilidad y calidad en Planta + 3D.</div>
     </div>
 
     <!-- 14. Floors -->
@@ -1104,7 +1092,7 @@
       </table>
 
       <h3>Floor Properties</h3>
-      <p>Each floor has a name, level index, and floor-to-floor height (default 3.0 m). The height affects Section and Isometric views.</p>
+      <p>Each floor has a name, level index, and floor-to-floor height (default 3.0 m). The height affects 3D isometric visualization.</p>
     </div>
 
     <div lang="es">
@@ -1121,7 +1109,7 @@
       </table>
 
       <h3>Propiedades del Piso</h3>
-      <p>Cada piso tiene un nombre, &iacute;ndice de nivel y altura piso a piso (predeterminado 3.0 m). La altura afecta las vistas de Corte e Isom&eacute;trica.</p>
+      <p>Cada piso tiene un nombre, &iacute;ndice de nivel y altura piso a piso (predeterminado 3.0 m). La altura afecta la visualizaci&oacute;n isom&eacute;trica 3D.</p>
     </div>
 
     <!-- 15. Export & Save -->
@@ -1331,7 +1319,7 @@
         <li>Click <strong>+</strong> to add a new floor, or duplicate the ground floor</li>
         <li>Switch between floors using the tabs</li>
         <li>Each floor maintains independent elements</li>
-        <li>Section and 3D views show all floors stacked</li>
+        <li>3D view can show the stacked massing across floors</li>
       </ol>
 
       <h3>Using Architectural Lines</h3>
@@ -1369,7 +1357,7 @@
         <li>Clic en <strong>+</strong> para agregar un nuevo piso, o duplica la planta baja</li>
         <li>Cambia entre pisos usando las pesta&ntilde;as</li>
         <li>Cada piso mantiene elementos independientes</li>
-        <li>Las vistas de Corte y 3D muestran todos los pisos apilados</li>
+        <li>La vista 3D puede mostrar la volumetr&iacute;a apilada entre pisos</li>
       </ol>
 
       <h3>Usando L&iacute;neas Arquitect&oacute;nicas</h3>

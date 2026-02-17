@@ -185,7 +185,7 @@ function buildDerivedRenderFn(
 ): RenderFn {
   const model = buildPlanModelFromState(state);
   const scene = buildDerivedSceneGeometry(model, {
-    mode: uiState.viewMode,
+    mode: 'isometric',
     facadeDirection: uiState.facadeDirection,
     sectionDirection: uiState.sectionDirection,
     sectionOffset: uiState.sectionOffset,
@@ -214,7 +214,7 @@ export function ExportDialog() {
   const setExportDialogOpen = useUIStore((s) => s.setExportDialogOpen);
   const projectName = useProjectStore((s) => s.project.name);
   const projectAuthor = useProjectStore((s) => s.project.author);
-  const viewMode = useUIStore((s) => s.viewMode);
+  const viewMode = useUIStore((s) => (s.viewMode === 'isometric' ? 'isometric' : 'plan'));
   const uiShowDimensions = useUIStore((s) => s.showDimensions);
   const projectForPreview = useProjectStore((s) => s.project);
   const t = useTranslation();
@@ -231,7 +231,7 @@ export function ExportDialog() {
     const state = useProjectStore.getState();
     const uiState = useUIStore.getState();
 
-    if (uiState.viewMode !== 'plan') {
+    if (uiState.viewMode === 'isometric') {
       return buildDerivedRenderFn(state, uiState);
     }
     return buildPlanRenderFn(state, includeDimensions);
