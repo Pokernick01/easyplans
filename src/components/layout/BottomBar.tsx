@@ -4,7 +4,9 @@ import { useProjectStore } from '@/store/project-store.ts';
 import { getActiveElements } from '@/store/selectors.ts';
 import { useTranslation } from '@/utils/i18n.ts';
 import type { ToolType } from '@/types/tools.ts';
-import { metersToUnit, unitDecimals, UNIT_LABELS } from '@/utils/units.ts';
+import { formatAreaInUnit, formatInUnit, metersToUnit, unitDecimals, UNIT_LABELS } from '@/utils/units.ts';
+import { polygonArea, polygonPerimeter } from '@/engine/math/polygon.ts';
+import type { Room } from '@/types/elements.ts';
 
 // ---------------------------------------------------------------------------
 // FloorTab - individual floor tab with hover delete button
@@ -213,6 +215,24 @@ export function BottomBar() {
   const floors = useProjectStore((s) => s.project.floors);
   const activeFloorIndex = useProjectStore((s) => s.project.activeFloorIndex);
   const displayUnit = useProjectStore((s) => s.project.displayUnit) || 'm';
+  const roomMetrics = useProjectStore((s) => {
+    const floor = s.project.floors[s.project.activeFloorIndex];
+    if (!floor) return { area: 0, perimeter: 0, roomCount: 0 };
+
+    const rooms = Object.values(floor.elements).filter(
+      (el): el is Room => el.type === 'room' && el.visible,
+    );
+
+    let totalArea = 0;
+    let totalPerimeter = 0;
+    for (const room of rooms) {
+      if (room.polygon.length < 3) continue;
+      totalArea += polygonArea(room.polygon);
+      totalPerimeter += polygonPerimeter(room.polygon);
+    }
+
+    return { area: totalArea, perimeter: totalPerimeter, roomCount: rooms.length };
+  });
 
   const t = useTranslation();
 
@@ -294,6 +314,16 @@ export function BottomBar() {
           </span>
           <span style={{ color: '#b5afa8' }}>{'\u2022'}</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{toolHint(activeTool)}</span>
+          <span style={{ color: '#b5afa8' }}>{'\u2022'}</span>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            {`${t('ui.totalArea')}: `}
+            <span style={{ color: '#3a3530' }}>{formatAreaInUnit(roomMetrics.area, displayUnit)}</span>
+          </span>
+          <span style={{ color: '#b5afa8' }}>{'\u2022'}</span>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            {`${t('ui.totalPerimeter')}: `}
+            <span style={{ color: '#3a3530' }}>{formatInUnit(roomMetrics.perimeter, displayUnit)}</span>
+          </span>
         </div>
       )}
 

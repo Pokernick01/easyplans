@@ -21,6 +21,24 @@ export function polygonArea(points: Point[]): number {
 }
 
 /**
+ * Compute the perimeter (total edge length) of a polygon.
+ * The polygon is treated as closed (last point connects to first).
+ * @param points Ordered vertices of the polygon.
+ */
+export function polygonPerimeter(points: Point[]): number {
+  const n = points.length;
+  if (n < 2) return 0;
+
+  let perimeter = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    perimeter += vec.distance(points[i], points[j]);
+  }
+
+  return perimeter;
+}
+
+/**
  * Compute the centroid (geometric center) of a simple polygon.
  * @param points Ordered vertices of the polygon.
  */

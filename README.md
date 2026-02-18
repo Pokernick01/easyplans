@@ -18,6 +18,7 @@ EasyPlans is a free architectural plan creator for students and general users.
 - The active workflow is now `Plan + 3D` (section/facade tabs removed from UI).
 - 3D rendering now has improved shading, depth readability, and touch/wheel orbit controls.
 - Plan and 3D now display orientation markers (North + Front), `Front direction` is selectable, and `North angle` is adjustable for lot orientation.
+- Bottom bar now auto-sums room `Total Area` and `Total Perimeter` for the active floor.
 - The top bar includes a more prominent `Apoyame` support button.
 
 ### Development
@@ -52,6 +53,7 @@ npm run build
 - El flujo activo ahora es `Planta + 3D` (las pestanas de corte/fachada se quitaron de la UI).
 - El render 3D ahora tiene mejor sombreado, mejor lectura de profundidad y controles tactiles/rueda para orbitar.
 - Planta y 3D ahora muestran marcadores de orientacion (Norte + Frente), se puede elegir la `Direccion de frente` y ajustar el `Angulo norte` segun la orientacion del lote.
+- La barra inferior ahora suma automaticamente `Area total` y `Perimetro total` de cuartos en el piso activo.
 - La barra superior incluye un boton `Apoyame` mas visible.
 
 ### Manual
