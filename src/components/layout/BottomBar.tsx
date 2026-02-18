@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '@/store/ui-store.ts';
 import { useProjectStore } from '@/store/project-store.ts';
 import { getActiveElements } from '@/store/selectors.ts';
@@ -215,10 +215,10 @@ export function BottomBar() {
   const floors = useProjectStore((s) => s.project.floors);
   const activeFloorIndex = useProjectStore((s) => s.project.activeFloorIndex);
   const displayUnit = useProjectStore((s) => s.project.displayUnit) || 'm';
-  const roomMetrics = useProjectStore((s) => {
-    const floor = s.project.floors[s.project.activeFloorIndex];
-    if (!floor) return { area: 0, perimeter: 0, roomCount: 0 };
-    if (!floor.elements || typeof floor.elements !== 'object') {
+  const activeFloor = useProjectStore((s) => s.project.floors[s.project.activeFloorIndex]);
+  const roomMetrics = useMemo(() => {
+    const floor = activeFloor;
+    if (!floor || !floor.elements || typeof floor.elements !== 'object') {
       return { area: 0, perimeter: 0, roomCount: 0 };
     }
 
@@ -246,7 +246,7 @@ export function BottomBar() {
     }
 
     return { area: totalArea, perimeter: totalPerimeter, roomCount: rooms.length };
-  });
+  }, [activeFloor]);
 
   const t = useTranslation();
 
