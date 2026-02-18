@@ -218,17 +218,31 @@ export function BottomBar() {
   const roomMetrics = useProjectStore((s) => {
     const floor = s.project.floors[s.project.activeFloorIndex];
     if (!floor) return { area: 0, perimeter: 0, roomCount: 0 };
+    if (!floor.elements || typeof floor.elements !== 'object') {
+      return { area: 0, perimeter: 0, roomCount: 0 };
+    }
 
-    const rooms = Object.values(floor.elements).filter(
-      (el): el is Room => el.type === 'room' && el.visible,
-    );
+    const rooms = Object.values(floor.elements).filter((el): el is Room => {
+      if (!el || typeof el !== 'object') return false;
+      if (!('type' in el) || (el as { type?: string }).type !== 'room') return false;
+      if (!('visible' in el) || (el as { visible?: boolean }).visible === false) return false;
+      return true;
+    });
 
     let totalArea = 0;
     let totalPerimeter = 0;
     for (const room of rooms) {
-      if (room.polygon.length < 3) continue;
-      totalArea += polygonArea(room.polygon);
-      totalPerimeter += polygonPerimeter(room.polygon);
+      if (!Array.isArray(room.polygon) || room.polygon.length < 3) continue;
+      const polygon = room.polygon.filter(
+        (pt): pt is { x: number; y: number } =>
+          pt != null
+          && typeof pt === 'object'
+          && typeof (pt as { x?: unknown }).x === 'number'
+          && typeof (pt as { y?: unknown }).y === 'number',
+      );
+      if (polygon.length < 3) continue;
+      totalArea += polygonArea(polygon);
+      totalPerimeter += polygonPerimeter(polygon);
     }
 
     return { area: totalArea, perimeter: totalPerimeter, roomCount: rooms.length };
