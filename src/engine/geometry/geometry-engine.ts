@@ -124,6 +124,7 @@ export function buildDerivedSceneGeometry(
   const visibleWindows = model.windows.filter((w) => w.visible);
   const visibleRooms = model.rooms.filter((r) => r.visible);
   const visibleFurniture = model.furniture.filter((f) => f.visible);
+  const visibleStairs = model.stairs.filter((s) => s.visible);
 
   const canonical = canonicalizeWallGeometry(visibleWalls, visibleDoors, visibleWindows);
   const walls = canonical.walls;
@@ -224,6 +225,7 @@ export function buildDerivedSceneGeometry(
       view.isoRotation,
       visibleFurniture,
       view.isoElevation,
+      visibleStairs,
     ),
     rotation: view.isoRotation,
     elevation: view.isoElevation,

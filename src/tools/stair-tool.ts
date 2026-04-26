@@ -21,6 +21,8 @@ export class StairTool implements BaseTool {
 
   private previewPos: Point | null = null;
   private previewRotation = 0;
+  private previewFlipH = false;
+  private previewFlipV = false;
 
   // -----------------------------------------------------------------------
   // Lifecycle
@@ -29,6 +31,8 @@ export class StairTool implements BaseTool {
   onActivate(): void {
     this.previewPos = null;
     this.previewRotation = 0;
+    this.previewFlipH = false;
+    this.previewFlipV = false;
     useUIStore.getState().setToolState('placing');
   }
 
@@ -60,8 +64,8 @@ export class StairTool implements BaseTool {
       rotation: this.previewRotation,
       riserHeight: 0.175,
       landingDepth: 1.0,
-      flipH: false,
-      flipV: false,
+      flipH: this.previewFlipH,
+      flipV: this.previewFlipV,
     });
 
     ui.markDirty();
@@ -76,17 +80,33 @@ export class StairTool implements BaseTool {
   onMouseUp(): void {}
 
   // -----------------------------------------------------------------------
-  // Keyboard
+  // Keyboard & Wheel
   // -----------------------------------------------------------------------
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'r' || event.key === 'R') {
       this.previewRotation = (this.previewRotation + 90) % 360;
+      useUIStore.getState().markDirty();
+    }
+    if (event.key === 'f' || event.key === 'F') {
+      this.previewFlipH = !this.previewFlipH;
+      useUIStore.getState().markDirty();
+    }
+    if (event.key === 'g' || event.key === 'G') {
+      this.previewFlipV = !this.previewFlipV;
+      useUIStore.getState().markDirty();
     }
     if (event.key === 'Escape') {
       this.previewPos = null;
       useUIStore.getState().setToolState('idle');
     }
+  }
+
+  onWheel(event: WheelEvent): boolean {
+    const delta = event.deltaY > 0 ? 5 : -5;
+    this.previewRotation = ((this.previewRotation + delta) % 360 + 360) % 360;
+    useUIStore.getState().markDirty();
+    return true;
   }
 
   // -----------------------------------------------------------------------
@@ -100,6 +120,8 @@ export class StairTool implements BaseTool {
       data: {
         position: this.previewPos,
         rotation: this.previewRotation,
+        flipH: this.previewFlipH,
+        flipV: this.previewFlipV,
         stairStyle: useUIStore.getState().activeStairStyle,
       },
     };

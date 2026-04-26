@@ -51,6 +51,12 @@ export interface BaseTool {
   onKeyDown(event: KeyboardEvent): void;
 
   /**
+   * Handle a mouse-wheel event while this tool is active.
+   * Return `true` if the tool consumed the event (canvas should not pan/zoom).
+   */
+  onWheel?(event: WheelEvent): boolean;
+
+  /**
    * Return a preview / ghost shape to render while the tool is mid-action.
    * Returns `null` when there is nothing to preview.
    */

@@ -395,13 +395,29 @@ export function CanvasArea() {
       }
 
       if (preview.type === 'stair') {
-        const sd = preview.data as { position: { x: number; y: number }; rotation: number; stairStyle: string };
+        const sd = preview.data as {
+          position: { x: number; y: number };
+          rotation: number;
+          stairStyle: string;
+          flipH?: boolean;
+          flipV?: boolean;
+        };
         ctx.save();
         ctx.translate(sd.position.x, sd.position.y);
         ctx.rotate((sd.rotation * Math.PI) / 180);
+        if (sd.flipH || sd.flipV) {
+          ctx.translate(sd.flipH ? 1.0 : 0, sd.flipV ? 3.0 : 0);
+          ctx.scale(sd.flipH ? -1 : 1, sd.flipV ? -1 : 1);
+        }
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 0.02;
-        ctx.strokeRect(-0.5, -1.5, 1.0, 3.0);
+        ctx.strokeRect(0, 0, 1.0, 3.0);
+        // Show rotation hint
+        ctx.fillStyle = '#666';
+        ctx.font = '0.18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${sd.rotation}\u00b0`, 0.5, 3.1);
         ctx.restore();
       }
 
@@ -845,6 +861,11 @@ export function CanvasArea() {
         ui.setIsoElevation(ui.isoElevation + (e.deltaY > 0 ? 1.5 : -1.5));
       }
       ui.markDirty();
+      return;
+    }
+
+    // Let the active tool consume the wheel event first (e.g. stair rotation)
+    if (toolManager.onWheel(e.nativeEvent)) {
       return;
     }
 

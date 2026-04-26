@@ -111,6 +111,10 @@ export class ToolManager {
     this.activeTool?.onKeyDown(event);
   }
 
+  onWheel(event: WheelEvent): boolean {
+    return this.activeTool?.onWheel?.(event) ?? false;
+  }
+
   // -----------------------------------------------------------------------
   // Preview
   // -----------------------------------------------------------------------

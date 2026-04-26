@@ -1,5 +1,5 @@
 import type { Point } from '@/types/geometry';
-import type { Wall, Door, Window, Room, FurnitureItem } from '@/types/elements';
+import type { Wall, Door, Window, Room, FurnitureItem, Stair } from '@/types/elements';
 import { wallToPolygon } from '@/engine/geometry/wall-thickness';
 import { classifyStamp, elevationHeight } from '@/engine/views/neufert-elevation';
 
@@ -24,7 +24,10 @@ export interface IsoFace {
     | 'door-opening'
     | 'window-opening'
     | 'window-glass'
-    | 'furniture-box';
+    | 'furniture-box'
+    | 'stair-tread'
+    | 'stair-riser'
+    | 'stair-landing';
 }
 
 const FACE_SORT_PRIORITY: Record<IsoFace['type'], number> = {
@@ -37,6 +40,9 @@ const FACE_SORT_PRIORITY: Record<IsoFace['type'], number> = {
   'wall-top': 6,
   roof: 7,
   'furniture-box': 8,
+  'stair-riser': 9,
+  'stair-landing': 10,
+  'stair-tread': 11,
 };
 
 function polygonArea2D(points: Point[]): number {
@@ -238,6 +244,156 @@ function wallBackFaceQuad(
 }
 
 // ---------------------------------------------------------------------------
+// Stair helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Transform a local stair coordinate (lx, ly, lz) to world 3D coordinates,
+ * respecting the stair's position, rotation, and flip axes.
+ */
+function stairLocalToWorld(
+  stair: Stair,
+  lx: number,
+  ly: number,
+  lz: number,
+): { x: number; y: number; z: number } {
+  const fx = stair.flipH ? stair.width - lx : lx;
+  const fy = stair.flipV ? stair.length - ly : ly;
+  const rad = (stair.rotation * Math.PI) / 180;
+  const cosA = Math.cos(rad);
+  const sinA = Math.sin(rad);
+  return {
+    x: stair.position.x + fx * cosA - fy * sinA,
+    y: stair.position.y + fx * sinA + fy * cosA,
+    z: lz,
+  };
+}
+
+/**
+ * Generate stair faces for a single straight-run segment in the stair's
+ * local coordinate system.
+ *
+ * @param swLocalX Start X in local coords (width axis).
+ * @param ewLocalX End X in local coords.
+ * @param slLocalY Start Y in local coords (length/travel axis).
+ * @param elLocalY End Y in local coords.
+ * @param zBottom  Base height (Z) of the segment.
+ * @param steps    Number of treads in this segment.
+ * @param baseColor Base hex colour for the stair material.
+ */
+function generateStraightStairSegment(
+  stair: Stair,
+  swLocalX: number,
+  ewLocalX: number,
+  slLocalY: number,
+  elLocalY: number,
+  zBottom: number,
+  steps: number,
+  baseColor: string,
+  rotationDeg: number,
+  elevationDeg: number,
+): IsoFace[] {
+  const faces: IsoFace[] = [];
+  if (steps <= 0) return faces;
+
+  const rh = stair.riserHeight;
+  const segmentLen = Math.abs(elLocalY - slLocalY);
+  const treadDepth = segmentLen / steps;
+  const yDir = elLocalY > slLocalY ? 1 : -1;
+
+  for (let i = 0; i < steps; i++) {
+    const zStepBottom = zBottom + i * rh;
+    const zStepTop = zBottom + (i + 1) * rh;
+    const yA = slLocalY + i * treadDepth * yDir;
+    const yB = yDir > 0 ? Math.min(yA + treadDepth, elLocalY) : Math.max(yA + treadDepth * yDir, elLocalY);
+
+    // 4 bottom corners (local)
+    const botLocal = [
+      { x: swLocalX, y: yA, z: zStepBottom },
+      { x: ewLocalX, y: yA, z: zStepBottom },
+      { x: ewLocalX, y: yB, z: zStepBottom },
+      { x: swLocalX, y: yB, z: zStepBottom },
+    ];
+    const topLocal = [
+      { x: swLocalX, y: yA, z: zStepTop },
+      { x: ewLocalX, y: yA, z: zStepTop },
+      { x: ewLocalX, y: yB, z: zStepTop },
+      { x: swLocalX, y: yB, z: zStepTop },
+    ];
+
+    const toWorld = (p: { x: number; y: number; z: number }) =>
+      stairLocalToWorld(stair, p.x, p.y, p.z);
+
+    const top3D = topLocal.map(toWorld);
+
+    // Tread (top face)
+    faces.push({
+      points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+      color: adjustBrightness(baseColor, 1.25),
+      depth: averageDepth(top3D, rotationDeg, elevationDeg),
+      type: 'stair-tread',
+    });
+
+    // Riser faces (front/back, vertical faces along Y direction)
+    // Front riser (at yA, facing +Y if yDir > 0 else -Y)
+    const riserFront = yDir > 0
+      ? [botLocal[1], botLocal[0], topLocal[0], topLocal[1]]
+      : [botLocal[0], botLocal[1], topLocal[1], topLocal[0]];
+    const rf3D = riserFront.map(toWorld);
+    faces.push({
+      points: rf3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+      color: adjustBrightness(baseColor, 0.85),
+      depth: averageDepth(rf3D, rotationDeg, elevationDeg),
+      type: 'stair-riser',
+    });
+
+    // Back riser (at yB)
+    const riserBack = yDir > 0
+      ? [botLocal[3], botLocal[2], topLocal[2], topLocal[3]]
+      : [botLocal[2], botLocal[3], topLocal[3], topLocal[2]];
+    const rb3D = riserBack.map(toWorld);
+    faces.push({
+      points: rb3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+      color: adjustBrightness(baseColor, 0.9),
+      depth: averageDepth(rb3D, rotationDeg, elevationDeg),
+      type: 'stair-riser',
+    });
+
+    // Side faces (perpendicular to travel, along X)
+    if (i === 0) {
+      const sQuad = [
+        { x: swLocalX, y: slLocalY, z: zBottom },
+        { x: swLocalX, y: elLocalY, z: zBottom },
+        { x: swLocalX, y: elLocalY, z: zBottom + steps * rh },
+        { x: swLocalX, y: slLocalY, z: zBottom + steps * rh },
+      ].map(toWorld);
+      faces.push({
+        points: sQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(baseColor, 0.65),
+        depth: averageDepth(sQuad, rotationDeg, elevationDeg),
+        type: 'stair-riser',
+      });
+    }
+    if (i === steps - 1) {
+      const eQuad = [
+        { x: ewLocalX, y: slLocalY, z: zBottom },
+        { x: ewLocalX, y: elLocalY, z: zBottom },
+        { x: ewLocalX, y: elLocalY, z: zBottom + steps * rh },
+        { x: ewLocalX, y: slLocalY, z: zBottom + steps * rh },
+      ].map(toWorld);
+      faces.push({
+        points: eQuad.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(baseColor, 0.68),
+        depth: averageDepth(eQuad, rotationDeg, elevationDeg),
+        type: 'stair-riser',
+      });
+    }
+  }
+
+  return faces;
+}
+
+// ---------------------------------------------------------------------------
 // Main generator
 // ---------------------------------------------------------------------------
 
@@ -264,6 +420,7 @@ export function generateIsometricView(
   rotationDeg = 0,
   furniture: FurnitureItem[] = [],
   elevationDeg = 30,
+  stairs: Stair[] = [],
 ): IsoFace[] {
   const faces: IsoFace[] = [];
 
@@ -541,6 +698,329 @@ export function generateIsometricView(
         depth: averageDepth(sidePts3D, rotationDeg, elevationDeg),
         type: 'furniture-box',
       });
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Stairs -- extruded blocks styled by staircase type
+  // -----------------------------------------------------------------------
+
+  const STAIR_COLOR = '#c8b696';
+
+  for (const stair of stairs) {
+    if (!stair.visible) continue;
+
+    const style = stair.stairStyle || 'straight';
+    const w = stair.width;
+    const l = stair.length;
+    const t = stair.treads;
+    const rh = stair.riserHeight;
+
+    if (style === 'straight') {
+      const segFaces = generateStraightStairSegment(
+        stair, 0, w, 0, l, 0, t, STAIR_COLOR, rotationDeg, elevationDeg,
+      );
+      for (const f of segFaces) faces.push(f);
+    } else if (style === 'l-shaped') {
+      const land = stair.landingDepth;
+      const halfT = Math.floor(t / 2);
+      const run1Len = l - land;
+      const midZ = halfT * rh;
+
+      // First run (0..run1Len along Y)
+      const f1 = generateStraightStairSegment(
+        stair, 0, w, 0, run1Len, 0, halfT, STAIR_COLOR, rotationDeg, elevationDeg,
+      );
+      for (const f of f1) faces.push(f);
+
+      // Landing -- flat rectangle at (0, run1Len) .. (w+land, run1Len+land), z = midZ
+      const landBot = [
+        { x: 0, y: run1Len, z: midZ },
+        { x: w + land, y: run1Len, z: midZ },
+        { x: w + land, y: run1Len + land, z: midZ },
+        { x: 0, y: run1Len + land, z: midZ },
+      ];
+      const landBot3D = landBot.map((p) => stairLocalToWorld(stair, p.x, p.y, p.z));
+      faces.push({
+        points: landBot3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(STAIR_COLOR, 1.3),
+        depth: averageDepth(landBot3D, rotationDeg, elevationDeg),
+        type: 'stair-landing',
+      });
+
+      // Second run (goes +X, -Y): local rect (w,0)..(w+land, w)
+      // Travel direction is +X (width axis), so we swap roles
+      // Width of this run = land (X extent), Length = w (Y extent, descending)
+      const remainingT = t - halfT;
+      for (let i = 0; i < remainingT; i++) {
+        const zBot = midZ + i * rh;
+        const zTop = midZ + (i + 1) * rh;
+        const xA = w + (i / remainingT) * land;
+        const xB = w + ((i + 1) / remainingT) * land;
+        const yEnd = w - (i / remainingT) * w;
+        const yStart = w - ((i + 1) / remainingT) * w;
+
+        const botLocal = [
+          { x: xA, y: yStart, z: zBot },
+          { x: xB, y: yStart, z: zBot },
+          { x: xB, y: yEnd, z: zBot },
+          { x: xA, y: yEnd, z: zBot },
+        ];
+        const topLocal = [
+          { x: xA, y: yStart, z: zTop },
+          { x: xB, y: yStart, z: zTop },
+          { x: xB, y: yEnd, z: zTop },
+          { x: xA, y: yEnd, z: zTop },
+        ];
+
+        const toW = (p: { x: number; y: number; z: number }) =>
+          stairLocalToWorld(stair, p.x, p.y, p.z);
+        const top3D = topLocal.map(toW);
+
+        // Tread
+        faces.push({
+          points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 1.25),
+          depth: averageDepth(top3D, rotationDeg, elevationDeg),
+          type: 'stair-tread',
+        });
+
+        // Riser at xA (side facing left in local)
+        const riserFront = [botLocal[0], botLocal[3], topLocal[3], topLocal[0]].map(toW);
+        faces.push({
+          points: riserFront.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 0.85),
+          depth: averageDepth(riserFront, rotationDeg, elevationDeg),
+          type: 'stair-riser',
+        });
+
+        // Riser at xB
+        const riserBack = [botLocal[1], botLocal[2], topLocal[2], topLocal[1]].map(toW);
+        faces.push({
+          points: riserBack.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 0.9),
+          depth: averageDepth(riserBack, rotationDeg, elevationDeg),
+          type: 'stair-riser',
+        });
+      }
+    } else if (style === 'u-shaped') {
+      const land = stair.landingDepth;
+      const halfT = Math.floor(t / 2);
+      const halfW = w / 2;
+      const runLen = l - land;
+      const midZ = halfT * rh;
+
+      // First run (left half, 0..halfW in X, 0..runLen in Y, going up +Y)
+      const f1 = generateStraightStairSegment(
+        stair, 0, halfW, 0, runLen, 0, halfT, STAIR_COLOR, rotationDeg, elevationDeg,
+      );
+      for (const f of f1) faces.push(f);
+
+      // Landing (0..w in X, runLen..runLen+land in Y)
+      const landBot = [
+        { x: 0, y: runLen, z: midZ },
+        { x: w, y: runLen, z: midZ },
+        { x: w, y: runLen + land, z: midZ },
+        { x: 0, y: runLen + land, z: midZ },
+      ].map((p) => stairLocalToWorld(stair, p.x, p.y, p.z));
+      faces.push({
+        points: landBot.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(STAIR_COLOR, 1.3),
+        depth: averageDepth(landBot, rotationDeg, elevationDeg),
+        type: 'stair-landing',
+      });
+
+      // Second run (right half, halfW..w in X, from runLen toward 0 in Y)
+      const remainingT = t - halfT;
+      for (let i = 0; i < remainingT; i++) {
+        const zBot = midZ + i * rh;
+        const zTop = midZ + (i + 1) * rh;
+        const yA = runLen - (i / remainingT) * runLen;
+        const yB = runLen - ((i + 1) / remainingT) * runLen;
+
+        const botLocal = [
+          { x: halfW, y: yA, z: zBot },
+          { x: w, y: yA, z: zBot },
+          { x: w, y: yB, z: zBot },
+          { x: halfW, y: yB, z: zBot },
+        ];
+        const topLocal = [
+          { x: halfW, y: yA, z: zTop },
+          { x: w, y: yA, z: zTop },
+          { x: w, y: yB, z: zTop },
+          { x: halfW, y: yB, z: zTop },
+        ];
+
+        const toW = (p: { x: number; y: number; z: number }) =>
+          stairLocalToWorld(stair, p.x, p.y, p.z);
+        const top3D = topLocal.map(toW);
+
+        faces.push({
+          points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 1.25),
+          depth: averageDepth(top3D, rotationDeg, elevationDeg),
+          type: 'stair-tread',
+        });
+
+        const rf = [botLocal[0], botLocal[3], topLocal[3], topLocal[0]].map(toW);
+        faces.push({
+          points: rf.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 0.85),
+          depth: averageDepth(rf, rotationDeg, elevationDeg),
+          type: 'stair-riser',
+        });
+
+        const rb = [botLocal[1], botLocal[2], topLocal[2], topLocal[1]].map(toW);
+        faces.push({
+          points: rb.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 0.9),
+          depth: averageDepth(rb, rotationDeg, elevationDeg),
+          type: 'stair-riser',
+        });
+      }
+    } else if (style === 'spiral') {
+      // Approximate spiral as a stacked cylinder
+      const cx = w / 2;
+      const cy = l / 2;
+      const outerR = Math.min(w, l) / 2;
+      const segments = 16;
+      for (let i = 0; i < t; i++) {
+        const zBot = i * rh;
+        const zTop = (i + 1) * rh;
+        const botPts: Array<{ x: number; y: number; z: number }> = [];
+        const topPts: Array<{ x: number; y: number; z: number }> = [];
+        for (let s = 0; s <= segments; s++) {
+          const a = (Math.PI * 2 * s) / segments;
+          const lx = cx + Math.cos(a) * outerR;
+          const ly = cy + Math.sin(a) * outerR;
+          botPts.push(stairLocalToWorld(stair, lx, ly, zBot));
+          topPts.push(stairLocalToWorld(stair, lx, ly, zTop));
+        }
+        faces.push({
+          points: topPts.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 1.25),
+          depth: averageDepth(topPts, rotationDeg, elevationDeg),
+          type: 'stair-tread',
+        });
+        // Side quad for each segment
+        for (let s = 0; s < segments; s++) {
+          const side3D = [botPts[s], botPts[s + 1], topPts[s + 1], topPts[s]];
+          faces.push({
+            points: side3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+            color: adjustBrightness(STAIR_COLOR, 0.8),
+            depth: averageDepth(side3D, rotationDeg, elevationDeg),
+            type: 'stair-riser',
+          });
+        }
+      }
+    } else if (style === 'winder') {
+      // Simplified: render straight portion + triangular fan as a block
+      const straightFrac = 0.7;
+      const straightLen = l * straightFrac;
+      const straightT = Math.max(2, t - 3);
+
+      // Straight portion
+      const sFaces = generateStraightStairSegment(
+        stair, 0, w, 0, straightLen, 0, straightT, STAIR_COLOR, rotationDeg, elevationDeg,
+      );
+      for (const f of sFaces) faces.push(f);
+
+      // Winder portion as sloped block (4 treads)
+      const wStartZ = straightT * rh;
+      const wEndZ = t * rh;
+      const wBot = [
+        { x: 0, y: straightLen, z: wStartZ },
+        { x: w, y: straightLen, z: wStartZ },
+        { x: w, y: l, z: wEndZ },
+        { x: 0, y: l, z: wEndZ },
+      ].map((p) => stairLocalToWorld(stair, p.x, p.y, p.z));
+      const wTop = [
+        { x: 0, y: straightLen, z: wEndZ },
+        { x: w, y: straightLen, z: wEndZ },
+        { x: w, y: l, z: wEndZ },
+        { x: 0, y: l, z: wEndZ },
+      ].map((p) => stairLocalToWorld(stair, p.x, p.y, p.z));
+
+      faces.push({
+        points: wTop.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(STAIR_COLOR, 1.25),
+        depth: averageDepth(wTop, rotationDeg, elevationDeg),
+        type: 'stair-tread',
+      });
+      // Side quads
+      const wLeft = [wBot[0], wBot[3], wTop[3], wTop[0]];
+      faces.push({
+        points: wLeft.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(STAIR_COLOR, 0.7),
+        depth: averageDepth(wLeft, rotationDeg, elevationDeg),
+        type: 'stair-riser',
+      });
+      const wRight = [wBot[1], wBot[2], wTop[2], wTop[1]];
+      faces.push({
+        points: wRight.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(STAIR_COLOR, 0.75),
+        depth: averageDepth(wRight, rotationDeg, elevationDeg),
+        type: 'stair-riser',
+      });
+    } else if (style === 'curved') {
+      // Curved stair: approximate as a sloped curved block
+      const arcCX = w;
+      const arcCY = l / 2;
+      const outerR = Math.min(w, l / 2);
+      const innerR = outerR * 0.4;
+      const segments = 20;
+
+      for (let i = 0; i < t; i++) {
+        const zBot = i * rh;
+        const zTop = (i + 1) * rh;
+        const angleStart = Math.PI / 2;
+        const angleEnd = Math.PI * 1.5;
+        // Arc is like a wedge of a ring
+        const outerBot: Array<{ x: number; y: number; z: number }> = [];
+        const outerTop: Array<{ x: number; y: number; z: number }> = [];
+        const innerBot: Array<{ x: number; y: number; z: number }> = [];
+        const innerTop: Array<{ x: number; y: number; z: number }> = [];
+
+        for (let s = 0; s <= segments; s++) {
+          const a = angleStart + (angleEnd - angleStart) * (s / segments);
+          const outerX = arcCX + Math.cos(a) * outerR;
+          const outerY = arcCY + Math.sin(a) * outerR;
+          const innerX = arcCX + Math.cos(a) * innerR;
+          const innerY = arcCY + Math.sin(a) * innerR;
+
+          outerBot.push(stairLocalToWorld(stair, outerX, outerY, zBot));
+          outerTop.push(stairLocalToWorld(stair, outerX, outerY, zTop));
+          innerBot.push(stairLocalToWorld(stair, innerX, innerY, zBot));
+          innerTop.push(stairLocalToWorld(stair, innerX, innerY, zTop));
+        }
+
+        // Tread: outer arc to inner arc
+        const treadPts = [...outerTop, ...innerTop.slice().reverse()];
+        faces.push({
+          points: treadPts.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(STAIR_COLOR, 1.25),
+          depth: averageDepth(treadPts, rotationDeg, elevationDeg),
+          type: 'stair-tread',
+        });
+
+        // Outer side face
+        for (let s = 0; s < segments; s++) {
+          const side = [outerBot[s], outerBot[s + 1], outerTop[s + 1], outerTop[s]];
+          faces.push({
+            points: side.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+            color: adjustBrightness(STAIR_COLOR, 0.75),
+            depth: averageDepth(side, rotationDeg, elevationDeg),
+            type: 'stair-riser',
+          });
+          const innerSide = [innerBot[s], innerBot[s + 1], innerTop[s + 1], innerTop[s]];
+          faces.push({
+            points: innerSide.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+            color: adjustBrightness(STAIR_COLOR, 0.65),
+            depth: averageDepth(innerSide, rotationDeg, elevationDeg),
+            type: 'stair-riser',
+          });
+        }
+      }
     }
   }
 

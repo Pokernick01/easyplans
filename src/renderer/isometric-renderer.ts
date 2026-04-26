@@ -153,6 +153,12 @@ function lineWidthForFace(type: IsoFace['type'], fitScale: number): number {
       return 0.7 * baseScale;
     case 'furniture-box':
       return 0.8 * baseScale;
+    case 'stair-tread':
+      return 0.7 * baseScale;
+    case 'stair-riser':
+      return 0.55 * baseScale;
+    case 'stair-landing':
+      return 0.65 * baseScale;
     case 'floor':
     default:
       return 0.45 * baseScale;
@@ -185,6 +191,9 @@ function fillStyleForFace(
     || face.type === 'wall-top'
     || face.type === 'furniture-box'
     || face.type === 'roof'
+    || face.type === 'stair-tread'
+    || face.type === 'stair-riser'
+    || face.type === 'stair-landing'
   ) {
     const grad = ctx.createLinearGradient(minX, minY, maxX, maxY);
     grad.addColorStop(0, lightenColor(base, 0.16 - depthT * 0.05));
