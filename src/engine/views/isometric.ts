@@ -27,7 +27,9 @@ export interface IsoFace {
     | 'furniture-box'
     | 'stair-tread'
     | 'stair-riser'
-    | 'stair-landing';
+    | 'stair-landing'
+    | 'door-leaf'
+    | 'window-frame';
 }
 
 const FACE_SORT_PRIORITY: Record<IsoFace['type'], number> = {
@@ -43,6 +45,8 @@ const FACE_SORT_PRIORITY: Record<IsoFace['type'], number> = {
   'stair-riser': 9,
   'stair-landing': 10,
   'stair-tread': 11,
+  'window-frame': 12,
+  'door-leaf': 13,
 };
 
 function polygonArea2D(points: Point[]): number {
@@ -241,6 +245,31 @@ function wallBackFaceQuad(
   const tl = { x: cStart.x - perp.x * halfThick, y: cStart.y - perp.y * halfThick, z: zTop };
 
   return [bl, br, tr, tl];
+}
+
+// ---------------------------------------------------------------------------
+// Wall pattern color tweaks
+// ---------------------------------------------------------------------------
+
+function wallPatternTint(baseColor: string, pattern?: string): string {
+  if (!pattern || pattern === 'solid') return baseColor;
+  const tints: Record<string, (r: number, g: number, b: number) => [number, number, number]> = {
+    brick: (r, g, b) => [Math.min(255, r + 40), Math.min(255, g + 10), Math.max(0, b - 20)],
+    concrete: (r, g, b) => [r + 15, g + 15, b + 15],
+    stone: (r, g, b) => [r + 25, g + 20, b + 10],
+    hatch: (r, g, b) => [Math.max(0, r - 20), Math.max(0, g - 20), Math.max(0, b - 20)],
+    crosshatch: (r, g, b) => [Math.max(0, r - 30), Math.max(0, g - 30), Math.max(0, b - 30)],
+    drywall: (r, g, b) => [r + 30, g + 28, b + 25],
+    block: (r, g, b) => [r + 10, g + 8, b + 5],
+    stucco: (r, g, b) => [r + 35, g + 32, b + 25],
+    plaster: (r, g, b) => [r + 35, g + 33, b + 28],
+  };
+  const [r, g, b] = parseHex(baseColor);
+  const tintFn = tints[pattern];
+  if (!tintFn) return baseColor;
+  const [tr, tg, tb] = tintFn(r, g, b);
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return `rgb(${clamp(tr)},${clamp(tg)},${clamp(tb)})`;
 }
 
 // ---------------------------------------------------------------------------
@@ -468,7 +497,8 @@ export function generateIsometricView(
   // -----------------------------------------------------------------------
 
   for (const wall of walls) {
-    const baseColor = wall.fillColor ?? '#d3d3d3';
+    const baseFillColor = wall.fillColor ?? '#d3d3d3';
+    const baseColor = wallPatternTint(baseFillColor, wall.fillPattern);
 
     // Get the 4-corner floor polygon from wall-thickness utility
     // Order: [startLeft, endLeft, endRight, startRight]
@@ -540,7 +570,7 @@ export function generateIsometricView(
   }
 
   // -----------------------------------------------------------------------
-  // Door openings -- dark rectangles overlaid on wall faces
+  // Door openings + leaf rendering
   // -----------------------------------------------------------------------
 
   for (const door of doors) {
@@ -550,7 +580,6 @@ export function generateIsometricView(
     const wLen = wallLength(wall);
     if (wLen === 0) continue;
 
-    // Parametric extent of the door opening along the wall
     const halfDoorT = (door.width / 2) / wLen;
     const tStart = Math.max(0, door.position - halfDoorT);
     const tEnd = Math.min(1, door.position + halfDoorT);
@@ -576,6 +605,142 @@ export function generateIsometricView(
       depth: averageDepth(backQuad, rotationDeg, elevationDeg) + 0.001,
       type: 'door-opening',
     });
+
+    // --- Door leaf rendering ---
+    const style = door.doorStyle || 'single';
+    if (style === 'pocket') continue; // pocket doors hidden in wall
+
+    const perp = wallPerp(wall);
+    const halfThick = wall.thickness / 2;
+    const leafThickness = 0.04;
+    const leafColor = '#c8b896';
+
+    // Hinge side (front face = left side of wall centerline, back face = right side)
+    const hingeSign = door.hinge === 'start' ? 1 : -1; // +1=hinge at tStart, -1=hinge at tEnd
+
+    const hingeT = door.hinge === 'start' ? tStart : tEnd;
+    const openRad = ((door.openAngle ?? 90) * Math.PI) / 180;
+
+    // Determine if leaf should be on front or back face
+    const leafOnFront = (door.swing === 'right') !== (door.flipSide === true);
+    const faceSign = leafOnFront ? 1 : -1;
+
+    if (style === 'single' || style === 'double') {
+      const leafCount = style === 'double' ? 2 : 1;
+      for (let l = 0; l < leafCount; l++) {
+        // Hinge is at the inner edge for double doors
+        const leafHingeCenter = lerpWallCenter(wall, l === 0 ? tStart : tEnd);
+        // Free edge extends along wall from hinge and swings outward
+        const extendDir = l === 0 ? 1 : -1; // which way along the wall the leaf extends
+        const leafFreeCenter = lerpWallCenter(wall, hingeT + extendDir * leafW / wLen);
+
+        // Rotate free edge by openAngle around hinge
+        const vx = leafFreeCenter.x - leafHingeCenter.x;
+        const vy = leafFreeCenter.y - leafHingeCenter.y;
+        const cosA = Math.cos(openRad * (hingeSign * extendDir > 0 ? 1 : -1) * faceSign);
+        const sinA = Math.sin(openRad * (hingeSign * extendDir > 0 ? 1 : -1) * faceSign);
+        const rvx = vx * cosA - vy * sinA;
+        const rvy = vx * sinA + vy * cosA;
+
+        const leafCorners3D = [
+          { x: leafHingeCenter.x + perp.x * halfThick * faceSign, y: leafHingeCenter.y + perp.y * halfThick * faceSign, z: zBottom },
+          { x: leafHingeCenter.x + rvx + perp.x * halfThick * faceSign, y: leafHingeCenter.y + rvy + perp.y * halfThick * faceSign, z: zBottom },
+          { x: leafHingeCenter.x + rvx + perp.x * halfThick * faceSign, y: leafHingeCenter.y + rvy + perp.y * halfThick * faceSign, z: zTop },
+          { x: leafHingeCenter.x + perp.x * halfThick * faceSign, y: leafHingeCenter.y + perp.y * halfThick * faceSign, z: zTop },
+        ];
+        // Additional thickness (back of leaf)
+        const leafThickDir = faceSign > 0 ? -leafThickness : leafThickness;
+        const leafBack3D = leafCorners3D.map((c) => ({
+          x: c.x + perp.x * leafThickDir,
+          y: c.y + perp.y * leafThickDir,
+          z: c.z,
+        }));
+
+        // Front face of leaf
+        faces.push({
+          points: leafCorners3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(leafColor, 1.1),
+          depth: averageDepth(leafCorners3D, rotationDeg, elevationDeg) + 0.002,
+          type: 'door-leaf',
+        });
+        // Side edges of leaf
+        for (let si = 0; si < 4; si++) {
+          const sidePts = [leafCorners3D[si], leafCorners3D[(si + 1) % 4], leafBack3D[(si + 1) % 4], leafBack3D[si]];
+          faces.push({
+            points: sidePts.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+            color: adjustBrightness(leafColor, 0.85),
+            depth: averageDepth(sidePts, rotationDeg, elevationDeg) + 0.002,
+            type: 'door-leaf',
+          });
+        }
+      }
+    } else if (style === 'sliding') {
+      // Sliding door: leaf offset to one side, parallel to wall
+      const slideOffset = 0.3;
+      const slideDir = door.flipSide ? -slideOffset : slideOffset;
+      const leafBot3D = [
+        { x: lerpWallCenter(wall, tStart).x + perp.x * slideDir, y: lerpWallCenter(wall, tStart).y + perp.y * slideDir, z: zBottom },
+        { x: lerpWallCenter(wall, tEnd).x + perp.x * slideDir, y: lerpWallCenter(wall, tEnd).y + perp.y * slideDir, z: zBottom },
+        { x: lerpWallCenter(wall, tEnd).x + perp.x * slideDir, y: lerpWallCenter(wall, tEnd).y + perp.y * slideDir, z: zTop },
+        { x: lerpWallCenter(wall, tStart).x + perp.x * slideDir, y: lerpWallCenter(wall, tStart).y + perp.y * slideDir, z: zTop },
+      ];
+      const leafTop3D = leafBot3D.map((p) => ({ x: p.x + perp.x * leafThickness * (slideDir > 0 ? 1 : -1), y: p.y + perp.y * leafThickness * (slideDir > 0 ? 1 : -1), z: p.z }));
+      faces.push({
+        points: leafTop3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(leafColor, 1.1),
+        depth: averageDepth(leafTop3D, rotationDeg, elevationDeg) + 0.002,
+        type: 'door-leaf',
+      });
+    } else if (style === 'folding') {
+      // Folding door: two panels, half width each, hinged in middle
+      for (let p = 0; p < 2; p++) {
+        const panelMid = (tStart + tEnd) / 2;
+        const panelT = p === 0 ? tStart : tEnd;
+        const panelMidPt = lerpWallCenter(wall, panelMid);
+        const panelTpt = lerpWallCenter(wall, panelT);
+        const foldSign = p === 0 ? -1 : 1;
+        const foldPt = {
+          x: panelMidPt.x + perp.x * halfThick * foldSign,
+          y: panelMidPt.y + perp.y * halfThick * foldSign,
+        };
+        const panelBot3D = [
+          { x: panelTpt.x + perp.x * halfThick * faceSign, y: panelTpt.y + perp.y * halfThick * faceSign, z: zBottom },
+          foldPt, // same zBottom
+          { ...foldPt, z: zTop },
+          { x: panelTpt.x + perp.x * halfThick * faceSign, y: panelTpt.y + perp.y * halfThick * faceSign, z: zTop },
+        ];
+        faces.push({
+          points: panelBot3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(leafColor, 1.1),
+          depth: averageDepth(panelBot3D, rotationDeg, elevationDeg) + 0.002,
+          type: 'door-leaf',
+        });
+      }
+    } else if (style === 'revolving') {
+      // Revolving door: X-shaped quadrants in a cylinder
+      const revC = lerpWallCenter(wall, door.position);
+      const revR = door.width / 2;
+      const hubZBottom = zBottom + 0.05;
+      const hubZTop = zTop - 0.05;
+      // 4 vanes at 90° intervals
+      for (let v = 0; v < 4; v++) {
+        const a = (v * Math.PI) / 2;
+        const cosA = Math.cos(a);
+        const sinA = Math.sin(a);
+        const vBot3D = [
+          { x: revC.x - cosA * revR, y: revC.y - sinA * revR, z: hubZBottom },
+          { x: revC.x + cosA * revR, y: revC.y + sinA * revR, z: hubZBottom },
+          { x: revC.x + cosA * revR, y: revC.y + sinA * revR, z: hubZTop },
+          { x: revC.x - cosA * revR, y: revC.y - sinA * revR, z: hubZTop },
+        ];
+        faces.push({
+          points: vBot3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(leafColor, 1.0),
+          depth: averageDepth(vBot3D, rotationDeg, elevationDeg) + 0.002,
+          type: 'door-leaf',
+        });
+      }
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -632,13 +797,71 @@ export function generateIsometricView(
       depth: averageDepth(backOpeningQuad, rotationDeg, elevationDeg) + 0.001,
       type: 'window-opening',
     });
+
+    // --- Window frame details based on style ---
+    const frameDepth = 0.002;
+    const midT = (tStart + tEnd) / 2;
+    const frameColor = 'rgb(80,75,70)';
+
+    // Frame border (thin rectangle around glass on both faces)
+    const fStart = lerpWallCenter(wall, tStart);
+    const fEnd = lerpWallCenter(wall, tEnd);
+    const dxW = (wall.end.x - wall.start.x) / wLen;
+    const dyW = (wall.end.y - wall.start.y) / wLen;
+
+    const style = win.windowStyle || 'single';
+
+    // Top frame strip
+    const frameTop3D = [
+      { x: fStart.x + perp.x * halfThick, y: fStart.y + perp.y * halfThick, z: zTop - 0.02 },
+      { x: fEnd.x + perp.x * halfThick, y: fEnd.y + perp.y * halfThick, z: zTop - 0.02 },
+      { x: fEnd.x + perp.x * halfThick, y: fEnd.y + perp.y * halfThick, z: zTop },
+      { x: fStart.x + perp.x * halfThick, y: fStart.y + perp.y * halfThick, z: zTop },
+    ];
+    // Bottom frame strip
+    const frameBot3D = [
+      { x: fStart.x + perp.x * halfThick, y: fStart.y + perp.y * halfThick, z: zBottom },
+      { x: fEnd.x + perp.x * halfThick, y: fEnd.y + perp.y * halfThick, z: zBottom },
+      { x: fEnd.x + perp.x * halfThick, y: fEnd.y + perp.y * halfThick, z: zBottom + 0.02 },
+      { x: fStart.x + perp.x * halfThick, y: fStart.y + perp.y * halfThick, z: zBottom + 0.02 },
+    ];
+
+    faces.push({
+      points: frameTop3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+      color: frameColor,
+      depth: averageDepth(frameTop3D, rotationDeg, elevationDeg) + frameDepth,
+      type: 'window-frame',
+    });
+    faces.push({
+      points: frameBot3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+      color: frameColor,
+      depth: averageDepth(frameBot3D, rotationDeg, elevationDeg) + frameDepth,
+      type: 'window-frame',
+    });
+
+    // Center mullion for double / casement / sliding windows
+    if (style === 'double' || style === 'casement' || style === 'sliding') {
+      const midPt = lerpWallCenter(wall, midT);
+      const mullion3D = [
+        { x: midPt.x + perp.x * halfThick - dxW * 0.01, y: midPt.y + perp.y * halfThick - dyW * 0.01, z: zBottom },
+        { x: midPt.x + perp.x * halfThick + dxW * 0.01, y: midPt.y + perp.y * halfThick + dyW * 0.01, z: zBottom },
+        { x: midPt.x + perp.x * halfThick + dxW * 0.01, y: midPt.y + perp.y * halfThick + dyW * 0.01, z: zTop },
+        { x: midPt.x + perp.x * halfThick - dxW * 0.01, y: midPt.y + perp.y * halfThick - dyW * 0.01, z: zTop },
+      ];
+      faces.push({
+        points: mullion3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: frameColor,
+        depth: averageDepth(mullion3D, rotationDeg, elevationDeg) + frameDepth,
+        type: 'window-frame',
+      });
+    }
   }
 
   // -----------------------------------------------------------------------
-  // Furniture -- extruded boxes with type-specific Neufert heights
+  // Furniture -- stamp-specific 3D shapes
   // -----------------------------------------------------------------------
 
-  const DEFAULT_FURNITURE_COLOR = '#c8b896'; // muted beige
+  const DEFAULT_FURNITURE_COLOR = '#c8b896';
 
   for (const item of furniture) {
     const cx = item.position.x;
@@ -649,55 +872,230 @@ export function generateIsometricView(
     const h = elevationHeight(stampType);
     const baseColor = item.color ?? DEFAULT_FURNITURE_COLOR;
 
-    // Rotation of the furniture piece
     const rad = ((item.rotation ?? 0) * Math.PI) / 180;
     const cosA = Math.cos(rad);
     const sinA = Math.sin(rad);
 
-    // Compute the 4 corners of the bounding box in world XY (at z=0)
-    // Local corners relative to center: (-w/2, -d/2), (w/2, -d/2), etc.
     const hw = w / 2;
     const hd = d / 2;
-    const localCorners = [
-      { x: -hw, y: -hd },
-      { x: hw, y: -hd },
-      { x: hw, y: hd },
-      { x: -hw, y: hd },
-    ];
 
-    // Rotate and translate to world coordinates
-    const worldCorners = localCorners.map((lc) => ({
-      x: cx + lc.x * cosA - lc.y * sinA,
-      y: cy + lc.x * sinA + lc.y * cosA,
-    }));
-
-    // Bottom 3D corners (z = 0)
-    const bot3D = worldCorners.map((c) => ({ x: c.x, y: c.y, z: 0 }));
-    // Top 3D corners (z = h)
-    const top3D = worldCorners.map((c) => ({ x: c.x, y: c.y, z: h }));
-
-    // ----- Top face -----
-    faces.push({
-      points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
-      color: adjustBrightness(baseColor, 1.2),
-      depth: averageDepth(top3D, rotationDeg, elevationDeg),
-      type: 'furniture-box',
+    // Transform local point (lx, ly, lz) relative to item center to world
+    const itemToWorld = (lx: number, ly: number, lz: number) => ({
+      x: cx + lx * cosA - ly * sinA,
+      y: cy + lx * sinA + ly * cosA,
+      z: lz,
     });
 
-    // ----- Four side faces -----
-    for (let i = 0; i < 4; i++) {
-      const j = (i + 1) % 4;
-      const sidePts3D = [bot3D[i], bot3D[j], top3D[j], top3D[i]];
+    // Helper: add a box defined by min/max in local coords
+    const addBox = (
+      minX: number, maxX: number,
+      minY: number, maxY: number,
+      zBot: number, zTop: number,
+      color: string,
+      _alpha?: number,
+    ) => {
+      const p0 = itemToWorld(minX, minY, zBot);
+      const p1 = itemToWorld(maxX, minY, zBot);
+      const p2 = itemToWorld(maxX, maxY, zBot);
+      const p3 = itemToWorld(minX, maxY, zBot);
+      const p4 = itemToWorld(minX, minY, zTop);
+      const p5 = itemToWorld(maxX, minY, zTop);
+      const p6 = itemToWorld(maxX, maxY, zTop);
+      const p7 = itemToWorld(minX, maxY, zTop);
 
-      // Vary brightness by face index for visual depth
-      const brightness = i < 2 ? 1.0 : 0.75;
+      const sideFaces = [
+        [p0, p1, p5, p4], // front (minY)
+        [p2, p3, p7, p6], // back (maxY)
+        [p3, p0, p4, p7], // left (minX)
+        [p1, p2, p6, p5], // right (maxX)
+      ] as const;
+      const sideBrightness = [1.0, 0.75, 0.65, 0.7];
 
+      for (let si = 0; si < 4; si++) {
+        const sf = sideFaces[si];
+        const s3D = [sf[0], sf[1], sf[2], sf[3]];
+        faces.push({
+          points: s3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(color, sideBrightness[si]),
+          depth: averageDepth(s3D, rotationDeg, elevationDeg),
+          type: 'furniture-box',
+        });
+      }
+
+      const top3D = [p4, p5, p6, p7];
       faces.push({
-        points: sidePts3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
-        color: adjustBrightness(baseColor, brightness),
-        depth: averageDepth(sidePts3D, rotationDeg, elevationDeg),
+        points: top3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(color, 1.25),
+        depth: averageDepth(top3D, rotationDeg, elevationDeg) + 0.0001,
         type: 'furniture-box',
       });
+    };
+
+    // Helper: add a cylinder (approximated as polygon, centered)
+    const addCylinder = (
+      centerLX: number, centerLY: number,
+      rx: number, ry: number,
+      zBot: number, zTop: number,
+      color: string, segs = 12,
+    ) => {
+      const botPts: Array<{ x: number; y: number; z: number }> = [];
+      const topPts: Array<{ x: number; y: number; z: number }> = [];
+      for (let s = 0; s <= segs; s++) {
+        const a = (Math.PI * 2 * s) / segs;
+        botPts.push(itemToWorld(centerLX + Math.cos(a) * rx, centerLY + Math.sin(a) * ry, zBot));
+        topPts.push(itemToWorld(centerLX + Math.cos(a) * rx, centerLY + Math.sin(a) * ry, zTop));
+      }
+      // Top
+      faces.push({
+        points: topPts.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+        color: adjustBrightness(color, 1.25),
+        depth: averageDepth(topPts, rotationDeg, elevationDeg) + 0.0001,
+        type: 'furniture-box',
+      });
+      // Side panels
+      for (let s = 0; s < segs; s++) {
+        const side3D = [botPts[s], botPts[s + 1], topPts[s + 1], topPts[s]];
+        faces.push({
+          points: side3D.map((p) => isoProject(p.x, p.y, p.z, rotationDeg, elevationDeg)),
+          color: adjustBrightness(color, 0.8 + 0.2 * ((s % 3) / 3)),
+          depth: averageDepth(side3D, rotationDeg, elevationDeg),
+          type: 'furniture-box',
+        });
+      }
+    };
+
+    // --- Per-category 3D shapes ---
+    if (stampType === 'table') {
+      // Table: thin top slab + 4 legs
+      const tableTopH = h * 0.9;
+      const legThick = Math.min(w, d) * 0.08;
+      const legOffset = 0.15;
+      const legBottomH = 0.02;
+      // Top slab
+      addBox(-hw, hw, -hd, hd, tableTopH - 0.03, tableTopH, adjustBrightness(baseColor, 1.1));
+      // 4 legs
+      for (const [lx, ly] of [[-hw + legOffset, -hd + legOffset], [hw - legOffset, -hd + legOffset], [hw - legOffset, hd - legOffset], [-hw + legOffset, hd - legOffset]] as const) {
+        addBox(lx - legThick, lx + legThick, ly - legThick, ly + legThick, legBottomH, tableTopH - 0.03, baseColor);
+      }
+    } else if (stampType === 'chair') {
+      // Chair: seat box + backrest
+      const seatH = h * 0.55;
+      const seatBotH = h * 0.15;
+      const backrestMinY = -hd;
+      const backrestMaxY = -hd + 0.06;
+      const backrestH = h * 0.95;
+      // Seat
+      addBox(-hw * 0.85, hw * 0.85, -hd * 0.7, hd * 0.7, seatBotH, seatH, baseColor);
+      // Backrest (at back edge, minY)
+      addBox(-hw * 0.7, hw * 0.7, backrestMinY, backrestMaxY, seatH, backrestH, adjustBrightness(baseColor, 0.9));
+      // 4 small legs
+      const legW = hw * 0.08;
+      for (const [lx, ly] of [[-hw * 0.7, -hd * 0.5], [hw * 0.7, -hd * 0.5], [hw * 0.7, hd * 0.5], [-hw * 0.7, hd * 0.5]] as const) {
+        addBox(lx - legW, lx + legW, ly - legW, ly + legW, 0, seatBotH, baseColor);
+      }
+    } else if (stampType === 'sofa') {
+      // Sofa/Armchair: seat + backrest along maxY
+      const seatH = h * 0.5;
+      const seatBot = h * 0.08;
+      // Seat body
+      addBox(-hw * 0.9, hw * 0.9, -hd * 0.6, hd * 0.8, seatBot, seatH, baseColor);
+      // Backrest at maxY
+      addBox(-hw * 0.85, hw * 0.85, hd * 0.55, hd * 0.85, seatH, h, adjustBrightness(baseColor, 1.05));
+      // Armrests left/right
+      const armW = hw * 0.1;
+      addBox(-hw * 0.9, -hw + armW, -hd * 0.5, hd * 0.5, seatBot, seatH + 0.1, adjustBrightness(baseColor, 1.0));
+      addBox(hw - armW, hw * 0.9, -hd * 0.5, hd * 0.5, seatBot, seatH + 0.1, adjustBrightness(baseColor, 1.0));
+    } else if (stampType === 'bed') {
+      // Bed: mattress box + headboard
+      const mattressTop = h * 0.85;
+      // Mattress/body
+      addBox(-hw * 0.9, hw * 0.9, -hd * 0.9, hd * 0.85, h * 0.2, mattressTop, baseColor);
+      // Headboard at maxY
+      addBox(-hw * 0.9, hw * 0.9, hd * 0.8, hd * 0.95, mattressTop - 0.05, h, adjustBrightness(baseColor, 1.0));
+      // Two pillows
+      const pillowW = hw * 0.3;
+      const pillowCenter = -hd * 0.75;
+      addBox(-pillowW, 0, pillowCenter - 0.06, pillowCenter + 0.06, mattressTop, mattressTop + 0.08, '#f5f0e8');
+      addBox(0, pillowW, pillowCenter - 0.06, pillowCenter + 0.06, mattressTop, mattressTop + 0.08, '#f5f0e8');
+    } else if (stampType === 'wardrobe' || stampType === 'fridge') {
+      // Tall storage unit
+      addBox(-hw * 0.95, hw * 0.95, -hd * 0.95, hd * 0.95, 0.02, h, baseColor);
+      // Vertical divider strip
+      addBox(-0.015, 0.015, -hd * 0.9, hd * 0.9, 0.02, h, adjustBrightness(baseColor, 0.75));
+    } else if (stampType === 'stove') {
+      // Stove: counter-height box + burner rings
+      const topH = h * 0.92;
+      addBox(-hw, hw, -hd, hd, 0.02, topH, baseColor);
+      // Top cooking surface
+      addBox(-hw * 0.95, hw * 0.95, -hd * 0.95, hd * 0.95, topH, topH + 0.015, '#333');
+    } else if (stampType === 'toilet') {
+      // Toilet: low box with tank
+      addBox(-hw * 0.7, hw * 0.7, -hd * 0.7, hd * 0.7, 0.02, h * 0.6, baseColor);
+      // Tank at maxY
+      addBox(-hw * 0.5, hw * 0.5, hd * 0.35, hd * 0.75, h * 0.45, h, baseColor);
+    } else if (stampType === 'bidet') {
+      addBox(-hw * 0.7, hw * 0.7, -hd * 0.7, hd * 0.7, 0.01, h * 0.5, baseColor);
+    } else if (stampType === 'sink' || stampType === 'kitchen-sink') {
+      // Sink: counter-height box with basin inset
+      const topH = h * 0.9;
+      addBox(-hw, hw, -hd, hd, 0.02, topH, baseColor);
+      // Basin depression
+      addBox(-hw * 0.3, hw * 0.3, -hd * 0.3, hd * 0.3, topH - 0.04, topH, adjustBrightness(baseColor, 0.7));
+    } else if (stampType === 'bathtub') {
+      addBox(-hw * 0.95, hw * 0.95, -hd * 0.95, hd * 0.95, 0.01, h * 0.5, baseColor);
+      // Inner tub
+      addBox(-hw * 0.7, hw * 0.7, -hd * 0.7, hd * 0.7, h * 0.05, h * 0.45, '#e8e4dc');
+    } else if (stampType === 'shower') {
+      // Glass enclosure
+      const glassColor = 'rgba(140,200,230,0.35)';
+      addBox(-hw * 0.9, hw * 0.9, -hd * 0.9, hd * 0.9, 0, h, glassColor, 0.5);
+    } else if (stampType === 'car') {
+      // Car: long box with rounded top
+      addBox(-hw * 0.95, hw * 0.95, -hd * 0.95, hd * 0.95, 0.02, h * 0.55, baseColor);
+      // Cabin (top section)
+      addBox(-hw * 0.55, hw * 0.55, -hd * 0.3, hd * 0.3, h * 0.55, h * 0.9, adjustBrightness(baseColor, 1.1));
+    } else if (stampType === 'tree') {
+      // Tree: trunk + canopy sphere
+      const trunkR = Math.min(w, d) * 0.06;
+      const canopyR = Math.min(w, d) * 0.4;
+      addCylinder(0, 0, trunkR, trunkR, 0, h * 0.5, '#8B6914', 8);
+      addCylinder(0, 0, canopyR, canopyR, h * 0.35, h, '#4a8c3f', 14);
+    } else if (stampType === 'bush') {
+      addCylinder(0, 0, w * 0.4, d * 0.4, 0, h, '#5a9e4a', 10);
+    } else if (stampType === 'person') {
+      // Person: vertical cylinder + sphere head
+      const bodyR = Math.min(w, d) * 0.25;
+      addCylinder(0, 0, bodyR, bodyR, 0, h * 0.7, '#5b7399', 10);
+      addCylinder(0, h * 0.06, bodyR * 0.85, bodyR * 0.85, h * 0.7, h * 0.92, '#e8c597', 10);
+    } else if (stampType === 'child') {
+      const bodyR = Math.min(w, d) * 0.25;
+      addCylinder(0, 0, bodyR, bodyR, 0, h * 0.65, '#5b7399', 10);
+      addCylinder(0, h * 0.04, bodyR * 0.9, bodyR * 0.9, h * 0.65, h * 0.9, '#e8c597', 10);
+    } else if (stampType === 'floor-lamp') {
+      const poleR = Math.min(w, d) * 0.04;
+      const shadeR = Math.min(w, d) * 0.3;
+      addCylinder(0, 0, poleR, poleR, 0, h * 0.75, '#888', 8);
+      addCylinder(0, 0, shadeR, shadeR, h * 0.7, h, '#e8dcc8', 10);
+    } else if (stampType === 'rug') {
+      // Very thin flat rectangle
+      addBox(-hw, hw, -hd, hd, 0, 0.02, baseColor);
+    } else if (stampType === 'painting') {
+      // Thin wall-mounted rectangle at mid-height
+      addBox(-hw, hw, -hd, hd, h * 0.3, h * 0.9, baseColor);
+    } else if (stampType === 'curtain') {
+      addBox(-hw, hw, -hd, hd, 0, h, baseColor);
+    } else if (stampType === 'pool') {
+      addBox(-hw * 0.95, hw * 0.95, -hd * 0.95, hd * 0.95, 0, h * 0.8, 'rgba(90,170,220,0.4)');
+    } else if (stampType === 'door-panel' || stampType === 'window-panel') {
+      // Glass panels: thin translucent
+      addBox(-hw, hw, -hd, hd, 0, h, 'rgba(140,200,230,0.35)');
+    } else if (stampType === 'potted-plant') {
+      const potR = Math.min(w, d) * 0.2;
+      addCylinder(0, 0, potR, potR, 0, h * 0.3, '#a0522d', 8);
+      addCylinder(0, 0, potR * 1.5, potR * 1.5, h * 0.25, h, '#5a9e4a', 10);
+    } else {
+      // Generic box for unknown types
+      addBox(-hw, hw, -hd, hd, 0, h, baseColor);
     }
   }
 
